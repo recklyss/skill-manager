@@ -29,6 +29,9 @@ function detailFixture(overrides: Partial<Record<string, unknown>> = {}) {
     name: "exa",
     displayName: "Exa Search",
     kind: "managed",
+    enabledStatus: "enabled",
+    availabilityStatus: "unavailable",
+    availabilityReason: null,
     spec: {
       name: "exa",
       displayName: "Exa Search",
@@ -109,10 +112,110 @@ describe("McpServerDetailView", () => {
     expect(screen.getByText("Claude")).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Cursor, Enabled" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Claude, Disabled" })).toBeInTheDocument();
-    expect(screen.queryByText(/^Enabled$/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Disabled$/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Availability:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check" })).not.toBeInTheDocument();
     expect(screen.getByText("EXA_API_KEY")).toBeInTheDocument();
     expect(screen.getByText("long-random-literal-value-xxxx")).toBeInTheDocument();
+  });
+
+  it("does not run availability checks from the detail header", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/mcp/servers/exa/availability/check")) {
+        throw new Error("availability check should not be called");
+      }
+      if (url.includes("/api/mcp/servers/exa")) {
+        expect(init?.method ?? "GET").toBe("GET");
+        return okJson(detailFixture({ availabilityStatus: "available" }));
+      }
+      throw new Error(`Unhandled URL ${url}`);
+    });
+    renderView();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Exa Search" })).toBeInTheDocument());
+    expect(screen.queryByLabelText(/Availability:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check" })).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some((call) =>
+        String(call[0]).includes("/api/mcp/servers/exa/availability/check"),
+      ),
+    ).toBe(false);
+  });
+
+  it("masks secret-like headers in the connection block", async () => {
+    fetchMock.mockResolvedValue(
+      okJson(
+        detailFixture({
+          spec: {
+            name: "exa",
+            displayName: "Exa Search",
+            source: { kind: "marketplace", locator: "exa" },
+            transport: "http",
+            url: "https://exa.run.tools",
+            headers: {
+              Authorization: "Bearer live-secret-token",
+              "X-Client-Name": "skill-manager",
+            },
+            installedAt: "2026-04-21T00:00:00Z",
+            revision: "abc",
+          },
+        }),
+      ),
+    );
+
+    renderView();
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Exa Search" })).toBeInTheDocument());
+    expect(screen.queryByText(/live-secret-token/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Authorization/)).toHaveTextContent("••••••••");
+    expect(screen.getByText(/X-Client-Name/)).toHaveTextContent("skill-manager");
+  });
+
+  it("masks secret-like headers in config choice previews", async () => {
+    fetchMock.mockResolvedValue(
+      okJson(
+        detailFixture({
+          sightings: [
+            { harness: "cursor", state: "drifted", driftDetail: "changed=headers" },
+            { harness: "claude", state: "missing" },
+          ],
+          configChoices: [
+            {
+              sourceKind: "managed",
+              sourceHarness: null,
+              label: "Skill Manager config",
+              logoKey: null,
+              configPath: null,
+              payloadPreview: {
+                url: "https://exa.run.tools",
+                headers: {
+                  Authorization: "Bearer live-secret-token",
+                  "X-Client-Name": "skill-manager",
+                },
+              },
+              spec: {
+                name: "exa",
+                displayName: "Exa Search",
+                source: { kind: "marketplace", locator: "exa" },
+                transport: "http",
+                url: "https://exa.run.tools",
+                installedAt: "2026-04-21T00:00:00Z",
+                revision: "abc",
+              },
+              env: [],
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderView();
+
+    await waitFor(() => expect(screen.getByText("Different configs found")).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole("button", { name: "Resolve config" })[0]);
+    fireEvent.click(await screen.findByRole("button", { name: /show config preview/i }));
+    expect(screen.queryByText(/live-secret-token/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Authorization/)).toHaveTextContent("••••••••");
+    expect(screen.getByText(/X-Client-Name/)).toHaveTextContent("skill-manager");
   });
 
   it("calls onEnableHarness when clicking Enable on a missing harness row", async () => {

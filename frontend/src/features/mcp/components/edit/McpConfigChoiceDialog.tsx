@@ -9,6 +9,7 @@ import type {
   McpServerSpecDto,
 } from "../../api/management-types";
 import { useMcpCopy } from "../../i18n";
+import { maskMcpPayloadPreview } from "../../model/display-secrets";
 import {
   envChipLabel,
   formatEnvKeyPreview,
@@ -184,7 +185,7 @@ export function McpConfigChoiceDialog({
                     </button>
                     {isExpanded ? (
                       <pre className="mcp-choose-version__payload ui-scrollbar">
-                        {JSON.stringify(option.payloadPreview, null, 2)}
+                        {JSON.stringify(maskMcpPayloadPreview(option.payloadPreview), null, 2)}
                       </pre>
                     ) : null}
                   </div>

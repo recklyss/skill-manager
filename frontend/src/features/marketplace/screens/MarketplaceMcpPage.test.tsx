@@ -80,7 +80,7 @@ describe("MarketplaceMcpPage", () => {
     const detail = deferred<ReturnType<typeof okJson>>();
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
-      if (url.includes("/api/marketplace/mcp/popular?limit=30&offset=0")) {
+      if (url.includes("/api/marketplace/mcp/popular?limit=20&offset=0")) {
         return okJson({ items: [pageItem()], nextOffset: null, hasMore: false });
       }
       if (url.includes("/api/marketplace/mcp/install-targets")) {

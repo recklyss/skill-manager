@@ -7,6 +7,7 @@ import { OverflowTooltipText } from "../../../components/ui/OverflowTooltipText"
 import type { McpInventoryColumnDto, McpInventoryEntryDto } from "../api/management-types";
 import { useMcpCopy } from "../i18n";
 import { isMcpHarnessAddressable } from "../model/selectors";
+import { McpAvailabilityStatusChip } from "./McpAvailabilityStatusChip";
 import { McpHarnessLogoStack } from "./McpHarnessLogoStack";
 
 interface McpServerCardProps {
@@ -98,6 +99,10 @@ export function McpServerCard({
         <OverflowTooltipText as="h3" className="skill-card__name">
           {entry.displayName}
         </OverflowTooltipText>
+        <McpAvailabilityStatusChip
+          status={entry.availabilityStatus}
+          reason={entry.availabilityReason}
+        />
         <span aria-hidden="true" />
         <CardMenu
           label={copy.detail.moreActions(entry.displayName)}

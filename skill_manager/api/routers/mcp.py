@@ -9,6 +9,7 @@ from skill_manager.api.schemas import (
     DisableMcpServerRequest,
     EnableMcpServerRequest,
     McpApplyConfigResponse,
+    McpAvailabilityCheckResponse,
     McpInventoryResponse,
     McpServerDetailResponse,
     McpServerMutationResponse,
@@ -36,6 +37,14 @@ def get_mcp_server(
     return container.mcp_queries.get_server(name)
 
 
+@router.post("/servers/{name}/availability/check", response_model=McpAvailabilityCheckResponse)
+def check_mcp_server_availability(
+    name: str,
+    container: BackendContainer = Depends(get_container),
+) -> dict[str, object]:
+    return container.mcp_queries.check_availability(name)
+
+
 @router.post("/servers", response_model=McpServerMutationResponse)
 def install_mcp_server(
     body: AddMcpServerRequest,
@@ -44,6 +53,7 @@ def install_mcp_server(
     return container.mcp_mutations.install_from_marketplace(
         body.qualified_name,
         source_harness=body.source_harness,
+        config=body.config,
     )
 
 

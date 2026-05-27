@@ -22,6 +22,9 @@ function inventoryFixture(): McpInventoryDto {
         displayName: "Exa Search",
         kind: "managed",
         canEnable: true,
+        enabledStatus: "enabled",
+        availabilityStatus: "available",
+        availabilityReason: null,
         spec: {
           name: "exa",
           displayName: "Exa Search",
@@ -42,6 +45,9 @@ function inventoryFixture(): McpInventoryDto {
         displayName: "Context7",
         kind: "managed",
         canEnable: true,
+        enabledStatus: "disabled",
+        availabilityStatus: "unavailable",
+        availabilityReason: null,
         spec: {
           name: "ctx",
           displayName: "Context7",
@@ -141,6 +147,8 @@ describe("McpInUsePage", () => {
     expect(screen.getByText("Context7")).toBeInTheDocument();
     expect(screen.getByText("1/3")).toBeInTheDocument();
     expect(screen.getByText("0/3")).toBeInTheDocument();
+    expect(screen.getByLabelText("Availability: Available")).toBeInTheDocument();
+    expect(screen.getByLabelText("Availability: Unavailable")).toBeInTheDocument();
   });
 
   it("renders the matrix view from the URL parameter", async () => {
@@ -279,6 +287,15 @@ describe("McpInUsePage", () => {
         expect(init?.method).toBe("POST");
         return okJson({ ok: true, succeeded: ["codex"], failed: [] });
       }
+      if (url.includes("/api/mcp/servers/exa/availability/check")) {
+        expect(init?.method).toBe("POST");
+        return okJson({
+          ok: true,
+          name: "exa",
+          availabilityStatus: "available",
+          availabilityReason: null,
+        });
+      }
       if (url.includes("/api/mcp/servers")) return okJson(inventoryFixture());
       throw new Error(`Unhandled URL ${url}`);
     });
@@ -291,6 +308,102 @@ describe("McpInUsePage", () => {
       expect(
         fetchMock.mock.calls.some((call) =>
           String(call[0]).includes("/api/mcp/servers/exa/set-harnesses"),
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes("/api/mcp/servers/exa/availability/check"),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("checks availability automatically for enabled servers with no cached result", async () => {
+    const inventory = inventoryFixture();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/mcp/servers/exa/availability/check")) {
+        expect(init?.method).toBe("POST");
+        return okJson({
+          ok: true,
+          name: "exa",
+          availabilityStatus: "available",
+          availabilityReason: null,
+        });
+      }
+      if (url.includes("/api/mcp/servers")) {
+        return okJson({
+          ...inventory,
+          entries: [
+            {
+              ...inventory.entries[0],
+              availabilityStatus: "unavailable",
+              availabilityReason: null,
+            },
+            inventory.entries[1],
+          ],
+        });
+      }
+      throw new Error(`Unhandled URL ${url}`);
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Exa Search")).toBeInTheDocument());
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes("/api/mcp/servers/exa/availability/check"),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("refreshes availability after enabling from the detail binding row", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/mcp/servers/exa/enable")) {
+        expect(init?.method).toBe("POST");
+        return okJson({ ok: true });
+      }
+      if (url.includes("/api/mcp/servers/exa/availability/check")) {
+        expect(init?.method).toBe("POST");
+        return okJson({
+          ok: true,
+          name: "exa",
+          availabilityStatus: "available",
+          availabilityReason: null,
+        });
+      }
+      if (url.includes("/api/mcp/servers/exa")) {
+        return okJson({
+          ...inventoryFixture().entries[0],
+          env: [],
+          configChoices: [],
+          marketplaceLink: null,
+        });
+      }
+      if (url.includes("/api/mcp/servers")) return okJson(inventoryFixture());
+      throw new Error(`Unhandled URL ${url}`);
+    });
+
+    renderPage("/mcp/use?server=exa");
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Exa Search" })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole("button", { name: "Enable" })[0]);
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes("/api/mcp/servers/exa/enable"),
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes("/api/mcp/servers/exa/availability/check"),
         ),
       ).toBe(true),
     );

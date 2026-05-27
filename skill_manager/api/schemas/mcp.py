@@ -12,6 +12,7 @@ class AddMcpServerRequest(BaseModel):
 
     qualified_name: str = Field(..., alias="qualifiedName", min_length=1)
     source_harness: str = Field(..., alias="sourceHarness", min_length=1)
+    config: dict[str, object] | None = None
 
 
 class EnableMcpServerRequest(HarnessTarget):
@@ -88,6 +89,9 @@ class McpInventoryEntryResponse(BaseModel):
     kind: Literal["managed", "unmanaged"]
     spec: McpServerSpecResponse | None = None
     canEnable: bool
+    enabledStatus: Literal["enabled", "disabled"]
+    availabilityStatus: Literal["available", "unavailable"]
+    availabilityReason: str | None = None
     sightings: list[McpBindingResponse]
 
 
@@ -111,6 +115,13 @@ class McpSetHarnessesResultResponse(BaseModel):
 class McpServerMutationResponse(BaseModel):
     ok: bool
     server: McpServerSpecResponse
+
+
+class McpAvailabilityCheckResponse(BaseModel):
+    ok: bool
+    name: str
+    availabilityStatus: Literal["available", "unavailable"]
+    availabilityReason: str | None = None
 
 
 class McpApplyConfigResponse(BaseModel):
@@ -243,6 +254,24 @@ class McpMarketplaceConnectionResponse(BaseModel):
     stdioArgs: list[str] | None = None
 
 
+class McpInstallConfigFieldResponse(BaseModel):
+    name: str
+    label: str
+    description: str
+    format: Literal["string", "number", "boolean", "filepath"]
+    required: bool
+    secret: bool
+    default: str | None = None
+    placeholder: str | None = None
+    choices: list[str] = Field(default_factory=list)
+    target: Literal["env", "header", "urlVariable", "packageArgument", "runtimeArgument"]
+
+
+class McpInstallConfigResponse(BaseModel):
+    required: bool
+    fields: list[McpInstallConfigFieldResponse] = Field(default_factory=list)
+
+
 class McpMarketplaceParameterResponse(BaseModel):
     name: str
     type: str
@@ -303,6 +332,7 @@ class McpMarketplaceDetailResponse(BaseModel):
     prompts: list[McpMarketplacePromptResponse]
     capabilityCounts: McpMarketplaceCapabilityCountsResponse
     externalUrl: str
+    installConfig: McpInstallConfigResponse = Field(default_factory=lambda: McpInstallConfigResponse(required=False))
 
 
 __all__ = [
@@ -312,6 +342,7 @@ __all__ = [
     "AddMcpServerRequest",
     "McpServerMutationResponse",
     "McpApplyConfigResponse",
+    "McpAvailabilityCheckResponse",
     "McpAdoptionIssueResponse",
     "McpBindingResponse",
     "McpConfigChoiceResponse",
@@ -324,6 +355,8 @@ __all__ = [
     "McpInventoryResponse",
     "McpInstallTargetResponse",
     "McpInstallTargetsResponse",
+    "McpInstallConfigFieldResponse",
+    "McpInstallConfigResponse",
     "McpMarketplaceCapabilityCountsResponse",
     "McpMarketplaceConnectionResponse",
     "McpMarketplaceDetailResponse",

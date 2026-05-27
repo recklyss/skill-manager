@@ -21,6 +21,9 @@ export function mcpInventoryEntry({
   displayName = name,
   sightings = [],
   canEnable = kind === "managed",
+  enabledStatus = "disabled",
+  availabilityStatus = "unavailable",
+  availabilityReason = null,
   spec = null,
 }: Pick<McpInventoryEntryDto, "name" | "kind"> & Partial<McpInventoryEntryDto>): McpInventoryEntryDto {
   return {
@@ -28,6 +31,9 @@ export function mcpInventoryEntry({
     displayName,
     kind,
     canEnable,
+    enabledStatus,
+    availabilityStatus,
+    availabilityReason,
     spec,
     sightings,
   };

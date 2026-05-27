@@ -12,6 +12,7 @@ export type McpNeedsReviewHarnessDto = components["schemas"]["McpUnmanagedHarnes
 export type SetMcpHarnessesResponseDto = components["schemas"]["McpSetHarnessesResultResponse"];
 export type UninstallMcpResponseDto = components["schemas"]["McpSetHarnessesResultResponse"];
 export type McpApplyConfigResponseDto = components["schemas"]["McpApplyConfigResponse"];
+export type McpAvailabilityCheckResponseDto = components["schemas"]["McpAvailabilityCheckResponse"];
 export type McpConfigChoiceDto = components["schemas"]["McpConfigChoiceResponse"];
 export type McpEnvEntryDto = components["schemas"]["McpEnvEntryResponse"];
 export type McpMarketplaceLinkDto = components["schemas"]["McpMarketplaceLinkResponse"];

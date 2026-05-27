@@ -1,14 +1,12 @@
 import { type KeyboardEvent, useState } from "react";
-import { Activity, CheckCircle2 } from "lucide-react";
 
-import { UiTooltip } from "../../../components/ui/UiTooltip";
 import type { McpMarketplaceItemDto } from "../api/mcp-types";
 import { useMarketplaceCopy } from "../i18n";
-import { formatMcpUseCount } from "../model/formatters";
 import {
   summaryInstallAvailability,
   useMcpInstallActionState,
 } from "../model/mcp-install-action";
+import { McpInstallConfigDialog } from "./McpInstallConfigDialog";
 import { McpInstallButton } from "./McpInstallButton";
 
 interface McpMarketplaceCardProps {
@@ -19,7 +17,7 @@ interface McpMarketplaceCardProps {
 
 function avatarFallbackLabel(item: McpMarketplaceItemDto): string {
   const source = item.displayName || item.qualifiedName;
-  return source.slice(0, 2).toUpperCase();
+  return source.slice(0, 1).toUpperCase();
 }
 
 export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardProps) {
@@ -41,65 +39,56 @@ export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardPro
   }
 
   return (
-    <article
-      className="market-card mcp-card"
-      role="button"
-      tabIndex={0}
-      onClick={onOpenDetail}
-      onKeyDown={handleKeyDown}
-      aria-label={copy.detail.cards.openMcpMarketplaceDetail(item.displayName)}
-    >
-      <div className="market-card__head">
-        <div className="market-card__avatar">
-          {avatarSrc ? (
-            <img
-              src={avatarSrc}
-              alt={copy.detail.cards.iconFor(item.displayName)}
-              onError={() => setAvatarFailed(true)}
+    <>
+      <article
+        className="market-card mcp-card"
+        role="button"
+        tabIndex={0}
+        onClick={onOpenDetail}
+        onKeyDown={handleKeyDown}
+        aria-label={copy.detail.cards.openMcpMarketplaceDetail(item.displayName)}
+      >
+        <div className="market-card__head">
+          <div className="market-card__avatar">
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={copy.detail.cards.iconFor(item.displayName)}
+                onError={() => setAvatarFailed(true)}
+              />
+            ) : (
+              avatarFallbackLabel(item)
+            )}
+          </div>
+          <div>
+            <h4 className="market-card__title">{item.displayName}</h4>
+            <p className="market-card__repo">{item.qualifiedName}</p>
+          </div>
+        </div>
+
+        <p className="market-card__body mcp-card__body">
+          {item.description || copy.detail.mcp.noDescription}
+        </p>
+
+        <div className="market-card__footer mcp-card__footer">
+          <div className="mcp-card__actions">
+            <McpInstallButton
+              displayName={item.displayName}
+              availability={availability}
+              installedState={installAction.installedState}
+              installTargetState={installAction.installTargetState}
+              installing={installAction.installing}
+              onInstall={installAction.onInstall}
             />
-          ) : (
-            avatarFallbackLabel(item)
-          )}
+          </div>
         </div>
-        <div>
-          <h4 className="market-card__title">{item.displayName}</h4>
-          <p className="market-card__repo">{item.qualifiedName}</p>
-        </div>
-      </div>
-
-      <p className="market-card__body mcp-card__body">
-        {item.description || copy.detail.mcp.noDescription}
-      </p>
-
-      <div className="market-card__footer mcp-card__footer">
-        <div className="chip-cluster">
-          <span className={`chip chip--${item.isRemote ? "remote" : "local"}`}>
-            {item.isRemote ? copy.detail.mcp.remote : copy.detail.mcp.local}
-          </span>
-          {item.isVerified ? (
-            <span className="chip chip--verified">
-              <CheckCircle2 size={12} aria-hidden="true" />
-              {copy.detail.mcp.verified}
-            </span>
-          ) : null}
-        </div>
-        <div className="mcp-card__actions">
-          <UiTooltip content={copy.detail.mcp.calls(item.useCount.toLocaleString())}>
-            <span className="market-card__stat">
-              <Activity size={12} aria-hidden="true" />
-              {formatMcpUseCount(item.useCount)}
-            </span>
-          </UiTooltip>
-          <McpInstallButton
-            displayName={item.displayName}
-            availability={availability}
-            installedState={installAction.installedState}
-            installTargetState={installAction.installTargetState}
-            installing={installAction.installing}
-            onInstall={installAction.onInstall}
-          />
-        </div>
-      </div>
-    </article>
+      </article>
+      <McpInstallConfigDialog
+        pending={installAction.pendingConfig}
+        installing={installAction.installing}
+        onClose={installAction.onCancelConfig}
+        onSubmit={installAction.onSubmitConfig}
+      />
+    </>
   );
 }

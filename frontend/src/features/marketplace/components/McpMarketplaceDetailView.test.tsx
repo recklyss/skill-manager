@@ -39,7 +39,7 @@ function itemFixture(): McpMarketplaceItemDto {
     useCount: 59087,
     createdAt: null,
     homepage: "https://exa.ai",
-    externalUrl: "https://smithery.ai/server/exa",
+    externalUrl: "https://registry.modelcontextprotocol.io/?q=exa",
   };
 }
 
@@ -57,7 +57,7 @@ function detailFixture(): McpMarketplaceDetailDto {
     resources: [],
     prompts: [],
     capabilityCounts: { tools: 0, resources: 0, prompts: 0 },
-    externalUrl: "https://smithery.ai/server/exa",
+    externalUrl: "https://registry.modelcontextprotocol.io/?q=exa",
   };
 }
 
@@ -128,9 +128,9 @@ describe("McpMarketplaceDetailView", () => {
     );
     expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled();
     expect(screen.getByLabelText("Source links for Exa Search")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View on smithery.ai" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "View in MCP Registry" })).toHaveAttribute(
       "href",
-      "https://smithery.ai/server/exa",
+      "https://registry.modelcontextprotocol.io/?q=exa",
     );
     expect(document.querySelector(`.${"mcp-detail"}__external`)).not.toBeInTheDocument();
   });

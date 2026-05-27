@@ -3,6 +3,18 @@
     "schemas": {
       "AddMcpServerRequest": {
         "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
           "qualifiedName": {
             "minLength": 1,
             "title": "Qualifiedname",
@@ -800,6 +812,44 @@
         "title": "McpApplyConfigResponse",
         "type": "object"
       },
+      "McpAvailabilityCheckResponse": {
+        "properties": {
+          "availabilityReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availabilityreason"
+          },
+          "availabilityStatus": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Availabilitystatus",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "name",
+          "availabilityStatus"
+        ],
+        "title": "McpAvailabilityCheckResponse",
+        "type": "object"
+      },
       "McpBindingResponse": {
         "properties": {
           "driftDetail": {
@@ -1039,6 +1089,111 @@
         "title": "McpIdentitySightingResponse",
         "type": "object"
       },
+      "McpInstallConfigFieldResponse": {
+        "properties": {
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "default": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "filepath"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "placeholder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeholder"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "secret": {
+            "title": "Secret",
+            "type": "boolean"
+          },
+          "target": {
+            "enum": [
+              "env",
+              "header",
+              "urlVariable",
+              "packageArgument",
+              "runtimeArgument"
+            ],
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "description",
+          "format",
+          "required",
+          "secret",
+          "target"
+        ],
+        "title": "McpInstallConfigFieldResponse",
+        "type": "object"
+      },
+      "McpInstallConfigResponse": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/McpInstallConfigFieldResponse"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required"
+        ],
+        "title": "McpInstallConfigResponse",
+        "type": "object"
+      },
       "McpInstallTargetResponse": {
         "properties": {
           "harness": {
@@ -1168,12 +1323,39 @@
       },
       "McpInventoryEntryResponse": {
         "properties": {
+          "availabilityReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availabilityreason"
+          },
+          "availabilityStatus": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Availabilitystatus",
+            "type": "string"
+          },
           "canEnable": {
             "title": "Canenable",
             "type": "boolean"
           },
           "displayName": {
             "title": "Displayname",
+            "type": "string"
+          },
+          "enabledStatus": {
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "title": "Enabledstatus",
             "type": "string"
           },
           "kind": {
@@ -1211,6 +1393,8 @@
           "displayName",
           "kind",
           "canEnable",
+          "enabledStatus",
+          "availabilityStatus",
           "sightings"
         ],
         "title": "McpInventoryEntryResponse",
@@ -1427,6 +1611,9 @@
               }
             ],
             "title": "Iconurl"
+          },
+          "installConfig": {
+            "$ref": "#/components/schemas/McpInstallConfigResponse"
           },
           "isRemote": {
             "title": "Isremote",
@@ -1895,6 +2082,25 @@
       },
       "McpServerDetailResponse": {
         "properties": {
+          "availabilityReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availabilityreason"
+          },
+          "availabilityStatus": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Availabilitystatus",
+            "type": "string"
+          },
           "canEnable": {
             "title": "Canenable",
             "type": "boolean"
@@ -1908,6 +2114,14 @@
           },
           "displayName": {
             "title": "Displayname",
+            "type": "string"
+          },
+          "enabledStatus": {
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "title": "Enabledstatus",
             "type": "string"
           },
           "env": {
@@ -1962,6 +2176,8 @@
           "displayName",
           "kind",
           "canEnable",
+          "enabledStatus",
+          "availabilityStatus",
           "sightings"
         ],
         "title": "McpServerDetailResponse",
@@ -4871,6 +5087,45 @@
           }
         },
         "summary": "Get Mcp Server"
+      }
+    },
+    "/api/mcp/servers/{name}/availability/check": {
+      "post": {
+        "operationId": "check_mcp_server_availability_api_mcp_servers__name__availability_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpAvailabilityCheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Mcp Server Availability"
       }
     },
     "/api/mcp/servers/{name}/disable": {

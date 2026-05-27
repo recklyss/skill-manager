@@ -15,6 +15,7 @@ import {
   detailInstallAvailability,
   useMcpInstallActionState,
 } from "../model/mcp-install-action";
+import { McpInstallConfigDialog } from "./McpInstallConfigDialog";
 import { McpInstallButton } from "./McpInstallButton";
 import { McpToolEntry } from "./McpToolEntry";
 
@@ -25,6 +26,10 @@ interface McpMarketplaceDetailViewProps {
 }
 
 const TOOL_INITIAL_COUNT = 5;
+
+function registrySearchUrl(qualifiedName: string): string {
+  return `https://registry.modelcontextprotocol.io/?${new URLSearchParams({ q: qualifiedName }).toString()}`;
+}
 
 export function McpMarketplaceDetailView({
   qualifiedName,
@@ -46,7 +51,9 @@ export function McpMarketplaceDetailView({
   const headerIsRemote = detail?.isRemote ?? initialItem?.isRemote ?? false;
   const headerIcon = detail?.iconUrl ?? initialItem?.iconUrl ?? null;
   const headerExternalUrl =
-    detail?.externalUrl ?? initialItem?.externalUrl ?? `https://smithery.ai/server/${qualifiedName}`;
+    detail?.externalUrl ??
+    initialItem?.externalUrl ??
+    registrySearchUrl(qualifiedName);
   const installAction = useMcpInstallActionState({
     qualifiedName,
     displayName: headerDisplayName,
@@ -166,7 +173,7 @@ export function McpMarketplaceDetailView({
                 links={[
                   {
                     href: headerExternalUrl,
-                    label: copy.detail.mcp.viewOnSmithery,
+                    label: copy.detail.mcp.viewInRegistry,
                     kind: "marketplace",
                   },
                 ]}
@@ -325,6 +332,12 @@ export function McpMarketplaceDetailView({
           </Section>
         ) : null}
       </div>
+      <McpInstallConfigDialog
+        pending={installAction.pendingConfig}
+        installing={installAction.installing}
+        onClose={installAction.onCancelConfig}
+        onSubmit={installAction.onSubmitConfig}
+      />
     </>
   );
 }

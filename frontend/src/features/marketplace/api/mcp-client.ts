@@ -5,7 +5,6 @@ import type {
   AddMcpServerResponseDto,
   McpInstallTargetsDto,
   McpMarketplaceDetailDto,
-  McpMarketplaceFilter,
   McpMarketplacePageResultDto,
 } from "./mcp-types";
 
@@ -16,7 +15,6 @@ interface McpPageParams {
 
 export interface McpSearchParams extends McpPageParams {
   query?: string;
-  filter?: McpMarketplaceFilter;
 }
 
 export async function fetchMcpMarketplacePopular(
@@ -30,15 +28,12 @@ export async function fetchMcpMarketplacePopular(
 export async function searchMcpMarketplace(
   params: McpSearchParams = {},
 ): Promise<McpMarketplacePageResultDto> {
-  const filter = params.filter ?? "all";
   const query = (params.query ?? "").trim();
   return fetchJson<McpMarketplacePageResultDto>(
     withQuery("/marketplace/mcp/search", {
       q: query || undefined,
       limit: params.limit,
       offset: params.offset,
-      remote: filter === "remote" ? "true" : filter === "local" ? "false" : undefined,
-      verified: filter === "verified" ? "true" : undefined,
     }),
   );
 }

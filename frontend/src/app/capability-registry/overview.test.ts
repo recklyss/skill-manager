@@ -43,8 +43,8 @@ describe("capability overview model", () => {
       {
         columns: [],
         entries: [
-          { name: "exa", displayName: "Exa", kind: "managed", spec: null, canEnable: true, sightings: [] },
-          { name: "firecrawl", displayName: "firecrawl", kind: "unmanaged", spec: null, canEnable: false, sightings: [] },
+          { name: "exa", displayName: "Exa", kind: "managed", spec: null, canEnable: true, enabledStatus: "disabled", availabilityStatus: "unavailable", sightings: [] },
+          { name: "firecrawl", displayName: "firecrawl", kind: "unmanaged", spec: null, canEnable: false, enabledStatus: "disabled", availabilityStatus: "unavailable", sightings: [] },
         ],
         issues: [],
       },

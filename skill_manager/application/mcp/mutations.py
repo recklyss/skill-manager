@@ -6,11 +6,11 @@ from typing import Iterable
 from skill_manager.errors import MutationError
 
 from .enrichment import McpEnrichmentService
-from .installers import McpInstallProvider
+from .install_resolver import resolve_registry_server_spec
 from .marketplace.catalog import McpMarketplaceCatalog
-from .names import canonical_server_name
 from .planner import McpAdoptionPlanner
 from .read_models import McpReadModelService
+from .redaction import redacted_spec_dict
 from .store import McpServerSpec, McpServerStore, McpSource
 
 
@@ -28,14 +28,12 @@ class McpMutationService:
         read_models: McpReadModelService,
         planner: McpAdoptionPlanner,
         marketplace_catalog: McpMarketplaceCatalog,
-        install_provider: McpInstallProvider,
         enrichment: McpEnrichmentService | None = None,
     ) -> None:
         self.store = store
         self.read_models = read_models
         self.planner = planner
         self.marketplace = marketplace_catalog
-        self.install_provider = install_provider
         self.enrichment = enrichment
 
     # Install / uninstall ---------------------------------------------------
@@ -45,6 +43,7 @@ class McpMutationService:
         qualified_name: str,
         *,
         source_harness: str,
+        config: dict[str, object] | None = None,
     ) -> dict[str, object]:
         if not qualified_name:
             raise MutationError("qualifiedName is required", status=400)
@@ -52,49 +51,32 @@ class McpMutationService:
             raise MutationError("sourceHarness is required", status=400)
         self._require_install_target(source_harness)
 
-        managed_name = canonical_server_name(qualified_name)
-        existing = self._managed_for_marketplace(qualified_name) or self.store.get_managed(managed_name)
+        existing = self._managed_for_marketplace(qualified_name)
         if existing is not None:
             raise MutationError(
                 f"a server named '{existing.name}' is already installed",
                 status=409,
             )
-        detail = self.marketplace.detail(qualified_name)
+        detail = self._marketplace_install_detail(qualified_name)
         if detail is None:
             raise MutationError(f"server not found in marketplace: {qualified_name}", status=404)
-
-        before_names = self._observed_names(source_harness)
-        self.install_provider.install(
-            qualified_name=qualified_name,
-            source_harness=source_harness,
-        )
-        self.read_models.invalidate()
-        observed = self._find_installed_observation(
-            source_harness=source_harness,
-            preferred_name=managed_name,
-            before_names=before_names,
-        )
-        source_spec = observed.parsed_spec
-        if source_spec is None:
-            raise MutationError(
-                f"Smithery installed '{qualified_name}', but no readable MCP entry was found in {source_harness}",
-                status=502,
-            )
+        source_spec = resolve_registry_server_spec(detail, config=config)
         if self.store.get_managed(source_spec.name) is not None:
             raise MutationError(
                 f"a server named '{source_spec.name}' is already installed",
                 status=409,
             )
 
-        stored = self.store.upsert_from_spec(
-            replace(
-                source_spec,
-                display_name=str(detail.get("displayName") or source_spec.display_name),
-                source=McpSource.marketplace(qualified_name),
-            )
-        )
+        stored = self.store.upsert_from_spec(source_spec)
+        adapter = self._source_adapter(source_harness)
+        try:
+            adapter.enable_server(stored)
+        except Exception:  # noqa: BLE001
+            self.store.remove(stored.name)
+            self.read_models.invalidate()
+            raise
         self.read_models.invalidate()
-        return {"ok": True, "server": stored.to_dict()}
+        return {"ok": True, "server": redacted_spec_dict(stored)}
 
     def install_targets(self) -> dict[str, object]:
         return {"targets": self._resolved_install_targets()}
@@ -226,7 +208,7 @@ class McpMutationService:
             self.read_models.invalidate()
         return {
             "ok": not failures,
-            "server": stored.to_dict(),
+            "server": redacted_spec_dict(stored),
             "succeeded": succeeded,
             "failed": failures,
         }
@@ -293,47 +275,35 @@ class McpMutationService:
         response_spec = self.store.get_public_spec(stored.name) or stored_binding_spec
         return {
             "ok": not failures,
-            "server": response_spec.to_dict(),
+            "server": redacted_spec_dict(response_spec),
             "succeeded": succeeded,
             "failed": failures,
         }
 
     # Internal helpers -----------------------------------------------------
 
-    def _observed_names(self, harness: str) -> set[str]:
-        adapter = self._source_adapter(harness)
-        scan = adapter.scan(self.store.list_binding_specs())
-        return {entry.name for entry in scan.entries if entry.state != "missing"}
-
     def _resolved_install_targets(self) -> list[dict[str, object]]:
-        provider_targets = {
-            target.harness: target for target in self.install_provider.install_targets()
-        }
         enabled = set(self.read_models.enabled_harnesses())
         targets: list[dict[str, object]] = []
         for status in self.read_models.harness_statuses():
-            provider_target = provider_targets.get(status.harness)
-            smithery_client = provider_target.smithery_client if provider_target else None
-            supported = bool(provider_target and provider_target.supported and smithery_client)
-            reason = (
-                provider_target.reason
-                if provider_target and provider_target.reason
-                else None
-            )
+            supported = True
+            reason = None
             if supported and status.harness not in enabled:
                 supported = False
                 reason = "Harness support is disabled"
             elif supported and not status.mcp_writable:
                 supported = False
                 reason = status.mcp_unavailable_reason or "MCP config is not writable for this harness"
-            elif not supported and reason is None:
-                reason = "Smithery does not provide an MCP installer target for this harness"
+            elif supported and not (status.installed or status.config_present):
+                supported = False
+                reason = f"{status.label} is not installed and has no MCP config file"
             targets.append(
                 {
                     "harness": status.harness,
                     "label": status.label,
                     "logoKey": status.logo_key,
-                    "smitheryClient": smithery_client,
+                    # Legacy frontend wire field; install now writes directly to the selected harness.
+                    "smitheryClient": status.harness if supported else None,
                     "supported": supported,
                     "reason": reason,
                 }
@@ -350,20 +320,14 @@ class McpMutationService:
             raise MutationError(str(reason or f"source harness is not installable: {harness}"), status=400)
         raise MutationError(f"unknown MCP source harness: {harness}", status=400)
 
-    def _find_installed_observation(self, *, source_harness: str, preferred_name: str, before_names: set[str]):
-        adapter = self._source_adapter(source_harness)
-        scan = adapter.scan(self.store.list_binding_specs())
-        entries = [entry for entry in scan.entries if entry.state in {"unmanaged", "drifted", "managed"}]
-        for entry in entries:
-            if entry.name == preferred_name:
-                return entry
-        new_entries = [entry for entry in entries if entry.name not in before_names]
-        if len(new_entries) == 1:
-            return new_entries[0]
-        raise MutationError(
-            f"Smithery installed the server, but Skill Manager could not identify the new {source_harness} config entry",
-            status=502,
-        )
+    def _marketplace_install_detail(self, qualified_name: str):
+        install_detail = getattr(self.marketplace, "install_detail", None)
+        if callable(install_detail):
+            detail = install_detail(qualified_name)
+            if detail is not None:
+                to_resolver_detail = getattr(detail, "to_resolver_detail", None)
+                return to_resolver_detail() if callable(to_resolver_detail) else detail
+        return self.marketplace.detail(qualified_name)
 
     def _source_adapter(self, harness: str):
         if harness not in self.read_models.enabled_harnesses():

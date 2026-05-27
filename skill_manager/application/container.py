@@ -11,7 +11,6 @@ from skill_manager.paths import AppPaths, resolve_app_paths
 from .cli_marketplace import CliMarketplaceCatalog
 from .invalidation import InvalidationFanout
 from .mcp.enrichment import McpEnrichmentService
-from .mcp.installers import McpInstallProvider, SmitheryCliInstallProvider
 from .mcp.marketplace import McpMarketplaceCatalog
 from .mcp.mutations import McpMutationService
 from .mcp.planner import McpAdoptionPlanner
@@ -86,7 +85,6 @@ def build_backend_container(
     mcp_marketplace_catalog: McpMarketplaceCatalog | None = None,
     cli_marketplace_catalog: CliMarketplaceCatalog | None = None,
     source_fetcher: SourceFetchService | None = None,
-    mcp_install_provider: McpInstallProvider | None = None,
 ) -> BackendContainer:
     active_env = dict(os.environ)
     if env is not None:
@@ -172,7 +170,6 @@ def build_backend_container(
         read_models=mcp_read_models,
         planner=mcp_planner,
         marketplace_catalog=mcp_catalog,
-        install_provider=mcp_install_provider or SmitheryCliInstallProvider(env=active_env),
         enrichment=mcp_enrichment,
     )
 

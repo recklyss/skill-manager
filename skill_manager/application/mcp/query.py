@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from skill_manager.errors import MutationError
 
 from .contracts import McpBinding, McpHarnessScan, McpInventory, McpInventoryIssue
+from .availability import McpAvailabilityProbe, McpAvailabilityResult
 from .enrichment import McpEnrichmentService
 from .inventory import build_inventory
 from .planner import McpAdoptionPlanner
 from .read_models import McpReadModelService
-from .env import annotate_env
+from .redaction import annotate_redacted_env, redact_payload, redacted_spec_dict
+
+
+_NOT_ENABLED_AVAILABILITY_REASON = "Not enabled in any Agent"
 
 
 class McpQueryService:
@@ -19,15 +25,22 @@ class McpQueryService:
         *,
         planner: McpAdoptionPlanner | None = None,
         enrichment: McpEnrichmentService | None = None,
+        availability_probe: McpAvailabilityProbe | None = None,
     ) -> None:
         self.read_models = read_models
         self.planner = planner
         self.enrichment = enrichment
+        self.availability_probe = availability_probe or McpAvailabilityProbe()
+        self._availability_cache: dict[tuple[str, str], McpAvailabilityResult] = {}
 
     def list_servers(self) -> dict[str, object]:
         snapshot = self.read_models.snapshot()
         inventory = self._inventory(snapshot.harness_scans)
-        return _inventory_to_payload(inventory, self.read_models.visible_scans(snapshot))
+        return _inventory_to_payload(
+            inventory,
+            self.read_models.visible_scans(snapshot),
+            self._availability_cache,
+        )
 
     def get_server(self, name: str) -> dict[str, object]:
         snapshot = self.read_models.snapshot()
@@ -35,9 +48,13 @@ class McpQueryService:
         visible_scans = self.read_models.visible_scans(snapshot)
         for entry in inventory.entries:
             if entry.name == name:
-                payload = _entry_to_payload(entry, visible_scans)
+                payload = _entry_to_payload(
+                    entry,
+                    visible_scans,
+                    self._availability_cache.get(_availability_cache_key(entry)),
+                )
                 if entry.spec is not None:
-                    payload["env"] = annotate_env(entry.spec.env)
+                    payload["env"] = annotate_redacted_env(entry.spec.env)
                     payload["configChoices"] = _config_choices_payload(
                         name,
                         entry.spec,
@@ -48,6 +65,35 @@ class McpQueryService:
                         payload["marketplaceLink"] = link.to_dict()
                 return payload
         raise MutationError(f"unknown mcp server: {name}", status=404)
+
+    def check_availability(self, name: str) -> dict[str, object]:
+        snapshot = self.read_models.snapshot()
+        inventory = self._inventory(snapshot.harness_scans)
+        visible_scans = self.read_models.visible_scans(snapshot)
+        entry = next((item for item in inventory.entries if item.name == name), None)
+        if entry is None or entry.spec is None:
+            raise MutationError(f"unknown mcp server: {name}", status=404)
+        if _entry_enabled_status(entry, visible_scans) != "enabled":
+            result = McpAvailabilityResult(
+                status="unavailable",
+                reason=_NOT_ENABLED_AVAILABILITY_REASON,
+            )
+            self._availability_cache[_availability_cache_key(entry)] = result
+            return {
+                "ok": True,
+                "name": name,
+                "availabilityStatus": result.status,
+                "availabilityReason": result.reason,
+            }
+
+        result = self.availability_probe.probe(entry.spec)
+        self._availability_cache[_availability_cache_key(entry)] = result
+        return {
+            "ok": True,
+            "name": name,
+            "availabilityStatus": result.status,
+            "availabilityReason": result.reason,
+        }
 
     def list_unmanaged_by_server(self) -> dict[str, object]:
         if self.planner is None:
@@ -90,7 +136,7 @@ class McpQueryService:
                     "logoKey": issue.logo_key,
                     "name": issue.name,
                     "configPath": issue.config_path,
-                    "payloadPreview": issue.payload,
+                    "payloadPreview": redact_payload(issue.payload) if issue.payload is not None else None,
                     "reason": issue.reason,
                 }
                 for issue in plan.issues
@@ -110,9 +156,9 @@ class McpQueryService:
                     "label": s.label,
                     "logoKey": s.logo_key,
                     "configPath": s.config_path,
-                    "payloadPreview": s.payload,
-                    "spec": s.spec.to_dict(),
-                    "env": annotate_env(s.spec.env),
+                    "payloadPreview": redact_payload(s.payload),
+                    "spec": redacted_spec_dict(s.spec),
+                    "env": annotate_redacted_env(s.spec.env),
                 }
                 for s in sightings
             ]
@@ -121,7 +167,7 @@ class McpQueryService:
                 {
                     "name": group.name,
                     "identical": group.identical,
-                    "canonicalSpec": group.canonical_spec.to_dict()
+                    "canonicalSpec": redacted_spec_dict(group.canonical_spec)
                     if group.canonical_spec is not None
                     else None,
                     "sightings": sightings_payload,
@@ -158,21 +204,68 @@ def _binding_to_dict(binding: McpBinding) -> dict[str, object]:
     return payload
 
 
-def _entry_to_payload(entry, scans: tuple[McpHarnessScan, ...]) -> dict[str, object]:
+def _is_scan_addressable(scan: McpHarnessScan) -> bool:
+    return scan.mcp_writable and (scan.installed or scan.config_present)
+
+
+def _entry_enabled_status(
+    entry,
+    scans: tuple[McpHarnessScan, ...],
+) -> Literal["enabled", "disabled"]:
+    addressable_harnesses = {
+        scan.harness
+        for scan in scans
+        if _is_scan_addressable(scan)
+    }
+    for binding in entry.sightings:
+        if binding.harness in addressable_harnesses and binding.state == "managed":
+            return "enabled"
+    return "disabled"
+
+
+def _entry_to_payload(
+    entry,
+    scans: tuple[McpHarnessScan, ...],
+    availability: McpAvailabilityResult | None = None,
+) -> dict[str, object]:
     visible_harnesses = {scan.harness for scan in scans}
-    spec_payload = entry.spec.to_dict() if entry.spec is not None else None
+    spec_payload = redacted_spec_dict(entry.spec) if entry.spec is not None else None
+    enabled_status = _entry_enabled_status(entry, scans)
+    effective_availability = _entry_effective_availability(enabled_status, availability)
     return {
         "name": entry.name,
         "displayName": entry.display_name,
         "kind": entry.kind,
         "spec": spec_payload,
         "canEnable": entry.can_enable,
+        "enabledStatus": enabled_status,
+        "availabilityStatus": effective_availability.status,
+        "availabilityReason": effective_availability.reason,
         "sightings": [
             _binding_to_dict(binding)
             for binding in entry.sightings
             if binding.harness in visible_harnesses
         ],
     }
+
+
+def _availability_cache_key(entry) -> tuple[str, str]:
+    revision = entry.spec.revision if entry.spec is not None else ""
+    return (entry.name, revision)
+
+
+def _entry_effective_availability(
+    enabled_status: Literal["enabled", "disabled"],
+    availability: McpAvailabilityResult | None,
+) -> McpAvailabilityResult:
+    if enabled_status != "enabled":
+        return McpAvailabilityResult(
+            status="unavailable",
+            reason=_NOT_ENABLED_AVAILABILITY_REASON,
+        )
+    if availability is None:
+        return McpAvailabilityResult(status="unavailable", reason=None)
+    return availability
 
 
 def _config_choices_payload(
@@ -187,9 +280,9 @@ def _config_choices_payload(
             "label": "Managed config",
             "logoKey": None,
             "configPath": None,
-            "payloadPreview": managed_spec.to_dict(),
-            "spec": managed_spec.to_dict(),
-            "env": annotate_env(managed_spec.env),
+            "payloadPreview": redacted_spec_dict(managed_spec),
+            "spec": redacted_spec_dict(managed_spec),
+            "env": annotate_redacted_env(managed_spec.env),
         }
     ]
     for scan in scans:
@@ -205,15 +298,19 @@ def _config_choices_payload(
                     "label": f"{scan.label} config",
                     "logoKey": scan.logo_key,
                     "configPath": str(scan.config_path) if scan.config_present else None,
-                    "payloadPreview": dict(observed.raw_payload or {}),
-                    "spec": observed.parsed_spec.to_dict(),
-                    "env": annotate_env(observed.parsed_spec.env),
+                    "payloadPreview": redact_payload(dict(observed.raw_payload or {})),
+                    "spec": redacted_spec_dict(observed.parsed_spec),
+                    "env": annotate_redacted_env(observed.parsed_spec.env),
                 }
             )
     return choices
 
 
-def _inventory_to_payload(inventory: McpInventory, scans: tuple[McpHarnessScan, ...]) -> dict[str, object]:
+def _inventory_to_payload(
+    inventory: McpInventory,
+    scans: tuple[McpHarnessScan, ...],
+    availability_cache: dict[tuple[str, str], McpAvailabilityResult] | None = None,
+) -> dict[str, object]:
     visible_harnesses = {scan.harness for scan in scans}
     return {
         "columns": [
@@ -229,7 +326,7 @@ def _inventory_to_payload(inventory: McpInventory, scans: tuple[McpHarnessScan, 
             for scan in scans
         ],
         "entries": [
-            _entry_to_payload(entry, scans)
+            _entry_to_payload(entry, scans, (availability_cache or {}).get(_availability_cache_key(entry)))
             for entry in inventory.entries
             if entry.kind == "managed"
             or any(binding.harness in visible_harnesses for binding in entry.sightings)

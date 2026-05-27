@@ -36,9 +36,30 @@ function createItem(overrides: Partial<McpMarketplaceItemDto> = {}): McpMarketpl
   };
 }
 
+function detailPayload(item: McpMarketplaceItemDto, overrides: Record<string, unknown> = {}) {
+  return {
+    qualifiedName: item.qualifiedName,
+    managedName: "exa-mcp",
+    displayName: item.displayName,
+    description: item.description,
+    iconUrl: item.iconUrl,
+    isRemote: item.isRemote,
+    deploymentUrl: "https://exa.run.tools",
+    connections: [],
+    tools: [],
+    resources: [],
+    prompts: [],
+    capabilityCounts: { tools: 0, resources: 0, prompts: 0 },
+    externalUrl: item.externalUrl,
+    installConfig: { required: false, fields: [] },
+    ...overrides,
+  };
+}
+
 function renderCard(
   item: McpMarketplaceItemDto,
   inventoryPayload: object = { columns: [], entries: [] },
+  detailOverrides: Record<string, unknown> = {},
 ) {
   fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();
@@ -77,20 +98,14 @@ function renderCard(
       return okJson(inventoryPayload);
     }
     if (url.includes("/api/marketplace/mcp/items") && method === "GET") {
+      return okJson(detailPayload(item, detailOverrides));
+    }
+    if (url.includes("/api/mcp/servers/exa-mcp/availability/check") && method === "POST") {
       return okJson({
-        qualifiedName: item.qualifiedName,
-        managedName: "exa-mcp",
-        displayName: item.displayName,
-        description: item.description,
-        iconUrl: item.iconUrl,
-        isRemote: item.isRemote,
-        deploymentUrl: "https://exa.run.tools",
-        connections: [],
-        tools: [],
-        resources: [],
-        prompts: [],
-        capabilityCounts: { tools: 0, resources: 0, prompts: 0 },
-        externalUrl: item.externalUrl,
+        ok: true,
+        name: "exa-mcp",
+        availabilityStatus: "available",
+        availabilityReason: null,
       });
     }
     if (url.includes("/api/mcp/servers") && method === "POST") {
@@ -152,6 +167,16 @@ describe("McpMarketplaceCard", () => {
     renderCard(createItem());
     expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toHaveTextContent("Add to MCPs");
+    expect(screen.queryByText("Remote")).not.toBeInTheDocument();
+    expect(screen.queryByText("Verified")).not.toBeInTheDocument();
+    expect(screen.queryByText("1.2k")).not.toBeInTheDocument();
+  });
+
+  it("falls back to a single initial when an item has no icon", () => {
+    const { container } = renderCard(createItem({ iconUrl: null, displayName: "Exa Search" }));
+
+    expect(container.querySelector(".market-card__avatar")).toHaveTextContent("E");
+    expect(container.querySelector(".market-card__avatar")).not.toHaveTextContent("EX");
   });
 
   it("does not open detail when the install button is clicked", async () => {
@@ -174,6 +199,23 @@ describe("McpMarketplaceCard", () => {
     expect(onOpenDetail).not.toHaveBeenCalled();
   });
 
+  it("checks availability after installing from the marketplace", async () => {
+    renderCard(createItem());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /add exa search to mcps/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/mcp/servers/exa-mcp/availability/check"),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
   it("renders an install button for local items", async () => {
     renderCard(createItem({ isRemote: false, isDeployed: false }));
     await waitFor(() =>
@@ -188,6 +230,63 @@ describe("McpMarketplaceCard", () => {
         expect.stringContaining("/api/mcp/servers"),
         expect.objectContaining({ method: "POST" }),
       );
+    });
+  });
+
+  it("opens a config dialog for required registry install fields and submits config", async () => {
+    renderCard(createItem(), { columns: [], entries: [] }, {
+      installConfig: {
+        required: true,
+        fields: [
+          {
+            name: "CUEAPI_API_KEY",
+            label: "CUEAPI_API_KEY",
+            description: "CueAPI API key. Generate at https://cueapi.ai or app.i18nagent.ai.",
+            format: "string",
+            required: true,
+            secret: true,
+            default: null,
+            placeholder: null,
+            choices: [],
+            target: "env",
+          },
+        ],
+      },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /add exa search to mcps/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
+
+    const input = await screen.findByLabelText(/CUEAPI_API_KEY/i, { selector: "input" });
+    expect(screen.getByRole("link", { name: "https://cueapi.ai" })).toHaveAttribute(
+      "href",
+      "https://cueapi.ai",
+    );
+    expect(screen.getByRole("link", { name: "app.i18nagent.ai" })).toHaveAttribute(
+      "href",
+      "https://app.i18nagent.ai",
+    );
+    expect(screen.getByRole("button", { name: /^install$/i })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "cue-key" } });
+    fireEvent.click(screen.getByRole("button", { name: /^install$/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/mcp/servers"),
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining("CUEAPI_API_KEY"),
+        }),
+      );
+    });
+    const postCall = fetchMock.mock.calls.find(
+      ([url, init]) => String(url).includes("/api/mcp/servers") && init?.method === "POST",
+    );
+    expect(JSON.parse(String(postCall?.[1]?.body))).toMatchObject({
+      config: { CUEAPI_API_KEY: "cue-key" },
     });
   });
 

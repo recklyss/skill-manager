@@ -26,6 +26,8 @@ function makeEntry(
     displayName: name,
     kind: "managed",
     canEnable: true,
+    enabledStatus: states.some((state) => state === "managed") ? "enabled" : "disabled",
+    availabilityStatus: "unavailable",
     spec: options.transport
       ? {
           name,

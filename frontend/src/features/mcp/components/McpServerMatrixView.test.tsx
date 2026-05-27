@@ -27,6 +27,8 @@ function entries(): McpInventoryEntryDto[] {
       displayName: "Exa Search",
       kind: "managed",
       canEnable: true,
+      enabledStatus: "enabled",
+      availabilityStatus: "available",
       spec: {
         name: "exa",
         displayName: "Exa Search",
@@ -47,6 +49,8 @@ function entries(): McpInventoryEntryDto[] {
       displayName: "Drift Server",
       kind: "managed",
       canEnable: true,
+      enabledStatus: "disabled",
+      availabilityStatus: "unavailable",
       spec: {
         name: "drift",
         displayName: "Drift Server",

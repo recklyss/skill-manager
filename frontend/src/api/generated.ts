@@ -261,6 +261,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mcp/servers/{name}/availability/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Mcp Server Availability */
+        post: operations["check_mcp_server_availability_api_mcp_servers__name__availability_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mcp/servers/{name}/disable": {
         parameters: {
             query?: never;
@@ -816,6 +833,10 @@ export interface components {
     schemas: {
         /** AddMcpServerRequest */
         AddMcpServerRequest: {
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            } | null;
             /** Qualifiedname */
             qualifiedName: string;
             /** Sourceharness */
@@ -1059,6 +1080,20 @@ export interface components {
             /** Succeeded */
             succeeded: string[];
         };
+        /** McpAvailabilityCheckResponse */
+        McpAvailabilityCheckResponse: {
+            /** Availabilityreason */
+            availabilityReason?: string | null;
+            /**
+             * Availabilitystatus
+             * @enum {string}
+             */
+            availabilityStatus: "available" | "unavailable";
+            /** Name */
+            name: string;
+            /** Ok */
+            ok: boolean;
+        };
         /** McpBindingResponse */
         McpBindingResponse: {
             /** Driftdetail */
@@ -1132,6 +1167,42 @@ export interface components {
             };
             spec: components["schemas"]["McpServerSpecResponse"];
         };
+        /** McpInstallConfigFieldResponse */
+        McpInstallConfigFieldResponse: {
+            /** Choices */
+            choices?: string[];
+            /** Default */
+            default?: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "string" | "number" | "boolean" | "filepath";
+            /** Label */
+            label: string;
+            /** Name */
+            name: string;
+            /** Placeholder */
+            placeholder?: string | null;
+            /** Required */
+            required: boolean;
+            /** Secret */
+            secret: boolean;
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "env" | "header" | "urlVariable" | "packageArgument" | "runtimeArgument";
+        };
+        /** McpInstallConfigResponse */
+        McpInstallConfigResponse: {
+            /** Fields */
+            fields?: components["schemas"]["McpInstallConfigFieldResponse"][];
+            /** Required */
+            required: boolean;
+        };
         /** McpInstallTargetResponse */
         McpInstallTargetResponse: {
             /** Harness */
@@ -1174,10 +1245,22 @@ export interface components {
         };
         /** McpInventoryEntryResponse */
         McpInventoryEntryResponse: {
+            /** Availabilityreason */
+            availabilityReason?: string | null;
+            /**
+             * Availabilitystatus
+             * @enum {string}
+             */
+            availabilityStatus: "available" | "unavailable";
             /** Canenable */
             canEnable: boolean;
             /** Displayname */
             displayName: string;
+            /**
+             * Enabledstatus
+             * @enum {string}
+             */
+            enabledStatus: "enabled" | "disabled";
             /**
              * Kind
              * @enum {string}
@@ -1250,6 +1333,7 @@ export interface components {
             externalUrl: string;
             /** Iconurl */
             iconUrl?: string | null;
+            installConfig?: components["schemas"]["McpInstallConfigResponse"];
             /** Isremote */
             isRemote: boolean;
             /** Managedname */
@@ -1390,12 +1474,24 @@ export interface components {
         };
         /** McpServerDetailResponse */
         McpServerDetailResponse: {
+            /** Availabilityreason */
+            availabilityReason?: string | null;
+            /**
+             * Availabilitystatus
+             * @enum {string}
+             */
+            availabilityStatus: "available" | "unavailable";
             /** Canenable */
             canEnable: boolean;
             /** Configchoices */
             configChoices?: components["schemas"]["McpConfigChoiceResponse"][];
             /** Displayname */
             displayName: string;
+            /**
+             * Enabledstatus
+             * @enum {string}
+             */
+            enabledStatus: "enabled" | "disabled";
             /** Env */
             env?: components["schemas"]["McpEnvEntryResponse"][];
             /**
@@ -2663,6 +2759,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["McpSetHarnessesResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_mcp_server_availability_api_mcp_servers__name__availability_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpAvailabilityCheckResponse"];
                 };
             };
             /** @description Validation Error */

@@ -1,9 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MultiSelectAction } from "../../../components/BulkActionBar";
 import { usePendingRegistry } from "../../../lib/async/pending-registry";
 import {
   useAdoptMcpServerMutation,
+  useCheckMcpServerAvailabilityMutation,
   useDisableMcpServerMutation,
   useEnableMcpServerMutation,
   useMcpInventoryQuery,
@@ -24,6 +25,8 @@ export function useMcpManagementController() {
   const reconcileMutation = useReconcileMcpServerMutation();
   const enableMutation = useEnableMcpServerMutation();
   const disableMutation = useDisableMcpServerMutation();
+  const availabilityMutation = useCheckMcpServerAvailabilityMutation();
+  const autoAvailabilityChecks = useRef<Set<string>>(new Set());
 
   const pendingServerRegistry = usePendingRegistry<string>();
   const pendingAdoptRegistry = usePendingRegistry<string>(); // key: name or name:sourceHarness
@@ -50,11 +53,37 @@ export function useMcpManagementController() {
         ? "error"
         : "loading";
 
+  useEffect(() => {
+    if (!inventory) return;
+    for (const entry of inventory.entries) {
+      if (
+        entry.kind !== "managed" ||
+        entry.enabledStatus !== "enabled" ||
+        entry.availabilityStatus !== "unavailable" ||
+        entry.availabilityReason !== null ||
+        !entry.spec
+      ) {
+        continue;
+      }
+      const key = `${entry.name}:${entry.spec.revision}`;
+      if (autoAvailabilityChecks.current.has(key)) {
+        continue;
+      }
+      autoAvailabilityChecks.current.add(key);
+      void availabilityMutation.mutateAsync(entry.name).catch(() => {
+        autoAvailabilityChecks.current.delete(key);
+      });
+    }
+  }, [availabilityMutation, inventory]);
+
   const handleSetServerHarnesses = useCallback(
     async (name: string, target: "enabled" | "disabled"): Promise<void> => {
       try {
         await pendingServerRegistry.run(name, async () => {
           const response = await setHarnessesMutation.mutateAsync({ name, target });
+          if (target === "enabled" && response.succeeded.length > 0) {
+            void availabilityMutation.mutateAsync(name).catch(() => undefined);
+          }
           if (!response.ok) {
             const failed = response.failed.map((f) => `${f.harness}: ${f.error}`).join("; ");
             setActionErrorMessage(failed || "Some harnesses could not be updated");
@@ -64,7 +93,7 @@ export function useMcpManagementController() {
         setActionErrorMessage(error instanceof Error ? error.message : "Action failed");
       }
     },
-    [pendingServerRegistry, setHarnessesMutation],
+    [availabilityMutation, pendingServerRegistry, setHarnessesMutation],
   );
 
   const handleUninstallServer = useCallback(
@@ -88,12 +117,13 @@ export function useMcpManagementController() {
       try {
         await pendingPerHarnessRegistry.run(key, async () => {
           await enableMutation.mutateAsync({ name, harness });
+          void availabilityMutation.mutateAsync(name).catch(() => undefined);
         });
       } catch (error) {
         setActionErrorMessage(error instanceof Error ? error.message : "Enable failed");
       }
     },
-    [enableMutation, pendingPerHarnessRegistry],
+    [availabilityMutation, enableMutation, pendingPerHarnessRegistry],
   );
 
   const handleDisableInHarness = useCallback(
@@ -200,9 +230,12 @@ export function useMcpManagementController() {
 
   const handleMultiSelectEnableAll = useCallback(async (): Promise<void> => {
     await runBulkAction("enable-all", async (name) => {
-      await setHarnessesMutation.mutateAsync({ name, target: "enabled" });
+      const response = await setHarnessesMutation.mutateAsync({ name, target: "enabled" });
+      if (response.succeeded.length > 0) {
+        void availabilityMutation.mutateAsync(name).catch(() => undefined);
+      }
     });
-  }, [runBulkAction, setHarnessesMutation]);
+  }, [availabilityMutation, runBulkAction, setHarnessesMutation]);
 
   const handleMultiSelectDisableAll = useCallback(async (): Promise<void> => {
     await runBulkAction("disable-all", async (name) => {

@@ -41,6 +41,31 @@
   color: var(--color-warning, #f59e0b);
 }
 
+.mcp-availability-status-chip {
+  gap: 5px;
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+}
+
+.mcp-availability-status-chip[data-status="available"] {
+  border-color: color-mix(in srgb, var(--color-success) 36%, transparent);
+  background: color-mix(in srgb, var(--color-success-soft) 78%, transparent);
+  color: var(--color-success);
+}
+
+.mcp-availability-status-chip[data-status="unavailable"] {
+  border-color: color-mix(in srgb, var(--color-text-muted) 22%, transparent);
+  background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
+  color: var(--color-text-muted);
+}
+
+.mcp-availability-status-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .mcp-server-card__detail {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);

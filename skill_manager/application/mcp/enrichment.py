@@ -29,7 +29,7 @@ class MarketplaceLink:
 
 
 def _canonical_lookup_key(qualified_name: str) -> str:
-    """Reverse of mutations._canonical_name; used to map local name → smithery id."""
+    """Reverse of mutations._canonical_name; used to map local name → marketplace id."""
     cleaned = qualified_name.lstrip("@")
     if "/" in cleaned:
         cleaned = cleaned.split("/", 1)[1]
@@ -37,7 +37,7 @@ def _canonical_lookup_key(qualified_name: str) -> str:
 
 
 class McpEnrichmentService:
-    """Maps a local server name to a smithery marketplace entry, when one exists.
+    """Maps a local server name to a marketplace entry, when one exists.
 
     Lookups go through three tiers:
       1. In-memory cache (per-process, hit immediately).

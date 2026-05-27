@@ -1,8 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useAddMcpServerMutation, useMcpInstallTargetsQuery } from "../api/mcp-queries";
+import { fetchMcpMarketplaceDetail } from "../api/mcp-client";
+import { mcpMarketplaceKeys, useAddMcpServerMutation, useMcpInstallTargetsQuery } from "../api/mcp-queries";
 import type {
   AddMcpServerResponseDto,
+  McpInstallConfigDto,
   McpInstallTargetDto,
   McpMarketplaceDetailDto,
   McpMarketplaceItemDto,
@@ -15,6 +18,13 @@ export type McpInstallAvailability =
   | { kind: "unavailable"; reason: string };
 
 export type McpSourceHarness = string;
+export type McpInstallConfigValues = Record<string, string | boolean | number>;
+export interface PendingMcpInstallConfig {
+  qualifiedName: string;
+  sourceHarness: McpSourceHarness;
+  displayName: string;
+  installConfig: McpInstallConfigDto;
+}
 export type McpInstallTargetState =
   | { kind: "loading" }
   | { kind: "error"; message: string }
@@ -44,7 +54,10 @@ interface McpInstallActionState {
   installedState: InstalledState;
   installTargetState: McpInstallTargetState;
   installing: boolean;
+  pendingConfig: PendingMcpInstallConfig | null;
   onInstall: (sourceHarness: McpSourceHarness) => void;
+  onCancelConfig: () => void;
+  onSubmitConfig: (config: McpInstallConfigValues) => void;
 }
 
 export function useMcpInstallActionState({
@@ -54,17 +67,60 @@ export function useMcpInstallActionState({
 }: UseMcpInstallActionStateParams): McpInstallActionState {
   const { lookup } = useInstalledServerLookup();
   const { isInstalling } = useInstallingState();
+  const queryClient = useQueryClient();
   const installMutation = useAddMcpServerMutation();
   const installTargetsQuery = useMcpInstallTargetsQuery();
+  const [pendingConfig, setPendingConfig] = useState<PendingMcpInstallConfig | null>(null);
 
-  const onInstall = useCallback(
-    (sourceHarness: McpSourceHarness) => {
+  const submitInstall = useCallback(
+    (sourceHarness: McpSourceHarness, config?: McpInstallConfigValues) => {
       installMutation.mutate(
-        { qualifiedName, sourceHarness, displayName },
-        { onSuccess: (response) => onInstalled?.(response) },
+        { qualifiedName, sourceHarness, displayName, config },
+        {
+          onSuccess: (response) => {
+            setPendingConfig(null);
+            onInstalled?.(response);
+          },
+        },
       );
     },
     [displayName, installMutation, onInstalled, qualifiedName],
+  );
+
+  const onInstall = useCallback(
+    (sourceHarness: McpSourceHarness) => {
+      void queryClient
+        .fetchQuery({
+          queryKey: mcpMarketplaceKeys.detail(qualifiedName),
+          queryFn: () => fetchMcpMarketplaceDetail(qualifiedName),
+        })
+        .then((detail) => {
+          const installConfig = detail.installConfig;
+          if (installConfig?.fields?.length) {
+            setPendingConfig({ qualifiedName, sourceHarness, displayName, installConfig });
+            return;
+          }
+          submitInstall(sourceHarness);
+        })
+        .catch(() => {
+          submitInstall(sourceHarness);
+        });
+    },
+    [displayName, qualifiedName, queryClient, submitInstall],
+  );
+
+  const onCancelConfig = useCallback(() => {
+    setPendingConfig(null);
+  }, []);
+
+  const onSubmitConfig = useCallback(
+    (config: McpInstallConfigValues) => {
+      if (!pendingConfig) {
+        return;
+      }
+      submitInstall(pendingConfig.sourceHarness, config);
+    },
+    [pendingConfig, submitInstall],
   );
 
   return {
@@ -75,7 +131,10 @@ export function useMcpInstallActionState({
       installTargetsQuery.data?.targets,
     ),
     installing: isInstalling(qualifiedName),
+    pendingConfig,
     onInstall,
+    onCancelConfig,
+    onSubmitConfig,
   };
 }
 

@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { useToast } from "../../../components/Toast";
 import { flattenUniquePageItems, queryPolicy } from "../../../lib/query";
-import { invalidateMcpQueries } from "../../mcp/public";
+import { checkMcpServerAvailability, invalidateMcpQueries } from "../../mcp/public";
 import { useMarketplaceCopy } from "../i18n";
 import { useInstallingState } from "../model/installing-context";
 import {
@@ -14,37 +14,35 @@ import {
 } from "./mcp-client";
 import type {
   AddMcpServerResponseDto,
-  McpMarketplaceFilter,
   McpMarketplaceItemDto,
   McpMarketplacePageResultDto,
 } from "./mcp-types";
 
 const MCP_MARKETPLACE_STALE_TIME_MS = 60_000;
 const MCP_MARKETPLACE_GC_TIME_MS = 15 * 60_000;
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
 
 export const mcpMarketplaceKeys = {
   all: ["marketplace", "mcp"] as const,
-  feed: (query: string, filter: McpMarketplaceFilter) =>
-    ["marketplace", "mcp", "feed", query, filter] as const,
+  feed: (query: string) =>
+    ["marketplace", "mcp", "feed", query] as const,
   detail: (qualifiedName: string) =>
     ["marketplace", "mcp", "detail", qualifiedName] as const,
   installTargets: () => ["marketplace", "mcp", "install-targets"] as const,
 };
 
-export function useMcpMarketplaceFeedQuery(query: string, filter: McpMarketplaceFilter) {
+export function useMcpMarketplaceFeedQuery(query: string) {
   const trimmed = query.trim();
-  const usePopular = !trimmed && filter === "all";
+  const usePopular = !trimmed;
 
   return useInfiniteQuery({
-    queryKey: mcpMarketplaceKeys.feed(trimmed || "__popular__", filter),
+    queryKey: mcpMarketplaceKeys.feed(trimmed || "__popular__"),
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       usePopular
         ? fetchMcpMarketplacePopular({ limit: PAGE_SIZE, offset: pageParam })
         : searchMcpMarketplace({
             query: trimmed,
-            filter,
             limit: PAGE_SIZE,
             offset: pageParam,
           }),
@@ -84,15 +82,26 @@ export function useAddMcpServerMutation() {
   return useMutation<
     AddMcpServerResponseDto,
     Error,
-    { qualifiedName: string; sourceHarness: string; displayName?: string }
+    {
+      qualifiedName: string;
+      sourceHarness: string;
+      displayName?: string;
+      config?: Record<string, string | boolean | number>;
+    }
   >({
-    mutationFn: ({ qualifiedName, sourceHarness }) => addMcpServer({ qualifiedName, sourceHarness }),
+    mutationFn: ({ qualifiedName, sourceHarness, config }) =>
+      addMcpServer({ qualifiedName, sourceHarness, config }),
     onMutate: ({ qualifiedName }) => {
       begin(qualifiedName);
     },
     onSuccess: (response, { displayName }) => {
       // Invalidate the central inventory so the card button flips to
       // "Open in MCPs" in place. User stays on the marketplace.
+      void checkMcpServerAvailability(response.server.name)
+        .catch(() => undefined)
+        .finally(() => {
+          void invalidateMcpQueries(queryClient);
+        });
       void invalidateMcpQueries(queryClient);
       toast(copy.detail.installButton.addedToMcp(displayName ?? response.server.name));
     },

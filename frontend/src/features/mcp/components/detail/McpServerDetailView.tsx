@@ -12,6 +12,7 @@ import type {
 } from "../../api/management-types";
 import { useMcpServerDetailQuery } from "../../api/management-queries";
 import { useMcpCopy, type McpCopy } from "../../i18n";
+import { formatDisplayHeaders } from "../../model/display-secrets";
 import {
   McpConfigChoiceDialog,
   type McpConfigChoiceOption,
@@ -274,7 +275,7 @@ function ConnectionBlock({ spec, copy }: { spec: McpServerSpecDto | null; copy: 
         <code>{spec.transport}</code>
       </Field>
       <Field label={copy.detail.headers}>
-        <code>{spec.headers ? JSON.stringify(spec.headers) : "—"}</code>
+        <code>{formatDisplayHeaders(spec.headers)}</code>
       </Field>
     </div>
   );
