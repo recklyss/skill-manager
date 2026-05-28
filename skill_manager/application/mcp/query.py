@@ -5,15 +5,17 @@ from typing import Literal
 from skill_manager.errors import MutationError
 
 from .contracts import McpBinding, McpHarnessScan, McpInventory, McpInventoryIssue
-from .availability import McpAvailabilityProbe, McpAvailabilityResult
+from .availability import (
+    AvailabilityCache,
+    McpAvailabilityProbe,
+    McpAvailabilityResult,
+    availability_cache_key,
+)
 from .enrichment import McpEnrichmentService
 from .inventory import build_inventory
 from .planner import McpAdoptionPlanner
 from .read_models import McpReadModelService
 from .redaction import annotate_redacted_env, redact_payload, redacted_spec_dict
-
-
-_NOT_ENABLED_AVAILABILITY_REASON = "Not enabled in any Agent"
 
 
 class McpQueryService:
@@ -26,12 +28,13 @@ class McpQueryService:
         planner: McpAdoptionPlanner | None = None,
         enrichment: McpEnrichmentService | None = None,
         availability_probe: McpAvailabilityProbe | None = None,
+        availability_cache: AvailabilityCache | None = None,
     ) -> None:
         self.read_models = read_models
         self.planner = planner
         self.enrichment = enrichment
         self.availability_probe = availability_probe or McpAvailabilityProbe()
-        self._availability_cache: dict[tuple[str, str], McpAvailabilityResult] = {}
+        self._availability_cache = availability_cache if availability_cache is not None else {}
 
     def list_servers(self) -> dict[str, object]:
         snapshot = self.read_models.snapshot()
@@ -73,19 +76,6 @@ class McpQueryService:
         entry = next((item for item in inventory.entries if item.name == name), None)
         if entry is None or entry.spec is None:
             raise MutationError(f"unknown mcp server: {name}", status=404)
-        if _entry_enabled_status(entry, visible_scans) != "enabled":
-            result = McpAvailabilityResult(
-                status="unavailable",
-                reason=_NOT_ENABLED_AVAILABILITY_REASON,
-            )
-            self._availability_cache[_availability_cache_key(entry)] = result
-            return {
-                "ok": True,
-                "name": name,
-                "availabilityStatus": result.status,
-                "availabilityReason": result.reason,
-            }
-
         result = self.availability_probe.probe(entry.spec)
         self._availability_cache[_availability_cache_key(entry)] = result
         return {
@@ -208,19 +198,37 @@ def _is_scan_addressable(scan: McpHarnessScan) -> bool:
     return scan.mcp_writable and (scan.installed or scan.config_present)
 
 
-def _entry_enabled_status(
-    entry,
-    scans: tuple[McpHarnessScan, ...],
-) -> Literal["enabled", "disabled"]:
-    addressable_harnesses = {
+def _addressable_harnesses(scans: tuple[McpHarnessScan, ...]) -> set[str]:
+    return {
         scan.harness
         for scan in scans
         if _is_scan_addressable(scan)
     }
+
+
+def _entry_enabled_status(
+    entry,
+    addressable_harnesses: set[str],
+) -> Literal["enabled", "disabled"]:
     for binding in entry.sightings:
         if binding.harness in addressable_harnesses and binding.state == "managed":
             return "enabled"
     return "disabled"
+
+
+def _entry_mcp_status(
+    entry,
+    availability: McpAvailabilityResult,
+) -> dict[str, object]:
+    if entry.spec is not None and entry.can_enable and availability.status == "available":
+        return {
+            "kind": "available",
+            "reason": None,
+        }
+    return {
+        "kind": "connection_issue",
+        "reason": availability.reason,
+    }
 
 
 def _entry_to_payload(
@@ -229,9 +237,10 @@ def _entry_to_payload(
     availability: McpAvailabilityResult | None = None,
 ) -> dict[str, object]:
     visible_harnesses = {scan.harness for scan in scans}
+    addressable_harnesses = _addressable_harnesses(scans)
     spec_payload = redacted_spec_dict(entry.spec) if entry.spec is not None else None
-    enabled_status = _entry_enabled_status(entry, scans)
-    effective_availability = _entry_effective_availability(enabled_status, availability)
+    enabled_status = _entry_enabled_status(entry, addressable_harnesses)
+    effective_availability = _entry_effective_availability(availability)
     return {
         "name": entry.name,
         "displayName": entry.display_name,
@@ -241,6 +250,10 @@ def _entry_to_payload(
         "enabledStatus": enabled_status,
         "availabilityStatus": effective_availability.status,
         "availabilityReason": effective_availability.reason,
+        "mcpStatus": _entry_mcp_status(
+            entry,
+            effective_availability,
+        ),
         "sightings": [
             _binding_to_dict(binding)
             for binding in entry.sightings
@@ -250,19 +263,14 @@ def _entry_to_payload(
 
 
 def _availability_cache_key(entry) -> tuple[str, str]:
-    revision = entry.spec.revision if entry.spec is not None else ""
-    return (entry.name, revision)
+    if entry.spec is None:
+        return (entry.name, "")
+    return availability_cache_key(entry.name, entry.spec)
 
 
 def _entry_effective_availability(
-    enabled_status: Literal["enabled", "disabled"],
     availability: McpAvailabilityResult | None,
 ) -> McpAvailabilityResult:
-    if enabled_status != "enabled":
-        return McpAvailabilityResult(
-            status="unavailable",
-            reason=_NOT_ENABLED_AVAILABILITY_REASON,
-        )
     if availability is None:
         return McpAvailabilityResult(status="unavailable", reason=None)
     return availability

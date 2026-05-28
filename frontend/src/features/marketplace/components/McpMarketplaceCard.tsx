@@ -2,11 +2,7 @@ import { type KeyboardEvent, useState } from "react";
 
 import type { McpMarketplaceItemDto } from "../api/mcp-types";
 import { useMarketplaceCopy } from "../i18n";
-import {
-  summaryInstallAvailability,
-  useMcpInstallActionState,
-} from "../model/mcp-install-action";
-import { McpInstallConfigDialog } from "./McpInstallConfigDialog";
+import { useMcpInstallActionState } from "../model/mcp-install-action";
 import { McpInstallButton } from "./McpInstallButton";
 
 interface McpMarketplaceCardProps {
@@ -28,7 +24,6 @@ export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardPro
     qualifiedName: item.qualifiedName,
     displayName: item.displayName,
   });
-  const availability = summaryInstallAvailability(item);
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>): void {
     if (event.key !== "Enter" && event.key !== " ") {
@@ -60,13 +55,20 @@ export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardPro
               avatarFallbackLabel(item)
             )}
           </div>
-          <div>
-            <h4 className="market-card__title">{item.displayName}</h4>
-            <p className="market-card__repo">{item.qualifiedName}</p>
+          <div className="market-card__identity">
+            <h4 className="market-card__title" title={item.displayName}>
+              {item.displayName}
+            </h4>
+            <p className="market-card__repo" title={item.qualifiedName}>
+              {item.qualifiedName}
+            </p>
           </div>
         </div>
 
-        <p className="market-card__body mcp-card__body">
+        <p
+          className="market-card__body mcp-card__body"
+          title={item.description || copy.detail.mcp.noDescription}
+        >
           {item.description || copy.detail.mcp.noDescription}
         </p>
 
@@ -74,21 +76,13 @@ export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardPro
           <div className="mcp-card__actions">
             <McpInstallButton
               displayName={item.displayName}
-              availability={availability}
               installedState={installAction.installedState}
-              installTargetState={installAction.installTargetState}
               installing={installAction.installing}
               onInstall={installAction.onInstall}
             />
           </div>
         </div>
       </article>
-      <McpInstallConfigDialog
-        pending={installAction.pendingConfig}
-        installing={installAction.installing}
-        onClose={installAction.onCancelConfig}
-        onSubmit={installAction.onSubmitConfig}
-      />
     </>
   );
 }

@@ -8,15 +8,13 @@ from .common import HarnessTarget
 
 
 class AddMcpServerRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     qualified_name: str = Field(..., alias="qualifiedName", min_length=1)
-    source_harness: str = Field(..., alias="sourceHarness", min_length=1)
-    config: dict[str, object] | None = None
 
 
 class EnableMcpServerRequest(HarnessTarget):
-    pass
+    config: dict[str, object] | None = None
 
 
 class DisableMcpServerRequest(HarnessTarget):
@@ -25,6 +23,7 @@ class DisableMcpServerRequest(HarnessTarget):
 
 class SetMcpServerHarnessesRequest(BaseModel):
     target: Literal["enabled", "disabled"]
+    config: dict[str, object] | None = None
 
 
 class AdoptMcpRequest(BaseModel):
@@ -83,6 +82,14 @@ class McpBindingResponse(BaseModel):
     driftDetail: str | None = None
 
 
+class McpStatusResponse(BaseModel):
+    kind: Literal[
+        "available",
+        "connection_issue",
+    ]
+    reason: str | None = None
+
+
 class McpInventoryEntryResponse(BaseModel):
     name: str
     displayName: str
@@ -92,6 +99,7 @@ class McpInventoryEntryResponse(BaseModel):
     enabledStatus: Literal["enabled", "disabled"]
     availabilityStatus: Literal["available", "unavailable"]
     availabilityReason: str | None = None
+    mcpStatus: McpStatusResponse
     sightings: list[McpBindingResponse]
 
 
@@ -153,6 +161,8 @@ class McpMarketplaceLinkResponse(BaseModel):
     displayName: str
     iconUrl: str | None = None
     externalUrl: str
+    githubUrl: str | None = None
+    websiteUrl: str | None = None
     description: str
     isRemote: bool
     isVerified: bool
@@ -221,6 +231,8 @@ class McpMarketplaceItemResponse(BaseModel):
     useCount: int
     createdAt: str | None = None
     homepage: str | None = None
+    websiteUrl: str | None = None
+    githubUrl: str | None = None
     externalUrl: str
 
 
@@ -228,19 +240,6 @@ class McpMarketplacePageResponse(BaseModel):
     items: list[McpMarketplaceItemResponse]
     nextOffset: int | None = None
     hasMore: bool
-
-
-class McpInstallTargetResponse(BaseModel):
-    harness: str
-    label: str
-    logoKey: str | None = None
-    smitheryClient: str | None = None
-    supported: bool
-    reason: str | None = None
-
-
-class McpInstallTargetsResponse(BaseModel):
-    targets: list[McpInstallTargetResponse]
 
 
 class McpMarketplaceConnectionResponse(BaseModel):
@@ -331,6 +330,8 @@ class McpMarketplaceDetailResponse(BaseModel):
     resources: list[McpMarketplaceResourceResponse]
     prompts: list[McpMarketplacePromptResponse]
     capabilityCounts: McpMarketplaceCapabilityCountsResponse
+    websiteUrl: str | None = None
+    githubUrl: str | None = None
     externalUrl: str
     installConfig: McpInstallConfigResponse = Field(default_factory=lambda: McpInstallConfigResponse(required=False))
 
@@ -353,8 +354,6 @@ __all__ = [
     "McpInventoryIssueResponse",
     "McpInventoryEntryResponse",
     "McpInventoryResponse",
-    "McpInstallTargetResponse",
-    "McpInstallTargetsResponse",
     "McpInstallConfigFieldResponse",
     "McpInstallConfigResponse",
     "McpMarketplaceCapabilityCountsResponse",

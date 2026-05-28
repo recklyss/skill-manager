@@ -398,6 +398,8 @@ def _map_summary(
         "useCount": 0,
         "createdAt": _coerce_optional_str(official.get("publishedAt")),
         "homepage": _coerce_optional_str(server.get("websiteUrl")),
+        "websiteUrl": _coerce_optional_str(server.get("websiteUrl")),
+        "githubUrl": _github_repository_url(server),
         "externalUrl": _external_url(qualified_name),
     }
 
@@ -438,6 +440,8 @@ def _map_detail(
             "resources": len(resources),
             "prompts": len(prompts),
         },
+        "websiteUrl": _coerce_optional_str(server.get("websiteUrl")),
+        "githubUrl": _github_repository_url(server),
         "externalUrl": _external_url(qualified_name),
         "installConfig": McpInstallConfig(options[0].fields).to_dict() if options else McpInstallConfig().to_dict(),
     }
@@ -501,7 +505,27 @@ def _github_repository_avatar_url(server: Mapping[str, object]) -> str | None:
     return f"https://github.com/{owner}.png?size=96"
 
 
+def _github_repository_url(server: Mapping[str, object]) -> str | None:
+    repository = server.get("repository")
+    if not isinstance(repository, Mapping):
+        return None
+    raw_url = _coerce_optional_str(repository.get("url"))
+    if raw_url is None:
+        return None
+    path = _github_repository_path_from_url(raw_url)
+    if path is None:
+        return None
+    return f"https://github.com/{path}"
+
+
 def _github_owner_from_url(raw_url: str) -> str | None:
+    path = _github_repository_path_from_url(raw_url)
+    if path is None:
+        return None
+    return path.split("/", 1)[0]
+
+
+def _github_repository_path_from_url(raw_url: str) -> str | None:
     if raw_url.startswith("git@github.com:"):
         path = raw_url.removeprefix("git@github.com:")
     else:
@@ -512,7 +536,11 @@ def _github_owner_from_url(raw_url: str) -> str | None:
     parts = [part for part in path.strip("/").split("/") if part]
     if len(parts) < 2:
         return None
-    return parts[0]
+    owner = parts[0]
+    repo = parts[1].removesuffix(".git")
+    if not owner or not repo:
+        return None
+    return f"{owner}/{repo}"
 
 
 def _matches_query(server: Mapping[str, object], query: str) -> bool:

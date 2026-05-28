@@ -24,6 +24,13 @@ class McpAvailabilityResult:
     reason: str | None = None
 
 
+AvailabilityCache = dict[tuple[str, str], McpAvailabilityResult]
+
+
+def availability_cache_key(name: str, spec: McpServerSpec) -> tuple[str, str]:
+    return (name, spec.revision)
+
+
 class McpAvailabilityProbe:
     def __init__(
         self,

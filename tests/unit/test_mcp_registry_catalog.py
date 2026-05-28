@@ -104,7 +104,14 @@ class McpRegistryCatalogTests(unittest.TestCase):
         response = {
             "servers": [
                 _entry("ai.adeu/adeu", "1.5.2", latest=False, packages=[_PYPI_PACKAGE]),
-                _entry("ai.adeu/adeu", "1.7.1", title="ADEU", packages=[_NPM_PACKAGE]),
+                _entry(
+                    "ai.adeu/adeu",
+                    "1.7.1",
+                    title="ADEU",
+                    packages=[_NPM_PACKAGE],
+                    website_url="https://adeu.ai",
+                    repository_url="https://github.com/adeu/adeu-mcp",
+                ),
                 _entry("old.example/mcp", "1.0.0", status="deleted", remotes=[_HTTP_REMOTE]),
                 _entry(
                     "bad.example/mcp",
@@ -127,6 +134,8 @@ class McpRegistryCatalogTests(unittest.TestCase):
             page["items"][0]["externalUrl"],
             "https://registry.modelcontextprotocol.io/?q=ai.adeu%2Fadeu",
         )
+        self.assertEqual(page["items"][0]["githubUrl"], "https://github.com/adeu/adeu-mcp")
+        self.assertEqual(page["items"][0]["websiteUrl"], "https://adeu.ai")
         self.assertTrue(page["items"][1]["isRemote"])
         self.assertNotIn("smithery", page["items"][0]["externalUrl"])
 
@@ -301,13 +310,27 @@ class McpRegistryCatalogTests(unittest.TestCase):
             if path == "/v0.1/servers/ac.inference.sh%2Fmcp/versions":
                 return {
                     "servers": [
-                        _entry("ac.inference.sh/mcp", "1.0.1", title="inference.sh", remotes=[_HTTP_REMOTE]),
+                        _entry(
+                            "ac.inference.sh/mcp",
+                            "1.0.1",
+                            title="inference.sh",
+                            remotes=[_HTTP_REMOTE],
+                            website_url="https://inference.sh",
+                            repository_url="git@github.com:acme/inference-mcp.git",
+                        ),
                         _entry("ac.inference.sh/mcp", "1.0.0", latest=False, remotes=[_HTTP_REMOTE]),
                     ],
                     "metadata": {"count": 2},
                 }
             if path == "/v0.1/servers/ac.inference.sh%2Fmcp/versions/1.0.1":
-                return _entry("ac.inference.sh/mcp", "1.0.1", title="inference.sh", remotes=[_HTTP_REMOTE])
+                return _entry(
+                    "ac.inference.sh/mcp",
+                    "1.0.1",
+                    title="inference.sh",
+                    remotes=[_HTTP_REMOTE],
+                    website_url="https://inference.sh",
+                    repository_url="git@github.com:acme/inference-mcp.git",
+                )
             raise AssertionError(path)
 
         catalog = McpMarketplaceCatalog(fetcher=fetcher, cache=MarketplaceCache())
@@ -328,6 +351,8 @@ class McpRegistryCatalogTests(unittest.TestCase):
             detail["externalUrl"],
             "https://registry.modelcontextprotocol.io/?q=ac.inference.sh%2Fmcp",
         )
+        self.assertEqual(detail["githubUrl"], "https://github.com/acme/inference-mcp")
+        self.assertEqual(detail["websiteUrl"], "https://inference.sh")
         self.assertNotIn("smithery", detail["externalUrl"])
         self.assertNotIn("registryServer", detail)
 

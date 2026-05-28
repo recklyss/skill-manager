@@ -68,6 +68,7 @@ def resolve_registry_server_spec(
     detail: Mapping[str, object],
     *,
     config: Mapping[str, object] | None = None,
+    allow_missing_required: bool = False,
 ) -> McpServerSpec:
     server = _server_payload(detail)
     qualified_name = _str(detail.get("qualifiedName")) or _str(server.get("name"))
@@ -86,7 +87,11 @@ def resolve_registry_server_spec(
         "display_name": display_name,
         "source": McpSource.marketplace(qualified_name),
     }
-    values = resolved_config_values(option.fields, config or {})
+    values = resolved_config_values(
+        option.fields,
+        config or {},
+        allow_missing_required=allow_missing_required,
+    )
     if option.transport == "stdio":
         return _resolve_stdio_spec(common, option, values)
     if option.transport in {"http", "sse"}:

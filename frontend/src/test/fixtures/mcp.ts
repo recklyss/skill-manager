@@ -24,6 +24,12 @@ export function mcpInventoryEntry({
   enabledStatus = "disabled",
   availabilityStatus = "unavailable",
   availabilityReason = null,
+  mcpStatus = availabilityStatus === "available"
+    ? { kind: "available" as const, reason: null }
+    : {
+        kind: "connection_issue" as const,
+        reason: availabilityReason,
+      },
   spec = null,
 }: Pick<McpInventoryEntryDto, "name" | "kind"> & Partial<McpInventoryEntryDto>): McpInventoryEntryDto {
   return {
@@ -34,6 +40,7 @@ export function mcpInventoryEntry({
     enabledStatus,
     availabilityStatus,
     availabilityReason,
+    mcpStatus,
     spec,
     sightings,
   };

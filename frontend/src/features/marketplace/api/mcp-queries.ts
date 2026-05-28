@@ -2,11 +2,10 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { useToast } from "../../../components/Toast";
 import { flattenUniquePageItems, queryPolicy } from "../../../lib/query";
-import { checkMcpServerAvailability, invalidateMcpQueries } from "../../mcp/public";
+import { invalidateMcpQueries } from "../../mcp/public";
 import { useMarketplaceCopy } from "../i18n";
 import { useInstallingState } from "../model/installing-context";
 import {
-  fetchMcpInstallTargets,
   fetchMcpMarketplaceDetail,
   fetchMcpMarketplacePopular,
   addMcpServer,
@@ -28,7 +27,6 @@ export const mcpMarketplaceKeys = {
     ["marketplace", "mcp", "feed", query] as const,
   detail: (qualifiedName: string) =>
     ["marketplace", "mcp", "detail", qualifiedName] as const,
-  installTargets: () => ["marketplace", "mcp", "install-targets"] as const,
 };
 
 export function useMcpMarketplaceFeedQuery(query: string) {
@@ -61,14 +59,6 @@ export function useMcpMarketplaceDetailQuery(qualifiedName: string | null) {
   });
 }
 
-export function useMcpInstallTargetsQuery() {
-  return useQuery({
-    queryKey: mcpMarketplaceKeys.installTargets(),
-    queryFn: fetchMcpInstallTargets,
-    ...queryPolicy(MCP_MARKETPLACE_GC_TIME_MS, MCP_MARKETPLACE_GC_TIME_MS),
-  });
-}
-
 /**
  * Shared marketplace install mutation used by the detail view.
  * Handles: pending-state publication, inventory invalidation, and success/error toasts.
@@ -84,24 +74,17 @@ export function useAddMcpServerMutation() {
     Error,
     {
       qualifiedName: string;
-      sourceHarness: string;
       displayName?: string;
-      config?: Record<string, string | boolean | number>;
     }
   >({
-    mutationFn: ({ qualifiedName, sourceHarness, config }) =>
-      addMcpServer({ qualifiedName, sourceHarness, config }),
+    mutationFn: ({ qualifiedName }) =>
+      addMcpServer({ qualifiedName }),
     onMutate: ({ qualifiedName }) => {
       begin(qualifiedName);
     },
     onSuccess: (response, { displayName }) => {
       // Invalidate the central inventory so the card button flips to
       // "Open in MCPs" in place. User stays on the marketplace.
-      void checkMcpServerAvailability(response.server.name)
-        .catch(() => undefined)
-        .finally(() => {
-          void invalidateMcpQueries(queryClient);
-        });
       void invalidateMcpQueries(queryClient);
       toast(copy.detail.installButton.addedToMcp(displayName ?? response.server.name));
     },

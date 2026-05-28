@@ -123,23 +123,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/marketplace/mcp/install-targets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Mcp Install Targets */
-        get: operations["get_mcp_install_targets_api_marketplace_mcp_install_targets_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/marketplace/mcp/items/{qualified_name}": {
         parameters: {
             query?: never;
@@ -833,14 +816,8 @@ export interface components {
     schemas: {
         /** AddMcpServerRequest */
         AddMcpServerRequest: {
-            /** Config */
-            config?: {
-                [key: string]: unknown;
-            } | null;
             /** Qualifiedname */
             qualifiedName: string;
-            /** Sourceharness */
-            sourceHarness: string;
         };
         /** AdoptMcpRequest */
         AdoptMcpRequest: {
@@ -989,6 +966,10 @@ export interface components {
         };
         /** EnableMcpServerRequest */
         EnableMcpServerRequest: {
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Harness
              * @description Harness identifier
@@ -1203,26 +1184,6 @@ export interface components {
             /** Required */
             required: boolean;
         };
-        /** McpInstallTargetResponse */
-        McpInstallTargetResponse: {
-            /** Harness */
-            harness: string;
-            /** Label */
-            label: string;
-            /** Logokey */
-            logoKey?: string | null;
-            /** Reason */
-            reason?: string | null;
-            /** Smitheryclient */
-            smitheryClient?: string | null;
-            /** Supported */
-            supported: boolean;
-        };
-        /** McpInstallTargetsResponse */
-        McpInstallTargetsResponse: {
-            /** Targets */
-            targets: components["schemas"]["McpInstallTargetResponse"][];
-        };
         /** McpInventoryColumnResponse */
         McpInventoryColumnResponse: {
             /** Configpresent */
@@ -1266,6 +1227,7 @@ export interface components {
              * @enum {string}
              */
             kind: "managed" | "unmanaged";
+            mcpStatus: components["schemas"]["McpStatusResponse"];
             /** Name */
             name: string;
             /** Sightings */
@@ -1331,6 +1293,8 @@ export interface components {
             displayName: string;
             /** Externalurl */
             externalUrl: string;
+            /** Githuburl */
+            githubUrl?: string | null;
             /** Iconurl */
             iconUrl?: string | null;
             installConfig?: components["schemas"]["McpInstallConfigResponse"];
@@ -1346,6 +1310,8 @@ export interface components {
             resources: components["schemas"]["McpMarketplaceResourceResponse"][];
             /** Tools */
             tools: components["schemas"]["McpMarketplaceToolResponse"][];
+            /** Websiteurl */
+            websiteUrl?: string | null;
         };
         /** McpMarketplaceItemResponse */
         McpMarketplaceItemResponse: {
@@ -1357,6 +1323,8 @@ export interface components {
             displayName: string;
             /** Externalurl */
             externalUrl: string;
+            /** Githuburl */
+            githubUrl?: string | null;
             /** Homepage */
             homepage?: string | null;
             /** Iconurl */
@@ -1373,6 +1341,8 @@ export interface components {
             qualifiedName: string;
             /** Usecount */
             useCount: number;
+            /** Websiteurl */
+            websiteUrl?: string | null;
         };
         /** McpMarketplaceLinkResponse */
         McpMarketplaceLinkResponse: {
@@ -1382,6 +1352,8 @@ export interface components {
             displayName: string;
             /** Externalurl */
             externalUrl: string;
+            /** Githuburl */
+            githubUrl?: string | null;
             /** Iconurl */
             iconUrl?: string | null;
             /** Isremote */
@@ -1390,6 +1362,8 @@ export interface components {
             isVerified: boolean;
             /** Qualifiedname */
             qualifiedName: string;
+            /** Websiteurl */
+            websiteUrl?: string | null;
         };
         /** McpMarketplacePageResponse */
         McpMarketplacePageResponse: {
@@ -1500,6 +1474,7 @@ export interface components {
              */
             kind: "managed" | "unmanaged";
             marketplaceLink?: components["schemas"]["McpMarketplaceLinkResponse"] | null;
+            mcpStatus: components["schemas"]["McpStatusResponse"];
             /** Name */
             name: string;
             /** Sightings */
@@ -1561,6 +1536,16 @@ export interface components {
             kind: "marketplace" | "adopted" | "manual";
             /** Locator */
             locator: string;
+        };
+        /** McpStatusResponse */
+        McpStatusResponse: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "available" | "connection_issue";
+            /** Reason */
+            reason?: string | null;
         };
         /** McpUnmanagedByServerResponse */
         McpUnmanagedByServerResponse: {
@@ -1860,6 +1845,10 @@ export interface components {
         };
         /** SetMcpServerHarnessesRequest */
         SetMcpServerHarnessesRequest: {
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Target
              * @enum {string}
@@ -2466,26 +2455,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_mcp_install_targets_api_marketplace_mcp_install_targets_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["McpInstallTargetsResponse"];
                 };
             };
         };

@@ -1,12 +1,14 @@
 import { fetchJson, postJson } from "../../../api/http";
 
 import type {
-  AddMcpServerRequestDto,
   AddMcpServerResponseDto,
-  McpInstallTargetsDto,
   McpMarketplaceDetailDto,
   McpMarketplacePageResultDto,
 } from "./mcp-types";
+
+interface AddMcpServerRequestBody {
+  qualifiedName: string;
+}
 
 interface McpPageParams {
   limit?: number;
@@ -45,12 +47,8 @@ export async function fetchMcpMarketplaceDetail(
   return fetchJson<McpMarketplaceDetailDto>(`/marketplace/mcp/items/${encoded}`);
 }
 
-export async function fetchMcpInstallTargets(): Promise<McpInstallTargetsDto> {
-  return fetchJson<McpInstallTargetsDto>("/marketplace/mcp/install-targets");
-}
-
 export async function addMcpServer(
-  body: AddMcpServerRequestDto,
+  body: AddMcpServerRequestBody,
 ): Promise<AddMcpServerResponseDto> {
   return postJson<AddMcpServerResponseDto>("/mcp/servers", body);
 }

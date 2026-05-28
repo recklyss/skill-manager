@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 from skill_manager.application import build_backend_container
 from skill_manager.application.cli_marketplace import CliMarketplaceCatalog
+from skill_manager.application.mcp.availability import McpAvailabilityResult
 from skill_manager.application.mcp.marketplace import McpMarketplaceCatalog
 from skill_manager.application.skills.marketplace import MarketplaceCatalog
 from skill_manager.application.skills.source_fetch import SourceFetchService
@@ -35,6 +36,11 @@ class EmptyMcpMarketplaceCatalog:
 
     def detail(self, qualified_name: str) -> dict[str, object] | None:
         return None
+
+
+class StaticMcpAvailabilityProbe:
+    def probe(self, _spec) -> McpAvailabilityResult:
+        return McpAvailabilityResult("unavailable", "not checked in tests")
 
 
 class AppTestHarness(AbstractContextManager["AppTestHarness"]):
@@ -68,6 +74,7 @@ class AppTestHarness(AbstractContextManager["AppTestHarness"]):
                 mcp_marketplace_catalog=mcp_marketplace or EmptyMcpMarketplaceCatalog(),  # type: ignore[arg-type]
                 cli_marketplace_catalog=cli_marketplace,
                 source_fetcher=source_fetcher,
+                mcp_availability_probe=StaticMcpAvailabilityProbe(),  # type: ignore[arg-type]
             )
         else:
             self.container = build_backend_container(
@@ -76,6 +83,7 @@ class AppTestHarness(AbstractContextManager["AppTestHarness"]):
                 mcp_marketplace_catalog=mcp_marketplace or EmptyMcpMarketplaceCatalog(),  # type: ignore[arg-type]
                 cli_marketplace_catalog=cli_marketplace,
                 source_fetcher=source_fetcher,
+                mcp_availability_probe=StaticMcpAvailabilityProbe(),  # type: ignore[arg-type]
             )
             # Ensure tests exercising a custom catalog use the same read-model root.
             self.container.skills_read_models.invalidate()

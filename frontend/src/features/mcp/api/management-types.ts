@@ -7,6 +7,7 @@ export type McpInventoryColumnDto = components["schemas"]["McpInventoryColumnRes
 export type McpBindingDto = components["schemas"]["McpBindingResponse"];
 export type McpServerSpecDto = components["schemas"]["McpServerSpecResponse"];
 export type McpInventoryEntryDto = components["schemas"]["McpInventoryEntryResponse"];
+export type McpStatusDto = components["schemas"]["McpStatusResponse"];
 export type McpInventoryDto = components["schemas"]["McpInventoryResponse"];
 export type McpNeedsReviewHarnessDto = components["schemas"]["McpUnmanagedHarnessResponse"];
 export type SetMcpHarnessesResponseDto = components["schemas"]["McpSetHarnessesResultResponse"];

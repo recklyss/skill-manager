@@ -2,18 +2,17 @@ import { type ReactNode, useId, useState } from "react";
 import { Copy } from "lucide-react";
 
 import { DetailHeader } from "../../../components/detail/DetailHeader";
-import { DetailSourceLinks } from "../../../components/detail/DetailSourceLinks";
+import {
+  DetailSourceLinks,
+  type DetailSourceLink,
+} from "../../../components/detail/DetailSourceLinks";
 import { ErrorBanner } from "../../../components/ErrorBanner";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { useToast } from "../../../components/Toast";
 import { useMcpMarketplaceDetailQuery } from "../api/mcp-queries";
 import type { McpMarketplaceItemDto } from "../api/mcp-types";
 import { useMarketplaceCopy, type MarketplaceCopy } from "../i18n";
-import {
-  detailInstallAvailability,
-  useMcpInstallActionState,
-} from "../model/mcp-install-action";
-import { McpInstallConfigDialog } from "./McpInstallConfigDialog";
+import { useMcpInstallActionState } from "../model/mcp-install-action";
 import { McpInstallButton } from "./McpInstallButton";
 import { McpToolEntry } from "./McpToolEntry";
 
@@ -49,6 +48,9 @@ export function McpMarketplaceDetailView({
     detail?.externalUrl ??
     initialItem?.externalUrl ??
     registrySearchUrl(qualifiedName);
+  const headerGithubUrl = detail?.githubUrl ?? initialItem?.githubUrl ?? null;
+  const headerWebsiteUrl =
+    detail?.websiteUrl ?? initialItem?.websiteUrl ?? initialItem?.homepage ?? null;
   const installAction = useMcpInstallActionState({
     qualifiedName,
     displayName: headerDisplayName,
@@ -100,8 +102,6 @@ export function McpMarketplaceDetailView({
   const localConnection = detail.connections.find(
     (connection) => connection.kind === "stdio",
   );
-  const installAvailability = detailInstallAvailability(detail);
-
   function handleCopy(value: string, label: string): void {
     if (!navigator.clipboard?.writeText) {
       toast(copy.detail.mcp.copied(label));
@@ -114,12 +114,10 @@ export function McpMarketplaceDetailView({
   }
 
   const installButton = (
-    <McpInstallButton
-      displayName={headerDisplayName}
-      availability={installAvailability}
-      installedState={installAction.installedState}
-      installTargetState={installAction.installTargetState}
-      installing={installAction.installing}
+      <McpInstallButton
+        displayName={headerDisplayName}
+        installedState={installAction.installedState}
+        installing={installAction.installing}
       onInstall={installAction.onInstall}
     />
   );
@@ -147,13 +145,12 @@ export function McpMarketplaceDetailView({
               </div>
               <DetailSourceLinks
                 ariaLabel={copy.detail.mcp.sourceLinksAria(headerDisplayName)}
-                links={[
-                  {
-                    href: headerExternalUrl,
-                    label: copy.detail.mcp.viewInRegistry,
-                    kind: "marketplace",
-                  },
-                ]}
+                links={mcpSourceLinks({
+                  registryUrl: headerExternalUrl,
+                  githubUrl: headerGithubUrl,
+                  websiteUrl: headerWebsiteUrl,
+                  copy,
+                })}
               />
             </div>
           }
@@ -309,14 +306,42 @@ export function McpMarketplaceDetailView({
           </Section>
         ) : null}
       </div>
-      <McpInstallConfigDialog
-        pending={installAction.pendingConfig}
-        installing={installAction.installing}
-        onClose={installAction.onCancelConfig}
-        onSubmit={installAction.onSubmitConfig}
-      />
     </>
   );
+}
+
+function mcpSourceLinks({
+  registryUrl,
+  githubUrl,
+  websiteUrl,
+  copy,
+}: {
+  registryUrl: string;
+  githubUrl: string | null;
+  websiteUrl: string | null;
+  copy: MarketplaceCopy;
+}): DetailSourceLink[] {
+  return [
+    {
+      href: registryUrl,
+      label: copy.detail.mcp.viewInRegistry,
+      kind: "marketplace",
+    },
+    {
+      href: githubUrl,
+      label: copy.detail.mcp.github,
+      kind: "repo",
+      disabledReason: copy.detail.mcp.noGithubLink,
+      disabledAriaLabel: copy.detail.mcp.unavailableLink(copy.detail.mcp.github),
+    },
+    {
+      href: websiteUrl,
+      label: copy.detail.mcp.website,
+      kind: "website",
+      disabledReason: copy.detail.mcp.noWebsiteLink,
+      disabledAriaLabel: copy.detail.mcp.unavailableLink(copy.detail.mcp.website),
+    },
+  ];
 }
 
 function Section({ heading, children }: { heading: string; children: ReactNode }) {

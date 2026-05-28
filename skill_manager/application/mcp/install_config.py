@@ -199,6 +199,8 @@ def dedupe_fields(fields: list[McpInstallConfigField]) -> tuple[McpInstallConfig
 def resolved_config_values(
     fields: tuple[McpInstallConfigField, ...],
     provided: Mapping[str, object],
+    *,
+    allow_missing_required: bool = False,
 ) -> dict[str, str]:
     values: dict[str, str] = {}
     missing: list[str] = []
@@ -207,7 +209,7 @@ def resolved_config_values(
         if raw is None or raw == "":
             if field.default is not None:
                 values[field.name] = field.default
-            elif field.required:
+            elif field.required and not allow_missing_required:
                 missing.append(field.name)
             continue
         values[field.name] = _stringify_config_value(raw, field)

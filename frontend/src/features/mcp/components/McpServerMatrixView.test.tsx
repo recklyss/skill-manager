@@ -29,6 +29,8 @@ function entries(): McpInventoryEntryDto[] {
       canEnable: true,
       enabledStatus: "enabled",
       availabilityStatus: "available",
+      availabilityReason: null,
+      mcpStatus: { kind: "available", reason: null },
       spec: {
         name: "exa",
         displayName: "Exa Search",
@@ -51,6 +53,11 @@ function entries(): McpInventoryEntryDto[] {
       canEnable: true,
       enabledStatus: "disabled",
       availabilityStatus: "unavailable",
+      availabilityReason: null,
+      mcpStatus: {
+        kind: "connection_issue",
+        reason: null,
+      },
       spec: {
         name: "drift",
         displayName: "Drift Server",

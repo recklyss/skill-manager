@@ -15,6 +15,8 @@ class MarketplaceLink:
     description: str
     is_remote: bool
     is_verified: bool
+    github_url: str | None = None
+    website_url: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -22,6 +24,8 @@ class MarketplaceLink:
             "displayName": self.display_name,
             "iconUrl": self.icon_url,
             "externalUrl": self.external_url,
+            "githubUrl": self.github_url,
+            "websiteUrl": self.website_url,
             "description": self.description,
             "isRemote": self.is_remote,
             "isVerified": self.is_verified,
@@ -80,6 +84,8 @@ class McpEnrichmentService:
                     display_name=str(item.get("displayName") or key),
                     icon_url=_optional_str(item.get("iconUrl")),
                     external_url=str(item.get("externalUrl") or ""),
+                    github_url=_optional_str(item.get("githubUrl")),
+                    website_url=_optional_str(item.get("websiteUrl")),
                     description=str(item.get("description") or ""),
                     is_remote=bool(item.get("isRemote", False)),
                     is_verified=bool(item.get("isVerified", False)),
@@ -132,6 +138,8 @@ def _link_from_item(item: Mapping[str, object], qualified_name: str) -> Marketpl
         display_name=str(item.get("displayName") or qualified_name),
         icon_url=_optional_str(item.get("iconUrl")),
         external_url=str(item.get("externalUrl") or ""),
+        github_url=_optional_str(item.get("githubUrl")),
+        website_url=_optional_str(item.get("websiteUrl")),
         description=str(item.get("description") or ""),
         is_remote=bool(item.get("isRemote", False)),
         is_verified=bool(item.get("isVerified", False)),

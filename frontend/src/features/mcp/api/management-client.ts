@@ -9,6 +9,7 @@ import type {
   SetMcpHarnessesResponseDto,
   UninstallMcpResponseDto,
 } from "./management-types";
+import type { McpInstallConfigValues } from "../model/install-config";
 
 export async function fetchMcpInventory(): Promise<McpInventoryDto> {
   return fetchJson<McpInventoryDto>("/mcp/servers");
@@ -17,9 +18,11 @@ export async function fetchMcpInventory(): Promise<McpInventoryDto> {
 export async function enableMcpServer(args: {
   name: string;
   harness: string;
+  config?: McpInstallConfigValues;
 }): Promise<{ ok: boolean }> {
   return postJson<{ ok: boolean }>(`/mcp/servers/${encodeURIComponent(args.name)}/enable`, {
     harness: args.harness,
+    config: args.config,
   });
 }
 
@@ -35,10 +38,11 @@ export async function disableMcpServer(args: {
 export async function setMcpServerHarnesses(args: {
   name: string;
   target: "enabled" | "disabled";
+  config?: McpInstallConfigValues;
 }): Promise<SetMcpHarnessesResponseDto> {
   return postJson<SetMcpHarnessesResponseDto>(
     `/mcp/servers/${encodeURIComponent(args.name)}/set-harnesses`,
-    { target: args.target },
+    { target: args.target, config: args.config },
   );
 }
 

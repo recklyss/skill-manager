@@ -25,6 +25,7 @@ function inventoryFixture(): McpInventoryDto {
         enabledStatus: "enabled",
         availabilityStatus: "available",
         availabilityReason: null,
+        mcpStatus: { kind: "available", reason: null },
         spec: {
           name: "exa",
           displayName: "Exa Search",
@@ -48,6 +49,10 @@ function inventoryFixture(): McpInventoryDto {
         enabledStatus: "disabled",
         availabilityStatus: "unavailable",
         availabilityReason: null,
+        mcpStatus: {
+          kind: "connection_issue",
+          reason: null,
+        },
         spec: {
           name: "ctx",
           displayName: "Context7",
@@ -75,6 +80,10 @@ function driftInventoryFixture(): McpInventoryDto {
     entries: [
       {
         ...inventory.entries[0],
+        mcpStatus: {
+          kind: "connection_issue",
+          reason: null,
+        },
         sightings: [
           { harness: "codex", state: "managed" },
           { harness: "claude", state: "drifted", driftDetail: "changed=url" },
@@ -88,6 +97,25 @@ function driftInventoryFixture(): McpInventoryDto {
 
 function emptyInventory() {
   return { columns: [], entries: [] };
+}
+
+function marketplaceDetailFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    qualifiedName: "exa",
+    managedName: "exa",
+    displayName: "Exa Search",
+    description: "Fast search.",
+    iconUrl: null,
+    isRemote: true,
+    connections: [],
+    tools: [],
+    resources: [],
+    prompts: [],
+    capabilityCounts: { tools: 0, resources: 0, prompts: 0 },
+    externalUrl: "https://registry.modelcontextprotocol.io/?q=exa",
+    installConfig: { required: false, fields: [] },
+    ...overrides,
+  };
 }
 
 function renderPage(route = "/mcp/use") {
@@ -147,8 +175,8 @@ describe("McpInUsePage", () => {
     expect(screen.getByText("Context7")).toBeInTheDocument();
     expect(screen.getByText("1/3")).toBeInTheDocument();
     expect(screen.getByText("0/3")).toBeInTheDocument();
-    expect(screen.getByLabelText("Availability: Available")).toBeInTheDocument();
-    expect(screen.getByLabelText("Availability: Unavailable")).toBeInTheDocument();
+    expect(screen.getByLabelText("MCP status: Available")).toBeInTheDocument();
+    expect(screen.getByLabelText("MCP status: Connection issue")).toBeInTheDocument();
   });
 
   it("renders the matrix view from the URL parameter", async () => {
@@ -296,6 +324,9 @@ describe("McpInUsePage", () => {
           availabilityReason: null,
         });
       }
+      if (url.includes("/api/marketplace/mcp/items/exa")) {
+        return okJson(marketplaceDetailFixture());
+      }
       if (url.includes("/api/mcp/servers")) return okJson(inventoryFixture());
       throw new Error(`Unhandled URL ${url}`);
     });
@@ -320,7 +351,7 @@ describe("McpInUsePage", () => {
     );
   });
 
-  it("checks availability automatically for enabled servers with no cached result", async () => {
+  it("checks availability automatically for managed servers with no cached result", async () => {
     const inventory = inventoryFixture();
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
@@ -341,6 +372,10 @@ describe("McpInUsePage", () => {
               ...inventory.entries[0],
               availabilityStatus: "unavailable",
               availabilityReason: null,
+              mcpStatus: {
+                kind: "connection_issue",
+                reason: null,
+              },
             },
             inventory.entries[1],
           ],
@@ -361,6 +396,49 @@ describe("McpInUsePage", () => {
     );
   });
 
+  it("does not check availability automatically when a connection failure is cached", async () => {
+    const inventory = inventoryFixture();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/mcp/servers/exa/availability/check")) {
+        return okJson({
+          ok: true,
+          name: "exa",
+          availabilityStatus: "available",
+          availabilityReason: null,
+        });
+      }
+      if (url.includes("/api/mcp/servers")) {
+        expect(init?.method ?? "GET").toBe("GET");
+        return okJson({
+          ...inventory,
+          entries: [
+            {
+              ...inventory.entries[0],
+              availabilityStatus: "unavailable",
+              availabilityReason: "Connection refused",
+              mcpStatus: {
+                kind: "connection_issue",
+                reason: "Connection refused",
+              },
+            },
+            inventory.entries[1],
+          ],
+        });
+      }
+      throw new Error(`Unhandled URL ${url}`);
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Exa Search")).toBeInTheDocument());
+
+    expect(
+      fetchMock.mock.calls.some((call) =>
+        String(call[0]).includes("/api/mcp/servers/exa/availability/check"),
+      ),
+    ).toBe(false);
+  });
+
   it("refreshes availability after enabling from the detail binding row", async () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
@@ -375,6 +453,23 @@ describe("McpInUsePage", () => {
           name: "exa",
           availabilityStatus: "available",
           availabilityReason: null,
+        });
+      }
+      if (url.includes("/api/marketplace/mcp/items/exa")) {
+        return okJson({
+          qualifiedName: "exa",
+          managedName: "exa",
+          displayName: "Exa Search",
+          description: "Fast search.",
+          iconUrl: null,
+          isRemote: false,
+          connections: [],
+          tools: [],
+          resources: [],
+          prompts: [],
+          capabilityCounts: { tools: 0, resources: 0, prompts: 0 },
+          externalUrl: "https://registry.modelcontextprotocol.io/?q=exa",
+          installConfig: { required: false, fields: [] },
         });
       }
       if (url.includes("/api/mcp/servers/exa")) {
@@ -409,13 +504,16 @@ describe("McpInUsePage", () => {
     );
   });
 
-  it("keeps enable as a direct set-harnesses action", async () => {
+  it("uses set-harnesses when no install config is required", async () => {
     const inventory = inventoryFixture();
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
       if (url.includes("/api/mcp/servers/exa/set-harnesses")) {
         expect(init?.method).toBe("POST");
         return okJson({ ok: true, succeeded: ["cursor"], failed: [] });
+      }
+      if (url.includes("/api/marketplace/mcp/items/exa")) {
+        return okJson(marketplaceDetailFixture());
       }
       if (url.includes("/api/mcp/servers")) return okJson(inventory);
       throw new Error(`Unhandled URL ${url}`);
@@ -424,6 +522,61 @@ describe("McpInUsePage", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Exa Search")).toBeInTheDocument());
     fireEvent.click(screen.getAllByLabelText(/enable on all harnesses/i)[0]);
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes("/api/mcp/servers/exa/set-harnesses"),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("collects required install config before enabling all from a card", async () => {
+    const inventory = inventoryFixture();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/mcp/servers/exa/set-harnesses")) {
+        expect(init?.method).toBe("POST");
+        expect(JSON.parse(String(init?.body))).toEqual({
+          target: "enabled",
+          config: { EXA_API_KEY: "secret" },
+        });
+        return okJson({ ok: true, succeeded: ["cursor"], failed: [] });
+      }
+      if (url.includes("/api/marketplace/mcp/items/exa")) {
+        return okJson(marketplaceDetailFixture({
+          installConfig: {
+            required: true,
+            fields: [
+              {
+                name: "EXA_API_KEY",
+                label: "EXA_API_KEY",
+                description: "Exa API key",
+                format: "string",
+                required: true,
+                secret: true,
+                default: null,
+              },
+            ],
+          },
+        }));
+      }
+      if (url.includes("/api/mcp/servers")) return okJson(inventory);
+      throw new Error(`Unhandled URL ${url}`);
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Exa Search")).toBeInTheDocument());
+    fireEvent.click(screen.getAllByLabelText(/enable on all harnesses/i)[0]);
+
+    await waitFor(() =>
+      expect(screen.getAllByRole("heading", { name: /configure exa search/i }).length).toBeGreaterThan(0),
+    );
+    fireEvent.change(screen.getByLabelText(/EXA_API_KEY/), {
+      target: { value: "secret" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(

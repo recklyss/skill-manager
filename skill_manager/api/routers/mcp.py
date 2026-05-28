@@ -50,11 +50,7 @@ def install_mcp_server(
     body: AddMcpServerRequest,
     container: BackendContainer = Depends(get_container),
 ) -> dict[str, object]:
-    return container.mcp_mutations.install_from_marketplace(
-        body.qualified_name,
-        source_harness=body.source_harness,
-        config=body.config,
-    )
+    return container.mcp_mutations.install_from_marketplace(body.qualified_name)
 
 
 @router.delete("/servers/{name}", response_model=McpSetHarnessesResultResponse)
@@ -71,7 +67,7 @@ def enable_mcp_server(
     body: EnableMcpServerRequest,
     container: BackendContainer = Depends(get_container),
 ) -> dict[str, bool]:
-    return container.mcp_mutations.enable_server(name, body.harness)
+    return container.mcp_mutations.enable_server(name, body.harness, config=body.config)
 
 
 @router.post("/servers/{name}/disable", response_model=OkResponse)
@@ -103,7 +99,7 @@ def set_mcp_server_harnesses(
     body: SetMcpServerHarnessesRequest,
     container: BackendContainer = Depends(get_container),
 ) -> dict[str, object]:
-    return container.mcp_mutations.set_server_all_harnesses(name, body.target)
+    return container.mcp_mutations.set_server_all_harnesses(name, body.target, config=body.config)
 
 
 @router.get("/unmanaged/by-server", response_model=McpUnmanagedByServerResponse)

@@ -43,8 +43,31 @@ describe("capability overview model", () => {
       {
         columns: [],
         entries: [
-          { name: "exa", displayName: "Exa", kind: "managed", spec: null, canEnable: true, enabledStatus: "disabled", availabilityStatus: "unavailable", sightings: [] },
-          { name: "firecrawl", displayName: "firecrawl", kind: "unmanaged", spec: null, canEnable: false, enabledStatus: "disabled", availabilityStatus: "unavailable", sightings: [] },
+          {
+            name: "exa",
+            displayName: "Exa",
+            kind: "managed",
+            spec: null,
+            canEnable: true,
+            enabledStatus: "disabled",
+            availabilityStatus: "unavailable",
+            mcpStatus: { kind: "connection_issue", reason: null },
+            sightings: [],
+          },
+          {
+            name: "firecrawl",
+            displayName: "firecrawl",
+            kind: "unmanaged",
+            spec: null,
+            canEnable: false,
+            enabledStatus: "disabled",
+            availabilityStatus: "unavailable",
+            mcpStatus: {
+              kind: "connection_issue",
+              reason: "Skill Manager does not have a valid MCP spec for this server.",
+            },
+            sightings: [],
+          },
         ],
         issues: [],
       },

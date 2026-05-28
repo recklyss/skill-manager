@@ -10,16 +10,21 @@ import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { PageHeader } from "../../../components/PageHeader";
 import { ViewModeToggle, type ViewModeOption } from "../../../components/ViewModeToggle";
 import { McpServerDetailSheet } from "../components/detail/McpServerDetailSheet";
+import { McpInstallConfigDialog } from "../components/config/McpInstallConfigDialog";
 import { McpFilterMenu } from "../components/McpFilterMenu";
 import { McpServerCardList } from "../components/McpServerCardList";
 import { McpServerMatrixView } from "../components/McpServerMatrixView";
+import { fetchMcpMarketplaceDetail } from "../api/marketplace-client";
+import type { McpInventoryEntryDto } from "../api/management-types";
 import { useCommonCopy } from "../../../i18n";
 import { useMcpCopy } from "../i18n";
+import type { McpInstallConfigValues } from "../model/install-config";
 import {
   filterMcpServersInUse,
   pillCounts,
   type InUsePillValue,
 } from "../model/selectors";
+import { useMcpEnableConfigGate } from "../model/use-mcp-enable-config-gate";
 import { useMcpManagementController } from "../model/use-mcp-management-controller";
 import { useMcpInUseViewMode, type McpInUseViewMode } from "../model/useMcpInUseViewMode";
 
@@ -52,12 +57,22 @@ export default function McpInUsePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedName = searchParams.get(DETAIL_PARAM);
   const [confirmUninstallName, setConfirmUninstallName] = useState<string | null>(null);
+  const [pageActionErrorMessage, setPageActionErrorMessage] = useState("");
 
   const [search, setSearch] = useState("");
   const [pill, setPill] = useState<InUsePillValue>("all");
   const [viewMode, setViewMode] = useMcpInUseViewMode();
   const copy = useMcpCopy();
   const common = useCommonCopy();
+  const {
+    requestEnable,
+    pendingConfig: pendingEnableConfig,
+    cancelConfig: cancelEnableConfig,
+    submitConfig: submitEnableConfig,
+    configError: enableConfigError,
+  } = useMcpEnableConfigGate({
+    loadErrorMessage: copy.detail.unableToLoadInstallConfig,
+  });
   const viewModeOptions: readonly ViewModeOption<McpInUseViewMode>[] = useMemo(
     () => [
       { value: "cards", label: copy.inUse.viewModes.cards, icon: Grid2X2 },
@@ -76,6 +91,99 @@ export default function McpInUsePage() {
   const inventoryIssueMessage = inventory?.issues?.length
     ? copy.inUse.inventoryIssue(inventory.issues.length)
     : "";
+  const visibleActionErrorMessage =
+    actionErrorMessage || enableConfigError || pageActionErrorMessage;
+
+  const findEntry = useCallback(
+    (name: string): McpInventoryEntryDto | null =>
+      inventory?.entries.find((entry) => entry.name === name) ?? null,
+    [inventory],
+  );
+
+  const findHarnessLabel = useCallback(
+    (harness: string): string =>
+      inventory?.columns.find((column) => column.harness === harness)?.label ?? harness,
+    [inventory],
+  );
+
+  const requestConfiguredEnable = useCallback(
+    (
+      name: string,
+      targetLabel: string,
+      onProceed: (config?: McpInstallConfigValues) => void,
+    ): void => {
+      const entry = findEntry(name);
+      if (!entry) return;
+      requestEnable({
+        spec: entry.spec ?? null,
+        displayName: entry.displayName,
+        targetLabel,
+        onProceed,
+      });
+    },
+    [findEntry, requestEnable],
+  );
+
+  const handleCardSetHarnesses = useCallback(
+    (
+      name: string,
+      target: "enabled" | "disabled",
+      config?: McpInstallConfigValues,
+    ): void => {
+      if (target === "disabled") {
+        void handleSetServerHarnesses(name, target, config);
+        return;
+      }
+      requestConfiguredEnable(name, copy.detail.installConfig.allHarnesses, (nextConfig) => {
+        void handleSetServerHarnesses(name, target, nextConfig);
+      });
+    },
+    [copy.detail.installConfig.allHarnesses, handleSetServerHarnesses, requestConfiguredEnable],
+  );
+
+  const handleMatrixEnableHarness = useCallback(
+    (name: string, harness: string): void => {
+      requestConfiguredEnable(name, findHarnessLabel(harness), (config) => {
+        void handleEnableInHarness(name, harness, config);
+      });
+    },
+    [findHarnessLabel, handleEnableInHarness, requestConfiguredEnable],
+  );
+
+  const handleBulkEnableAll = useCallback(async (): Promise<void> => {
+    const selectedNames = Array.from(multiSelectedNames);
+    if (selectedNames.length === 1) {
+      const [name] = selectedNames;
+      handleCardSetHarnesses(name, "enabled");
+      return;
+    }
+    let blocked: McpInventoryEntryDto | null = null;
+    try {
+      blocked = await firstEntryRequiringInstallConfig(selectedNames, findEntry);
+    } catch (error) {
+      setPageActionErrorMessage(
+        error instanceof Error ? error.message : copy.detail.unableToLoadInstallConfig,
+      );
+      return;
+    }
+    if (blocked) {
+      setPageActionErrorMessage(copy.detail.installConfig.bulkRequiresSingle(blocked.displayName));
+      return;
+    }
+    setPageActionErrorMessage("");
+    await handleMultiSelectEnableAll();
+  }, [
+    copy.detail.installConfig,
+    findEntry,
+    handleCardSetHarnesses,
+    handleMultiSelectEnableAll,
+    multiSelectedNames,
+  ]);
+
+  const dismissVisibleActionError = useCallback(() => {
+    dismissActionError();
+    setPageActionErrorMessage("");
+  }, [dismissActionError]);
 
   const setDetailName = useCallback(
     (name: string | null) => {
@@ -154,8 +262,8 @@ export default function McpInUsePage() {
         ) : null}
       </div>
 
-      {actionErrorMessage ? (
-        <ErrorBanner message={actionErrorMessage} onDismiss={dismissActionError} />
+      {visibleActionErrorMessage ? (
+        <ErrorBanner message={visibleActionErrorMessage} onDismiss={dismissVisibleActionError} />
       ) : null}
       {inventoryIssueMessage ? <ErrorBanner message={inventoryIssueMessage} /> : null}
 
@@ -176,9 +284,7 @@ export default function McpInUsePage() {
               checkedNames={multiSelectedNames}
               onOpenDetail={setDetailName}
               onToggleChecked={handleToggleMultiSelect}
-              onEnableHarness={(name, harness) => {
-                void handleEnableInHarness(name, harness);
-              }}
+                  onEnableHarness={handleMatrixEnableHarness}
               onDisableHarness={(name, harness) => {
                 void handleDisableInHarness(name, harness);
               }}
@@ -191,7 +297,7 @@ export default function McpInUsePage() {
               checkedNames={multiSelectedNames}
               onOpenDetail={setDetailName}
               onToggleChecked={handleToggleMultiSelect}
-              onSetHarnesses={handleSetServerHarnesses}
+              onSetHarnesses={handleCardSetHarnesses}
               onRequestUninstall={confirmUninstall}
             />
           )
@@ -243,8 +349,8 @@ export default function McpInUsePage() {
           isServerPending={isServerPendingSelected}
           isUninstalling={isUninstallingSelected}
           onClose={() => setDetailName(null)}
-          onEnableHarness={(harness) => {
-            if (selectedName) void handleEnableInHarness(selectedName, harness);
+          onEnableHarness={(harness, config) => {
+            if (selectedName) void handleEnableInHarness(selectedName, harness, config);
           }}
           onDisableHarness={(harness) => {
             if (selectedName) void handleDisableInHarness(selectedName, harness);
@@ -263,7 +369,7 @@ export default function McpInUsePage() {
         selectedCount={multiSelectedNames.size}
         pending={multiSelectPending}
         onClear={handleClearMultiSelect}
-        onEnableAll={handleMultiSelectEnableAll}
+        onEnableAll={handleBulkEnableAll}
         onDisableAll={handleMultiSelectDisableAll}
         onDelete={handleMultiSelectUninstall}
         destructive={{
@@ -285,8 +391,30 @@ export default function McpInUsePage() {
         }}
         onConfirm={executeUninstall}
       />
+      <McpInstallConfigDialog
+        pending={pendingEnableConfig}
+        installing={false}
+        onClose={cancelEnableConfig}
+        onSubmit={submitEnableConfig}
+      />
     </>
   );
+}
+
+async function firstEntryRequiringInstallConfig(
+  names: string[],
+  findEntry: (name: string) => McpInventoryEntryDto | null,
+): Promise<McpInventoryEntryDto | null> {
+  for (const name of names) {
+    const entry = findEntry(name);
+    const locator = entry?.spec?.source.kind === "marketplace" ? entry.spec.source.locator : null;
+    if (!entry || !locator) continue;
+    const detail = await fetchMcpMarketplaceDetail(locator);
+    if (detail.installConfig?.fields?.length) {
+      return entry;
+    }
+  }
+  return null;
 }
 
 function uninstallDisplayName(

@@ -64,49 +64,11 @@ function renderCard(
   fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();
     const method = init?.method ?? "GET";
-    if (url.includes("/api/marketplace/mcp/install-targets") && method === "GET") {
-      return okJson({
-        targets: [
-          {
-            harness: "cursor",
-            label: "Cursor",
-            logoKey: "cursor",
-            smitheryClient: "cursor",
-            supported: true,
-            reason: null,
-          },
-          {
-            harness: "claude",
-            label: "Claude",
-            logoKey: "claude",
-            smitheryClient: "claude-code",
-            supported: true,
-            reason: null,
-          },
-          {
-            harness: "openclaw",
-            label: "OpenClaw",
-            logoKey: "openclaw",
-            smitheryClient: null,
-            supported: false,
-            reason: "Smithery does not provide an OpenClaw MCP installer target",
-          },
-        ],
-      });
-    }
     if (url.includes("/api/mcp/servers") && method === "GET") {
       return okJson(inventoryPayload);
     }
     if (url.includes("/api/marketplace/mcp/items") && method === "GET") {
       return okJson(detailPayload(item, detailOverrides));
-    }
-    if (url.includes("/api/mcp/servers/exa-mcp/availability/check") && method === "POST") {
-      return okJson({
-        ok: true,
-        name: "exa-mcp",
-        availabilityStatus: "available",
-        availabilityReason: null,
-      });
     }
     if (url.includes("/api/mcp/servers") && method === "POST") {
       return okJson({
@@ -165,8 +127,8 @@ describe("McpMarketplaceCard", () => {
 
   it("renders an install button for remote deployed items", () => {
     renderCard(createItem());
-    expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toHaveTextContent("Add to MCPs");
+    expect(screen.getByRole("button", { name: /install exa search/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /install exa search/i })).toHaveTextContent("Install");
     expect(screen.queryByText("Remote")).not.toBeInTheDocument();
     expect(screen.queryByText("Verified")).not.toBeInTheDocument();
     expect(screen.queryByText("1.2k")).not.toBeInTheDocument();
@@ -179,16 +141,31 @@ describe("McpMarketplaceCard", () => {
     expect(container.querySelector(".market-card__avatar")).not.toHaveTextContent("EX");
   });
 
+  it("keeps full long text available while using marketplace card text slots", () => {
+    const longName = "Very Long MCP Server Display Name That Should Truncate Like Skill Marketplace Cards";
+    const longQualifiedName = "@very-long-namespace/very-long-mcp-server-name-that-should-ellipsize";
+    const longDescription =
+      "This MCP server description is intentionally long so the card should clamp it instead of stretching the marketplace grid layout.";
+    const { container } = renderCard(
+      createItem({
+        displayName: longName,
+        qualifiedName: longQualifiedName,
+        description: longDescription,
+      }),
+    );
+
+    expect(container.querySelector(".market-card__title")).toHaveAttribute("title", longName);
+    expect(container.querySelector(".market-card__repo")).toHaveAttribute("title", longQualifiedName);
+    expect(container.querySelector(".market-card__body")).toHaveAttribute("title", longDescription);
+  });
+
   it("does not open detail when the install button is clicked", async () => {
     const { onOpenDetail } = renderCard(createItem());
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /install exa search/i })).toBeEnabled(),
     );
-    const button = screen.getByRole("button", { name: /add exa search to mcps/i });
+    const button = screen.getByRole("button", { name: /install exa search/i });
     fireEvent.click(button);
-    expect(await screen.findByRole("button", { name: /claude/i })).toHaveTextContent("claude-code");
-    expect(screen.queryByRole("button", { name: /openclaw/i })).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -196,35 +173,24 @@ describe("McpMarketplaceCard", () => {
         expect.objectContaining({ method: "POST" }),
       );
     });
-    expect(onOpenDetail).not.toHaveBeenCalled();
-  });
-
-  it("checks availability after installing from the marketplace", async () => {
-    renderCard(createItem());
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+    const postCall = fetchMock.mock.calls.find(
+      ([url, init]) => String(url).includes("/api/mcp/servers") && init?.method === "POST",
     );
-
-    fireEvent.click(screen.getByRole("button", { name: /add exa search to mcps/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/mcp/servers/exa-mcp/availability/check"),
-        expect.objectContaining({ method: "POST" }),
-      );
+    expect(JSON.parse(String(postCall?.[1]?.body))).toEqual({
+      qualifiedName: "@exa/exa-mcp",
     });
+    expect(screen.queryByRole("button", { name: /cursor/i })).not.toBeInTheDocument();
+    expect(onOpenDetail).not.toHaveBeenCalled();
   });
 
   it("renders an install button for local items", async () => {
     renderCard(createItem({ isRemote: false, isDeployed: false }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /install exa search/i })).toBeEnabled(),
     );
-    const button = screen.getByRole("button", { name: /add exa search to mcps/i });
+    const button = screen.getByRole("button", { name: /install exa search/i });
 
     fireEvent.click(button);
-    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/mcp/servers"),
@@ -233,7 +199,7 @@ describe("McpMarketplaceCard", () => {
     });
   });
 
-  it("opens a config dialog for required registry install fields and submits config", async () => {
+  it("installs directly when registry install fields are required", async () => {
     renderCard(createItem(), { columns: [], entries: [] }, {
       installConfig: {
         required: true,
@@ -254,50 +220,33 @@ describe("McpMarketplaceCard", () => {
       },
     });
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /install exa search/i })).toBeEnabled(),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /add exa search to mcps/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
-
-    const input = await screen.findByLabelText(/CUEAPI_API_KEY/i, { selector: "input" });
-    expect(screen.getByRole("link", { name: "https://cueapi.ai" })).toHaveAttribute(
-      "href",
-      "https://cueapi.ai",
-    );
-    expect(screen.getByRole("link", { name: "app.i18nagent.ai" })).toHaveAttribute(
-      "href",
-      "https://app.i18nagent.ai",
-    );
-    expect(screen.getByRole("button", { name: /^install$/i })).toBeDisabled();
-    fireEvent.change(input, { target: { value: "cue-key" } });
-    fireEvent.click(screen.getByRole("button", { name: /^install$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /install exa search/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/mcp/servers"),
         expect.objectContaining({
           method: "POST",
-          body: expect.stringContaining("CUEAPI_API_KEY"),
         }),
       );
     });
     const postCall = fetchMock.mock.calls.find(
       ([url, init]) => String(url).includes("/api/mcp/servers") && init?.method === "POST",
     );
-    expect(JSON.parse(String(postCall?.[1]?.body))).toMatchObject({
-      config: { CUEAPI_API_KEY: "cue-key" },
-    });
+    expect(JSON.parse(String(postCall?.[1]?.body))).toEqual({ qualifiedName: "@exa/exa-mcp" });
+    expect(screen.queryByLabelText(/CUEAPI_API_KEY/i, { selector: "input" })).not.toBeInTheDocument();
   });
 
-  it("keeps undeployed remote items installable because Smithery writes the source config", async () => {
+  it("keeps undeployed remote items installable as deferred MCP installs", async () => {
     renderCard(createItem({ isRemote: true, isDeployed: false }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /add exa search to mcps/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /install exa search/i })).toBeEnabled(),
     );
-    const button = screen.getByRole("button", { name: /add exa search to mcps/i });
+    const button = screen.getByRole("button", { name: /install exa search/i });
     fireEvent.click(button);
-    fireEvent.click(await screen.findByRole("button", { name: /cursor/i }));
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/mcp/servers"),

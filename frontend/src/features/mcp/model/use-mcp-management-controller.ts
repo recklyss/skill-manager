@@ -13,6 +13,7 @@ import {
   useSetMcpServerHarnessesMutation,
   useUninstallMcpServerMutation,
 } from "../api/management-queries";
+import type { McpInstallConfigValues } from "./install-config";
 
 export type McpStatus = "loading" | "ready" | "error";
 
@@ -58,7 +59,6 @@ export function useMcpManagementController() {
     for (const entry of inventory.entries) {
       if (
         entry.kind !== "managed" ||
-        entry.enabledStatus !== "enabled" ||
         entry.availabilityStatus !== "unavailable" ||
         entry.availabilityReason !== null ||
         !entry.spec
@@ -77,10 +77,14 @@ export function useMcpManagementController() {
   }, [availabilityMutation, inventory]);
 
   const handleSetServerHarnesses = useCallback(
-    async (name: string, target: "enabled" | "disabled"): Promise<void> => {
+    async (
+      name: string,
+      target: "enabled" | "disabled",
+      config?: McpInstallConfigValues,
+    ): Promise<void> => {
       try {
         await pendingServerRegistry.run(name, async () => {
-          const response = await setHarnessesMutation.mutateAsync({ name, target });
+          const response = await setHarnessesMutation.mutateAsync({ name, target, config });
           if (target === "enabled" && response.succeeded.length > 0) {
             void availabilityMutation.mutateAsync(name).catch(() => undefined);
           }
@@ -112,11 +116,15 @@ export function useMcpManagementController() {
   // Per-harness enable/disable from detail sheet binding matrix ----------
 
   const handleEnableInHarness = useCallback(
-    async (name: string, harness: string): Promise<void> => {
+    async (
+      name: string,
+      harness: string,
+      config?: McpInstallConfigValues,
+    ): Promise<void> => {
       const key = `${name}:${harness}`;
       try {
         await pendingPerHarnessRegistry.run(key, async () => {
-          await enableMutation.mutateAsync({ name, harness });
+          await enableMutation.mutateAsync({ name, harness, config });
           void availabilityMutation.mutateAsync(name).catch(() => undefined);
         });
       } catch (error) {
