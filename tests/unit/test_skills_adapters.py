@@ -25,14 +25,34 @@ class SkillsAdapterTests(unittest.TestCase):
             spec = create_fake_home_spec(Path(temp_dir))
             seed_skill_package(spec.codex_legacy_root, "trace-lens", "Trace Lens")
             seed_skill_package(spec.openclaw_managed_root, "watch", "Workspace Watch")
+            seed_skill_package(spec.hermes_skills_root / "debugging", "trace", "Hermes Trace")
+            hub_lock = spec.hermes_skills_root / ".hub" / "lock.json"
+            hub_lock.parent.mkdir(parents=True, exist_ok=True)
+            hub_lock.write_text(
+                """{
+  \"version\": 1,
+  \"installed\": {
+    \"trace\": {
+      \"source\": \"github\",
+      \"identifier\": \"github/example/hermes-trace\",
+      \"trust_level\": \"community\",
+      \"install_path\": \"debugging/trace\"
+    }
+  }
+}
+""",
+                encoding="utf-8",
+            )
 
             codex = _adapter("codex", spec)
             claude = _adapter("claude", spec)
             openclaw = _adapter("openclaw", spec)
+            hermes = _adapter("hermes", spec)
 
             codex_scan = codex.scan()
             claude_scan = claude.scan()
             openclaw_scan = openclaw.scan()
+            hermes_scan = hermes.scan()
 
             self.assertTrue(codex_scan.installed)
             self.assertEqual(codex_scan.skills[0].package.declared_name, "Trace Lens")
@@ -43,6 +63,90 @@ class SkillsAdapterTests(unittest.TestCase):
                 [skill.package.declared_name for skill in openclaw_scan.skills],
                 ["Workspace Watch"],
             )
+            self.assertTrue(hermes_scan.installed)
+            self.assertEqual(
+                [skill.package.declared_name for skill in hermes_scan.skills],
+                ["Hermes Trace"],
+            )
+            self.assertEqual(hermes_scan.skills[0].package.source.kind, "github")
+            self.assertEqual(
+                hermes_scan.skills[0].package.source.locator,
+                "github/example/hermes-trace",
+            )
+
+    def test_hermes_scan_only_includes_external_hub_skills_without_touching_files(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            spec = create_fake_home_spec(Path(temp_dir))
+            bundled = seed_skill_package(
+                spec.hermes_skills_root / "builtin",
+                "bundled-core",
+                "Bundled Core",
+            )
+            official = seed_skill_package(
+                spec.hermes_skills_root / "optional",
+                "official-helper",
+                "Official Helper",
+            )
+            local = seed_skill_package(
+                spec.hermes_skills_root / "local",
+                "user-helper",
+                "User Helper",
+            )
+            community_hub = seed_skill_package(
+                spec.hermes_skills_root / "hub",
+                "community-helper",
+                "Community Helper",
+            )
+            (bundled / "SKILL.md").write_bytes(b"\xff")
+            (official / "SKILL.md").write_bytes(b"\xff")
+            (local / "SKILL.md").write_bytes(b"\xff")
+            (spec.hermes_skills_root / ".bundled_manifest").write_text(
+                "Bundled Core:0123456789abcdef\n",
+                encoding="utf-8",
+            )
+            hub_lock = spec.hermes_skills_root / ".hub" / "lock.json"
+            hub_lock.parent.mkdir(parents=True, exist_ok=True)
+            hub_lock.write_text(
+                """{
+  "version": 1,
+  "installed": {
+    "official-helper": {
+      "source": "official",
+      "identifier": "official/optional/official-helper",
+      "trust_level": "builtin",
+      "install_path": "optional/official-helper",
+      "metadata": {"backfilled_from": "optional-skills"}
+    },
+    "community-helper": {
+      "source": "github",
+      "identifier": "github/example/community-helper",
+      "trust_level": "community",
+      "install_path": "hub/community-helper"
+    }
+  }
+}
+""",
+                encoding="utf-8",
+            )
+            hermes = _adapter("hermes", spec)
+
+            scan = hermes.scan()
+
+            self.assertEqual(
+                [skill.package.declared_name for skill in scan.skills],
+                ["Community Helper"],
+            )
+            self.assertEqual(scan.skills[0].package.source.kind, "github")
+            self.assertEqual(scan.skills[0].package.source.locator, "github/example/community-helper")
+            self.assertIn("Bundled Core", scan.excluded_skill_names)
+            self.assertIn("official-helper", scan.excluded_skill_names)
+            self.assertIn("user-helper", scan.excluded_skill_names)
+            self.assertTrue((bundled / "SKILL.md").is_file())
+            self.assertTrue((official / "SKILL.md").is_file())
+            self.assertFalse(bundled.is_symlink())
+            self.assertFalse(official.is_symlink())
+            self.assertTrue((local / "SKILL.md").is_file())
+            self.assertTrue((community_hub / "SKILL.md").is_file())
 
     def test_adapter_reports_missing_cli_as_not_installed(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -141,6 +245,54 @@ class SkillsAdapterTests(unittest.TestCase):
             self.assertTrue(link.is_dir())
             self.assertFalse(link.is_symlink())
             self.assertIn("shared version", (link / "SKILL.md").read_text(encoding="utf-8"))
+
+    def test_hermes_enable_creates_symlink_under_default_category(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            spec = create_fake_home_spec(Path(temp_dir))
+            package = seed_skill_package(spec.skills_store_root, "audit", "Audit")
+            hermes = _adapter("hermes", spec)
+
+            hermes.enable_shared_package(package)
+
+            link = spec.hermes_skills_root / "skill-manager" / "audit"
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(link.resolve(), package.resolve())
+            self.assertTrue(hermes.has_binding("audit"))
+
+    def test_hermes_enable_ignores_real_directory_in_existing_category(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            spec = create_fake_home_spec(Path(temp_dir))
+            package = seed_skill_package(spec.skills_store_root, "audit", "Audit")
+            hermes_owned = seed_skill_package(
+                spec.hermes_skills_root / "local",
+                "audit",
+                "Hermes Audit",
+            )
+            hermes = _adapter("hermes", spec)
+
+            self.assertFalse(hermes.has_binding("audit"))
+
+            hermes.enable_shared_package(package)
+
+            link = spec.hermes_skills_root / "skill-manager" / "audit"
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(link.resolve(), package.resolve())
+            self.assertTrue((hermes_owned / "SKILL.md").is_file())
+            self.assertFalse(hermes_owned.is_symlink())
+
+    def test_hermes_disable_finds_symlink_in_existing_category(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            spec = create_fake_home_spec(Path(temp_dir))
+            package = seed_skill_package(spec.skills_store_root, "audit", "Audit")
+            link = spec.hermes_skills_root / "custom" / "audit"
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(package)
+            hermes = _adapter("hermes", spec)
+
+            hermes.disable_shared_package("audit")
+
+            self.assertFalse(link.exists())
+            self.assertFalse(link.is_symlink())
 
 
 if __name__ == "__main__":

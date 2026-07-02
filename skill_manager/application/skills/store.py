@@ -42,6 +42,7 @@ class SkillStore:
                     recorded_revision=entry.revision if entry else None,
                     recorded_source_ref=entry.source_ref if entry else None,
                     recorded_source_path=entry.source_path if entry else None,
+                    origin_harness=entry.origin_harness if entry else None,
                 )
             )
         return SkillStoreScan(
@@ -58,6 +59,7 @@ class SkillStore:
         source_locator: str,
         source_ref: str | None = None,
         source_path_hint: str | None = None,
+        origin_harness: str | None = None,
     ) -> Path:
         self.root.mkdir(parents=True, exist_ok=True)
         with file_lock(self.lock_path):
@@ -75,6 +77,7 @@ class SkillStore:
                 revision=fingerprint,
                 source_ref=source_ref,
                 source_path=source_path_hint,
+                origin_harness=origin_harness,
             )
             write_skill_store_manifest(
                 self.manifest_path,
@@ -110,6 +113,7 @@ class SkillStore:
                     new_fp,
                     e.source_ref if source_ref is None else source_ref,
                     e.source_path if source_path_hint is None else source_path_hint,
+                    e.origin_harness,
                 )
                 if e.package_dir == package_dir
                 else e

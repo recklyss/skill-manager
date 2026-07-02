@@ -20,6 +20,7 @@ class StorePackageObservation:
     recorded_revision: str | None = None
     recorded_source_ref: str | None = None
     recorded_source_path: str | None = None
+    origin_harness: str | None = None
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class SkillsHarnessScan:
     logo_key: str | None
     installed: bool
     skills: tuple[SkillObservation, ...] = ()
+    excluded_skill_names: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

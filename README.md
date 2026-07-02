@@ -134,7 +134,6 @@ skill-manager start
 ```
 
 The npm wrapper downloads the native release artifact for the current platform and CPU architecture.
-Native release artifacts are published on GitHub Releases for macOS ARM64/x64 and Linux x64/ARM64.
 
 ## Supported harnesses
 
@@ -161,6 +160,11 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
       <a href="https://opencode.ai/docs">Docs</a>
     </td>
     <td align="center" valign="middle">
+      <img src="assets/harness-logos/hermes-logo.png" alt="Hermes Agent" height="56" /><br />
+      <strong>Hermes Agent</strong><br />
+      <a href="https://hermes-agent.nousresearch.com/docs">Docs</a>
+    </td>
+    <td align="center" valign="middle">
       <img src="assets/harness-logos/openclaw-logo.svg" alt="OpenClaw" height="56" /><br />
       <strong>OpenClaw</strong><br />
       <a href="https://docs.openclaw.ai/start/getting-started">Docs</a>
@@ -174,6 +178,7 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
 | Claude Code | Yes | Yes | Yes |
 | Cursor | Yes | Yes | Yes |
 | OpenCode | Yes | Yes | Yes |
+| Hermes Agent | Yes | Yes | Not Yet |
 | OpenClaw | Yes | Not Yet | Not Yet |
 
 ## Local-first safety
@@ -202,6 +207,10 @@ App-owned files live under `~/Library/Application Support/skill-manager` on macO
 
 Before adoption, each harness points at its own local skill folder. After adoption, Skill Manager keeps one canonical package in its shared local store and exposes it to selected harnesses with local links. Disabling a harness removes that harness binding without deleting the package.
 
+Skill Manager treats managed Skills as portable by default: once a Skill is adopted into the shared store, it can be enabled for any supported harness. `originHarness` is retained only as provenance.
+
+Hermes Agent Skills use the categorized Hermes layout under `~/.hermes/skills/<category>/<skill>/SKILL.md`. Shared Skills enabled for Hermes are linked under the `skill-manager` category by default. Skill Manager only imports Hermes Skills that Hermes itself installed from external hub provenance (`.hub/lock.json` entries that are not official/builtin/optional). Hermes self-learned/local Skills, bundled Skills tracked by `.bundled_manifest`, and official optional Skills recorded in Hermes hub provenance are excluded from Skill Manager inventory and bulk actions; Skill Manager leaves those folders untouched so `hermes update` and Hermes-owned Skill sync keep their normal ownership.
+
 ![skill-market-overview](./assets/skill-manager-skill-unification.svg)
 
 ### Skill scans
@@ -219,6 +228,7 @@ MCP servers are stored as normalized Skill Manager records, then translated into
 - Codex uses TOML under `mcp_servers`.
 - Claude Code and Cursor use `mcpServers` JSON entries.
 - OpenCode uses typed local/remote MCP entries.
+- Hermes Agent uses YAML under `mcp_servers` in `~/.hermes/config.yaml` (or `$HERMES_HOME/config.yaml`).
 - OpenClaw MCP writes are not yet supported.
 
 When Skill Manager finds different configs for the same MCP server, it asks you to resolve the source of truth first.
@@ -233,6 +243,7 @@ Slash commands are stored as TOML records under Skill Manager app storage, then 
 - Claude Code writes Markdown command files under `~/.claude/commands` and invokes them with `/`.
 - Cursor writes plain text command files under `~/.cursor/commands` and invokes them with `/`.
 - Codex writes prompt files under `~/.codex/prompts` and invokes them with `/prompts:`.
+- Hermes Agent slash command writes are not yet supported; reusable Hermes workflows are managed through Skills.
 - OpenClaw slash command writes are not yet supported.
 
 Skill Manager tracks target ownership with sync state and content hashes. It will not overwrite an untracked command file automatically, and it reports managed files as changed or missing when the target no longer matches the last synced hash. Review actions let you adopt unmanaged commands, restore managed content, adopt a changed harness command as the new source, or remove a broken binding while leaving the harness file untouched.
@@ -273,9 +284,10 @@ Most users do not need to change these locations. If you manage skills in a cust
 | Claude | `SKILL_MANAGER_CLAUDE_ROOT` | `~/.claude/skills` |
 | Cursor | `SKILL_MANAGER_CURSOR_ROOT` | `~/.cursor/skills` |
 | OpenCode | `SKILL_MANAGER_OPENCODE_ROOT` | `~/.config/opencode/skills` |
+| Hermes Agent | `SKILL_MANAGER_HERMES_ROOT` | `${HERMES_HOME:-~/.hermes}/skills` |
 | OpenClaw | `n/a` | `~/.openclaw/skills` |
 
-MCP config locations are harness-owned. Skill Manager writes only to verified config paths and skips unsupported harness writes.
+MCP config locations are harness-owned. Skill Manager writes only to verified config paths and skips unsupported harness writes. Hermes Agent config discovery honors `SKILL_MANAGER_HERMES_HOME` first, then `HERMES_HOME`, then `~/.hermes`.
 
 ## From source
 

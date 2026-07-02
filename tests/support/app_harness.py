@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 import json
+from http.client import IncompleteRead
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.error import HTTPError
@@ -41,6 +42,18 @@ class EmptyMcpMarketplaceCatalog:
 class StaticMcpAvailabilityProbe:
     def probe(self, _spec) -> McpAvailabilityResult:
         return McpAvailabilityResult("unavailable", "not checked in tests")
+
+
+def _read_http_error_payload(error: HTTPError) -> str:
+    try:
+        return error.read().decode("utf-8")
+    except IncompleteRead as exc:
+        if exc.partial:
+            return exc.partial.decode("utf-8")
+        reason = getattr(error, "reason", None) or str(error)
+        return json.dumps({"error": str(reason)})
+    finally:
+        error.close()
 
 
 class AppTestHarness(AbstractContextManager["AppTestHarness"]):
@@ -102,8 +115,7 @@ class AppTestHarness(AbstractContextManager["AppTestHarness"]):
                 payload = response.read().decode("utf-8")
         except HTTPError as error:
             status = error.code
-            payload = error.read().decode("utf-8")
-            error.close()
+            payload = _read_http_error_payload(error)
         if status != expected_status:
             raise AssertionError(f"expected {expected_status} for {path}, got {status}: {payload}")
         return json.loads(payload)
@@ -134,8 +146,7 @@ class AppTestHarness(AbstractContextManager["AppTestHarness"]):
                 payload = response.read().decode("utf-8")
         except HTTPError as error:
             status = error.code
-            payload = error.read().decode("utf-8")
-            error.close()
+            payload = _read_http_error_payload(error)
         if status != expected_status:
             raise AssertionError(f"expected {expected_status} for {method} {path}, got {status}: {payload}")
         return json.loads(payload)

@@ -134,7 +134,6 @@ skill-manager start
 ```
 
 npm wrapper 会为当前平台和 CPU 架构下载对应的原生 release artifact。
-GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release artifact。
 
 ## 支持的 harness
 
@@ -144,6 +143,7 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
 | Claude Code | 支持 | 支持 | 支持 |
 | Cursor | 支持 | 支持 | 支持 |
 | OpenCode | 支持 | 支持 | 支持 |
+| Hermes Agent | 支持 | 支持 | 暂不支持 |
 | OpenClaw | 支持 | 暂不支持 | 暂不支持 |
 
 ## 本地优先安全模型
@@ -172,6 +172,10 @@ Skill Manager 是本地配置管理工具。它在你的机器上运行，并读
 
 采用之前，各 harness 指向各自的本地 Skill 文件夹。采用之后，Skill Manager 会在共享本地存储中保留一个规范包，并通过本地链接暴露给选定 harness。停用某个 harness 会移除该 harness 绑定，但不会删除包本身。
 
+Skill Manager 默认把已管理 Skill 视为可迁移：Skill 一旦进入 shared store，就可以启用到任何受支持 harness。`originHarness` 只保留作来源记录。
+
+Hermes Agent Skill 使用 Hermes 分类目录：`~/.hermes/skills/<category>/<skill>/SKILL.md`。共享 Skill 启用到 Hermes 时，默认会链接到 `skill-manager` 分类下。Skill Manager 只导入 Hermes 自己从外部 hub provenance 安装的 Skill（`.hub/lock.json` 中非 official/builtin/optional 的条目）。Hermes 自学习/local Skill、`.bundled_manifest` 跟踪的内置打包 Skill，以及 Hermes hub provenance 中记录的官方 optional Skill，都会从 Skill Manager 库存和批量操作中排除；Skill Manager 不会修改、链接或删除这些文件夹，让 `hermes update` 和 Hermes 自有 Skill 同步继续保持原有所有权。
+
 ![skill-market-overview](./assets/skill-manager-skill-unification.svg)
 
 ### Skill 扫描
@@ -189,6 +193,7 @@ MCP 服务器以规范化 Skill Manager 记录保存，再转换为每个 harnes
 - Codex 使用 `mcp_servers` 下的 TOML。
 - Claude Code 和 Cursor 使用 `mcpServers` JSON 条目。
 - OpenCode 使用类型化的本地或远程 MCP 条目。
+- Hermes Agent 使用 `~/.hermes/config.yaml`（或 `$HERMES_HOME/config.yaml`）中 `mcp_servers` 下的 YAML 配置。
 - OpenClaw 暂不支持 MCP 写入。
 
 当 Skill Manager 发现同一个 MCP 服务器存在不同配置时，会先要求你选择事实来源。
@@ -203,6 +208,7 @@ Slash command 以 TOML 记录保存在 Skill Manager 应用存储中，再渲染
 - Claude Code 写入 `~/.claude/commands` 下的 Markdown command 文件，并通过 `/` 调用。
 - Cursor 写入 `~/.cursor/commands` 下的纯文本 command 文件，并通过 `/` 调用。
 - Codex 写入 `~/.codex/prompts` 下的 prompt 文件，并通过 `/prompts:` 调用。
+- Hermes Agent 暂不支持 slash command 写入；Hermes 的可复用工作流优先通过 Skill 管理。
 - OpenClaw 暂不支持 slash command 写入。
 
 Skill Manager 使用同步状态和内容哈希跟踪目标所有权。它不会自动覆盖未跟踪的 command 文件；当目标不再匹配上次同步哈希时，会报告托管文件已变更或缺失。确认操作可用于采用未托管 command、恢复托管内容、将已变更的 harness command 采用为新来源，或移除损坏绑定且保留 harness 文件。
@@ -243,9 +249,10 @@ CLI marketplace 条目仅用于预览。
 | Claude | `SKILL_MANAGER_CLAUDE_ROOT` | `~/.claude/skills` |
 | Cursor | `SKILL_MANAGER_CURSOR_ROOT` | `~/.cursor/skills` |
 | OpenCode | `SKILL_MANAGER_OPENCODE_ROOT` | `~/.config/opencode/skills` |
+| Hermes Agent | `SKILL_MANAGER_HERMES_ROOT` | `${HERMES_HOME:-~/.hermes}/skills` |
 | OpenClaw | `n/a` | `~/.openclaw/skills` |
 
-MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配置路径，并跳过不支持的 harness 写入。
+MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配置路径，并跳过不支持的 harness 写入。Hermes Agent 配置发现会优先使用 `SKILL_MANAGER_HERMES_HOME`，然后是 `HERMES_HOME`，最后回退到 `~/.hermes`。
 
 ## 从源码运行
 

@@ -9,7 +9,14 @@ from .contracts import SkillsHarnessAdapter
 from .identity import SourceDescriptor
 from .inventory import InventoryEntry
 from .package import parse_skill_package
-from .policy import can_delete, can_manage, can_stop_managing, can_update, display_status, has_local_changes
+from .policy import (
+    can_delete,
+    can_manage,
+    can_stop_managing,
+    can_update,
+    display_status,
+    has_local_changes,
+)
 from .queries import SkillsQueryService
 from .read_models import SkillsReadModelService
 from .source_fetch import SourceFetchService
@@ -270,6 +277,7 @@ class SkillsMutationService:
                 declared_name=entry.name,
                 source_kind=source_kind,
                 source_locator=source_locator,
+                origin_harness=_origin_harness_for_entry(harness_sightings),
             )
         except ValueError as error:
             raise MutationError(str(error), status=409) from error
@@ -304,3 +312,10 @@ class SkillsMutationService:
 
     def _describe_harnesses(self, bindings: list[tuple[str, SkillsHarnessAdapter]]) -> str:
         return ", ".join(adapter.label for _harness, adapter in bindings)
+
+
+def _origin_harness_for_entry(harness_sightings) -> str | None:
+    for sighting in harness_sightings:
+        if sighting.scope == "canonical":
+            return sighting.harness
+    return harness_sightings[0].harness if harness_sightings else None

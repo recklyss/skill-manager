@@ -12,6 +12,19 @@ from .contracts import (
 )
 
 
+def _hermes_home(context) -> Path:
+    override = context.env.get("SKILL_MANAGER_HERMES_HOME") or context.env.get("HERMES_HOME")
+    return Path(override) if override else context.home / ".hermes"
+
+
+def _hermes_skills_root(context) -> Path:
+    return _hermes_home(context) / "skills"
+
+
+def _hermes_config_path(context) -> Path:
+    return _hermes_home(context) / "config.yaml"
+
+
 def supported_harness_definitions() -> tuple[HarnessDefinition, ...]:
     return SUPPORTED_HARNESS_DEFINITIONS
 
@@ -183,6 +196,26 @@ SUPPORTED_HARNESS_DEFINITIONS: tuple[HarnessDefinition, ...] = (
                 docs_url="https://opencode.ai/docs/commands/",
                 file_glob="*.md",
                 supports_frontmatter=True,
+            ),
+        },
+    ),
+    HarnessDefinition(
+        harness="hermes",
+        label="Hermes",
+        logo_key="hermes",
+        install_probe="hermes",
+        bindings={
+            "skills": FileTreeBindingProfile(
+                managed_env="SKILL_MANAGER_HERMES_ROOT",
+                managed_default=_hermes_skills_root,
+                layout="categorized",
+                default_category="skill-manager",
+            ),
+            "mcp": ConfigSubtreeBindingProfile(
+                config_path_resolver=_hermes_config_path,
+                file_format="yaml",
+                subtree_path=("mcp_servers",),
+                codec="hermes",
             ),
         },
     ),

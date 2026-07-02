@@ -11,6 +11,7 @@ FamilyKey = Literal["skills", "mcp", "slash_commands"]
 CommandFileRenderFormat = Literal["frontmatter_markdown", "cursor_plaintext"]
 CommandFileScope = Literal["global", "project"]
 FileTreeAvailability = Literal["cli", "cli_or_app"]
+FileTreeLayout = Literal["flat", "categorized"]
 PathResolver = Callable[[ResolutionContext], Path]
 SubtreePath: TypeAlias = tuple[str, ...]
 SubtreePathResolver = Callable[[ResolutionContext], SubtreePath]
@@ -32,6 +33,8 @@ class FileTreeBindingProfile:
     discovery_roots: tuple[FileTreeDiscoveryRoot, ...] = ()
     availability: FileTreeAvailability = "cli"
     app_probe_paths: tuple[PathResolver, ...] = ()
+    layout: FileTreeLayout = "flat"
+    default_category: str | None = None
 
     def resolve_managed_root(self, context: ResolutionContext) -> Path:
         if self.managed_default is None:
@@ -49,7 +52,7 @@ class ConfigSubtreeBindingProfile:
     config_path_resolver: PathResolver | None = None
     discovery_config_path_resolvers: tuple[PathResolver, ...] = ()
     source_install_config_path_resolvers: tuple[PathResolver, ...] = ()
-    file_format: Literal["json", "jsonc", "toml"] = "json"
+    file_format: Literal["json", "jsonc", "toml", "yaml"] = "json"
     subtree_path: SubtreePath = ()
     discovery_subtree_path_resolvers: tuple[SubtreePathResolver, ...] = ()
     codec: str = "default"
@@ -156,6 +159,7 @@ __all__ = [
     "ConfigSubtreeBindingProfile",
     "FamilyKey",
     "FileTreeAvailability",
+    "FileTreeLayout",
     "FileTreeBindingProfile",
     "FileTreeDiscoveryRoot",
     "HarnessDefinition",
