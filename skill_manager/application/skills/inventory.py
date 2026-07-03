@@ -44,6 +44,7 @@ class InventoryEntry:
     source_path: str | None = None
     package_dir: str | None = None
     package_path: Path | None = None
+    origin_harness: str | None = None
     sightings: list[InventorySighting] = field(default_factory=list)
 
     def add_sighting(self, sighting: InventorySighting) -> None:
@@ -106,9 +107,18 @@ class SkillInventory:
         entries: list[InventoryEntry] = []
         shared_path_index: dict[Path, InventoryEntry] = {}
         shared_match_index: dict[str, InventoryEntry] = {}
+        excluded_hermes_names = _excluded_hermes_names(harness_scans)
 
         for store_package in store_scan.packages:
             package = store_package.package
+            if _is_excluded_hermes_store_package(
+                name=package.declared_name,
+                package_dir=package.root_path.name,
+                origin_harness=store_package.origin_harness,
+                source_kind=package.source.kind,
+                excluded_hermes_names=excluded_hermes_names,
+            ):
+                continue
             entry = InventoryEntry(
                 skill_ref=f"shared:{package.root_path.name}",
                 name=package.declared_name,
@@ -121,6 +131,7 @@ class SkillInventory:
                 source_path=store_package.recorded_source_path,
                 package_dir=package.root_path.name,
                 package_path=package.root_path,
+                origin_harness=store_package.origin_harness,
             )
             entry.add_sighting(
                 InventorySighting(
@@ -191,6 +202,32 @@ class SkillInventory:
 
     def entries_by_kind(self, kind: EntryKind) -> tuple[InventoryEntry, ...]:
         return tuple(entry for entry in self.entries if entry.kind == kind)
+
+
+def _excluded_hermes_names(harness_scans: tuple[SkillsHarnessScan, ...]) -> set[str]:
+    names: set[str] = set()
+    for scan in harness_scans:
+        if scan.harness == "hermes":
+            names.update(scan.excluded_skill_names)
+    return names
+
+
+def _is_excluded_hermes_store_package(
+    *,
+    name: str,
+    package_dir: str,
+    origin_harness: str | None,
+    source_kind: str,
+    excluded_hermes_names: set[str],
+) -> bool:
+    if origin_harness != "hermes":
+        return False
+    if name in excluded_hermes_names or package_dir in excluded_hermes_names:
+        return True
+    # Legacy pre-policy Hermes self-learned skills were centralized when
+    # managed. Keep them out; only non-official Hermes hub provenance should
+    # be portable through Skill Manager.
+    return source_kind == "centralized"
 
 
 def _unmanaged_entry_key(declared_name: str, source: SourceDescriptor, revision: str) -> str:

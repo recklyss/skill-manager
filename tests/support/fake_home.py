@@ -56,6 +56,18 @@ class FakeHomeSpec:
         return self.openclaw_home / "skills"
 
     @property
+    def hermes_home(self) -> Path:
+        return self.home / ".hermes"
+
+    @property
+    def hermes_skills_root(self) -> Path:
+        return self.hermes_home / "skills"
+
+    @property
+    def hermes_config_path(self) -> Path:
+        return self.hermes_home / "config.yaml"
+
+    @property
     def bin_dir(self) -> Path:
         return self.root / "bin"
 
@@ -85,12 +97,13 @@ def create_fake_home_spec(root: Path, *, seed_openclaw_state: bool = True) -> Fa
         spec.cursor_root,
         spec.opencode_root,
         spec.openclaw_managed_root,
+        spec.hermes_skills_root,
         spec.xdg_state_home,
         spec.bin_dir,
     ):
         path.mkdir(parents=True, exist_ok=True)
 
-    for executable in ("codex", "claude", "cursor-agent", "opencode"):
+    for executable in ("codex", "claude", "cursor-agent", "opencode", "hermes"):
         write_cli_stub(spec.bin_dir / executable, executable)
     if seed_openclaw_state:
         write_cli_stub(spec.bin_dir / "openclaw", "openclaw")

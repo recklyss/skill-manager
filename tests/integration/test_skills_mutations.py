@@ -34,6 +34,29 @@ def seed_local_changes_fixture(spec):
     )
 
 
+def seed_origin_shared_fixture(spec):
+    package_root = seed_skill_package(
+        spec.skills_store_root,
+        "policy-kit",
+        "Policy Kit",
+        body="Opencode originated policy.",
+    )
+    revision, _ = fingerprint_package(package_root)
+    seed_store_manifest(
+        spec,
+        [
+            SkillStoreEntry(
+                package_dir="policy-kit",
+                declared_name="Policy Kit",
+                source_kind="centralized",
+                source_locator="centralized:Policy Kit",
+                revision=revision,
+                origin_harness="opencode",
+            )
+        ],
+    )
+
+
 def seed_delete_fixture(spec):
     seed_shared_only_fixture(spec)
     target = spec.skills_store_root / "shared-audit"
@@ -66,8 +89,168 @@ def seed_unmanage_fixture(spec):
 def seed_cursor_owned_skill_fixture(spec):
     seed_skill_package(spec.cursor_owned_root, "cursor-built", "Cursor Built")
 
+def seed_hermes_bundled_exclusion_fixture(spec):
+    bundled = seed_skill_package(
+        spec.hermes_skills_root / "builtin",
+        "bundled-core",
+        "Bundled Core",
+    )
+    seed_skill_package(
+        spec.hermes_skills_root / "local",
+        "user-helper",
+        "User Helper",
+    )
+    (spec.hermes_skills_root / ".bundled_manifest").write_text(
+        "Bundled Core:0123456789abcdef\n",
+        encoding="utf-8",
+    )
+    managed_copy = seed_skill_package(
+        spec.skills_store_root,
+        "bundled-core",
+        "Bundled Core",
+    )
+    revision, _ = fingerprint_package(managed_copy)
+    seed_store_manifest(
+        spec,
+        [
+            SkillStoreEntry(
+                package_dir="bundled-core",
+                declared_name="Bundled Core",
+                source_kind="centralized",
+                source_locator="centralized:Bundled Core",
+                revision=revision,
+                origin_harness="hermes",
+            )
+        ],
+    )
+    return bundled
+
+
+def seed_hermes_external_hub_fixture(spec):
+    seed_skill_package(
+        spec.hermes_skills_root / "community",
+        "external-helper",
+        "External Helper",
+    )
+    hub_lock = spec.hermes_skills_root / ".hub" / "lock.json"
+    hub_lock.parent.mkdir(parents=True, exist_ok=True)
+    hub_lock.write_text(
+        """{
+  "version": 1,
+  "installed": {
+    "external-helper": {
+      "source": "github",
+      "identifier": "github/example/external-helper",
+      "trust_level": "community",
+      "install_path": "community/external-helper"
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
 
 class SkillsMutationTests(unittest.TestCase):
+
+
+    def test_hermes_external_hub_skill_can_be_managed_and_enabled_everywhere(self) -> None:
+        with AppTestHarness(fixture_factory=seed_hermes_external_hub_fixture) as harness:
+            skills = harness.get_json("/api/skills")
+            external = next(row for row in skills["rows"] if row["name"] == "External Helper")
+
+            harness.post_json(f"/api/skills/{external['skillRef']}/manage")
+            manifest = harness.container.skills_read_models.store.scan()
+            managed = next(item for item in manifest.packages if item.package.declared_name == "External Helper")
+
+            self.assertEqual(managed.origin_harness, "hermes")
+            self.assertEqual(managed.package.source.kind, "github")
+            self.assertEqual(managed.package.source.locator, "github/example/external-helper")
+
+            refreshed = harness.get_json("/api/skills")
+            external = next(row for row in refreshed["rows"] if row["name"] == "External Helper")
+            result = harness.post_json(
+                f"/api/skills/{external['skillRef']}/enable",
+                {"harness": "codex"},
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertTrue((harness.spec.codex_root / "external-helper").is_symlink())
+
+    def test_hermes_owned_skills_are_hidden_and_manage_all_leaves_files_alone(self) -> None:
+        with AppTestHarness(fixture_factory=seed_hermes_bundled_exclusion_fixture) as harness:
+            skills = harness.get_json("/api/skills")
+
+            self.assertNotIn("Bundled Core", [row["name"] for row in skills["rows"]])
+            self.assertNotIn("User Helper", [row["name"] for row in skills["rows"]])
+
+            result = harness.post_json("/api/skills/manage-all")
+            refreshed = harness.get_json("/api/skills")
+
+            self.assertTrue(result["ok"])
+            self.assertNotIn("Bundled Core", [row["name"] for row in refreshed["rows"]])
+            self.assertNotIn("User Helper", [row["name"] for row in refreshed["rows"]])
+            bundled_dir = harness.spec.hermes_skills_root / "builtin" / "bundled-core"
+            self.assertTrue((bundled_dir / "SKILL.md").is_file())
+            self.assertFalse(bundled_dir.is_symlink())
+
+    def test_origin_metadata_exposes_every_harness_cell(self) -> None:
+        with AppTestHarness(fixture_factory=seed_origin_shared_fixture) as harness:
+            skills = harness.get_json("/api/skills")
+            policy = next(row for row in skills["rows"] if row["name"] == "Policy Kit")
+            detail = harness.get_json(f"/api/skills/{policy['skillRef']}")
+
+            self.assertEqual(len(policy["cells"]), len(skills["harnessColumns"]))
+            self.assertEqual(len(detail["harnessCells"]), len(skills["harnessColumns"]))
+            self.assertIn("codex", [cell["harness"] for cell in policy["cells"]])
+            self.assertEqual(len(skills["harnessColumns"]), 6)
+
+    def test_enable_allows_harnesses_other_than_origin(self) -> None:
+        with AppTestHarness(fixture_factory=seed_origin_shared_fixture) as harness:
+            skills = harness.get_json("/api/skills")
+            policy = next(row for row in skills["rows"] if row["name"] == "Policy Kit")
+
+            result = harness.post_json(
+                f"/api/skills/{policy['skillRef']}/enable",
+                {"harness": "codex"},
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertTrue((harness.spec.codex_root / "policy-kit").is_symlink())
+
+    def test_set_harnesses_targets_all_enabled_installed_harnesses(self) -> None:
+        with AppTestHarness(fixture_factory=seed_origin_shared_fixture) as harness:
+            skills = harness.get_json("/api/skills")
+            policy = next(row for row in skills["rows"] if row["name"] == "Policy Kit")
+
+            result = harness.post_json(
+                f"/api/skills/{policy['skillRef']}/set-harnesses",
+                {"target": "enabled"},
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(
+                set(result["succeeded"]),
+                {"codex", "claude", "cursor", "opencode", "openclaw", "hermes"},
+            )
+            self.assertTrue((harness.spec.codex_root / "policy-kit").is_symlink())
+            self.assertTrue((harness.spec.claude_root / "policy-kit").is_symlink())
+            self.assertTrue((harness.spec.cursor_root / "policy-kit").is_symlink())
+            self.assertTrue((harness.spec.opencode_root / "policy-kit").is_symlink())
+            self.assertTrue((harness.spec.openclaw_managed_root / "policy-kit").is_symlink())
+            self.assertTrue((harness.spec.hermes_skills_root / "skill-manager" / "policy-kit").is_symlink())
+
+    def test_manage_records_origin_only(self) -> None:
+        with AppTestHarness(mixed=True) as harness:
+            skills = harness.get_json("/api/skills")
+            trace_lens = next(row for row in skills["rows"] if row["name"] == "Trace Lens")
+
+            harness.post_json(f"/api/skills/{trace_lens['skillRef']}/manage")
+            manifest = harness.container.skills_read_models.store.scan()
+            managed = next(item for item in manifest.packages if item.package.declared_name == "Trace Lens")
+
+            self.assertEqual(managed.origin_harness, "claude")
+
     def test_enable_managed_skill_creates_symlink(self) -> None:
         with AppTestHarness(fixture_factory=seed_shared_only_fixture) as harness:
             skills = harness.get_json("/api/skills")
@@ -163,7 +346,7 @@ class SkillsMutationTests(unittest.TestCase):
         with AppTestHarness(fixture_factory=seed_shared_only_fixture) as harness:
             # Simulate missing non-core CLIs by removing their stubs from the
             # fake PATH. Cursor may still be available through its app probe.
-            for cli in ("cursor-agent", "opencode", "openclaw"):
+            for cli in ("cursor-agent", "opencode", "hermes", "openclaw"):
                 stub = harness.spec.bin_dir / cli
                 if stub.exists():
                     stub.unlink()
@@ -178,6 +361,7 @@ class SkillsMutationTests(unittest.TestCase):
             self.assertTrue(installed_by_harness["codex"])
             self.assertTrue(installed_by_harness["claude"])
             self.assertFalse(installed_by_harness["opencode"])
+            self.assertFalse(installed_by_harness["hermes"])
             self.assertFalse(installed_by_harness["openclaw"])
 
             result = harness.post_json(
@@ -200,6 +384,7 @@ class SkillsMutationTests(unittest.TestCase):
                 self.assertFalse((harness.spec.cursor_root / "shared-audit").exists())
             # Unavailable harness folders remain untouched.
             self.assertFalse((harness.spec.opencode_root / "shared-audit").exists())
+            self.assertFalse((harness.spec.hermes_skills_root / "skill-manager" / "shared-audit").exists())
             self.assertFalse((harness.spec.openclaw_managed_root / "shared-audit").exists())
 
     def test_manage_skill_replaces_found_local_copy_with_managed_links(self) -> None:
@@ -338,6 +523,7 @@ class SkillsMutationTests(unittest.TestCase):
             self.assertFalse((harness.spec.codex_root / "shared-audit").exists())
             self.assertFalse((harness.spec.claude_root / "shared-audit").exists())
             self.assertFalse((harness.spec.opencode_root / "shared-audit").exists())
+            self.assertFalse((harness.spec.hermes_skills_root / "skill-manager" / "shared-audit").exists())
             self.assertFalse((harness.spec.openclaw_managed_root / "shared-audit").exists())
 
             refreshed = harness.get_json("/api/skills")

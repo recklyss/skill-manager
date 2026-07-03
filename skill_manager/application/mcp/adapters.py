@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import json
 import re
+from io import StringIO
 import shutil
 import subprocess
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import MutableMapping
 from typing import Mapping
 
 import tomli_w
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 
 from skill_manager.errors import MutationError
 from skill_manager.atomic_files import atomic_write_text, file_lock
@@ -175,9 +179,8 @@ class FileBackedMcpAdapter(McpHarnessAdapter):
         self._require_mcp_writable()
         with file_lock(self._lock_path(self.config_path)):
             document = self._load_document(self.config_path)
-            subtree = dict(self._read_subtree(document, self._write_subtree_path))
+            subtree = self._ensure_subtree(document, self._write_subtree_path)
             subtree[spec.name] = self._mapper.spec_to_dict(spec)
-            self._write_subtree(document, subtree, self._write_subtree_path)
             for subtree_path in self._read_subtree_paths:
                 if subtree_path != self._write_subtree_path:
                     self._remove_from_subtree(document, subtree_path, spec.name)
@@ -283,7 +286,16 @@ class FileBackedMcpAdapter(McpHarnessAdapter):
                     f"{self.harness} config file is not valid {self._file_format.upper()}: {error}",
                     status=409,
                 ) from error
-            return payload if isinstance(payload, dict) else {}
+            return payload if isinstance(payload, MutableMapping) else {}
+        if self._file_format == "yaml":
+            try:
+                payload = _yaml().load(text) if text.strip() else {}
+            except YAMLError as error:
+                raise MutationError(
+                    f"{self.harness} config file is not valid YAML: {error}",
+                    status=409,
+                ) from error
+            return payload if isinstance(payload, MutableMapping) else {}
         try:
             payload = tomllib.loads(text)
         except tomllib.TOMLDecodeError as error:
@@ -296,6 +308,10 @@ class FileBackedMcpAdapter(McpHarnessAdapter):
     def _dump_document(self, document: dict[str, object]) -> str:
         if self._file_format in {"json", "jsonc"}:
             return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
+        if self._file_format == "yaml":
+            stream = StringIO()
+            _yaml().dump(document, stream)
+            return stream.getvalue()
         return tomli_w.dumps(document)
 
     def _read_subtree(
@@ -312,24 +328,20 @@ class FileBackedMcpAdapter(McpHarnessAdapter):
             return cursor
         return {}
 
-    def _write_subtree(
+    def _ensure_subtree(
         self,
-        document: dict[str, object],
-        subtree: dict[str, object],
+        document: MutableMapping[str, object],
         subtree_path: SubtreePath,
-    ) -> None:
-        cursor: dict[str, object] = document
-        for segment in subtree_path[:-1]:
+    ) -> MutableMapping[str, object]:
+        cursor: MutableMapping[str, object] = document
+        yaml = _yaml() if self._file_format == "yaml" else None
+        for segment in subtree_path:
             existing = cursor.get(segment)
-            if not isinstance(existing, dict):
-                existing = {}
+            if not isinstance(existing, MutableMapping):
+                existing = yaml.map() if yaml is not None else {}
                 cursor[segment] = existing
-            cursor = existing  # type: ignore[assignment]
-        leaf_key = subtree_path[-1]
-        if subtree:
-            cursor[leaf_key] = subtree
-        else:
-            cursor.pop(leaf_key, None)
+            cursor = existing
+        return cursor
 
     def _remove_from_subtree(
         self,
@@ -337,15 +349,15 @@ class FileBackedMcpAdapter(McpHarnessAdapter):
         subtree_path: SubtreePath,
         name: str,
     ) -> bool:
-        cursor: dict[str, object] = document
+        cursor: MutableMapping[str, object] = document
         for segment in subtree_path[:-1]:
             existing = cursor.get(segment)
-            if not isinstance(existing, dict):
+            if not isinstance(existing, MutableMapping):
                 return False
             cursor = existing
         leaf_key = subtree_path[-1]
         subtree = cursor.get(leaf_key)
-        if not isinstance(subtree, dict) or name not in subtree:
+        if not isinstance(subtree, MutableMapping) or name not in subtree:
             return False
         del subtree[name]
         if not subtree:
@@ -365,6 +377,14 @@ def build_mcp_adapters(
         for binding in kernel.bindings_for_family("mcp")
         if isinstance(binding.profile, ConfigSubtreeBindingProfile)
     )
+
+
+def _yaml() -> YAML:
+    yaml = YAML(typ="rt")
+    yaml.default_flow_style = False
+    yaml.preserve_quotes = True
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    return yaml
 
 
 def _normalize_payload(value: object) -> object:

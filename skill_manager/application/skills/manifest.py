@@ -16,9 +16,10 @@ class SkillStoreEntry:
     revision: str
     source_ref: str | None = None
     source_path: str | None = None
+    origin_harness: str | None = None
 
-    def to_dict(self) -> dict[str, str]:
-        payload = {
+    def to_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {
             "packageDir": self.package_dir,
             "declaredName": self.declared_name,
             "sourceKind": self.source_kind,
@@ -29,6 +30,8 @@ class SkillStoreEntry:
             payload["sourceRef"] = self.source_ref
         if self.source_path is not None:
             payload["sourcePath"] = self.source_path
+        if self.origin_harness is not None:
+            payload["originHarness"] = self.origin_harness
         return payload
 
 
@@ -53,6 +56,7 @@ def load_skill_store_manifest(path: Path) -> SkillStoreManifest:
             revision=item["revision"],
             source_ref=item.get("sourceRef") if isinstance(item.get("sourceRef"), str) else None,
             source_path=item.get("sourcePath") if isinstance(item.get("sourcePath"), str) else None,
+            origin_harness=item.get("originHarness") if isinstance(item.get("originHarness"), str) else None,
         )
         for item in payload.get("entries", [])
     )
