@@ -22,9 +22,14 @@ interface MatrixRowProps {
 }
 
 function findCell(row: SkillListRow, harness: string): HarnessCellType {
-  const cell = row.cells.find((candidate) => candidate.harness === harness);
-  if (!cell) throw new Error(`Missing ${harness} cell for ${row.name}`);
-  return cell;
+  return (
+    row.cells.find((cell) => cell.harness === harness) ?? {
+      harness,
+      label: harness,
+      state: "empty",
+      interactive: false,
+    }
+  );
 }
 
 function countEnabled(row: SkillListRow): number {
@@ -44,7 +49,7 @@ export function MatrixRow({
   onToggleCell,
 }: MatrixRowProps) {
   const enabledCount = countEnabled(row);
-  const totalCount = row.cells.length;
+  const totalCount = harnessColumns.length;
 
   return (
     <tr

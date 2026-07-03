@@ -383,12 +383,6 @@ def _scan_skill_roots(
     return observations, skipped_skill_names
 
 
-def _excluded_skill_names_for_harness(*, harness: str, managed_root: Path) -> frozenset[str]:
-    if harness != "hermes":
-        return frozenset()
-    return _hermes_scan_policy(managed_root).excluded_skill_names
-
-
 def _hermes_scan_policy(skills_root: Path) -> _HermesScanPolicy:
     excluded_names: set[str] = set()
     external_sources: dict[str, SourceDescriptor] = {}
