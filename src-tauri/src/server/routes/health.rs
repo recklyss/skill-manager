@@ -1,6 +1,14 @@
-use axum::{http::StatusCode, Json};
+use axum::{extract::State, Json};
 use serde_json::{json, Value};
 
-pub async fn health_check() -> (StatusCode, Json<Value>) {
-    (StatusCode::OK, Json(json!({ "status": "ok" })))
+use crate::AppState;
+
+pub async fn health_check(State(state): State<AppState>) -> Json<Value> {
+    let snapshot = state.skills_queries.read_models().snapshot();
+    Json(json!({
+        "ok": true,
+        "app": "skill-manager",
+        "readOnly": false,
+        "harnessCount": snapshot.harness_scans.len(),
+    }))
 }

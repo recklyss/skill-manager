@@ -2,6 +2,7 @@ mod routes;
 
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
 
@@ -13,11 +14,19 @@ use crate::AppState;
 
 pub struct ServerHandle {
     shutdown: Arc<AtomicBool>,
+    ready: mpsc::Receiver<()>,
 }
 
 impl ServerHandle {
     pub fn shutdown(&self) {
         self.shutdown.store(true, Ordering::SeqCst);
+    }
+
+    /// Block until the axum server has bound its listen socket.
+    pub fn wait_ready(&self) {
+        self.ready
+            .recv()
+            .expect("skill-manager server failed to start");
     }
 }
 
@@ -25,6 +34,7 @@ impl ServerHandle {
 pub fn start(addr: SocketAddr, state: AppState) -> ServerHandle {
     let shutdown = Arc::new(AtomicBool::new(false));
     let shutdown_flag = shutdown.clone();
+    let (ready_tx, ready_rx) = mpsc::sync_channel(1);
 
     let app = build_router(state);
 
@@ -38,6 +48,8 @@ pub fn start(addr: SocketAddr, state: AppState) -> ServerHandle {
             let listener = tokio::net::TcpListener::bind(addr)
                 .await
                 .expect("failed to bind server socket");
+
+            let _ = ready_tx.send(());
 
             println!("skill-manager server listening on {}", addr);
 
@@ -55,7 +67,15 @@ pub fn start(addr: SocketAddr, state: AppState) -> ServerHandle {
         });
     });
 
-    ServerHandle { shutdown }
+    ServerHandle {
+        shutdown,
+        ready: ready_rx,
+    }
+}
+
+/// API-only router (no SPA fallback) for integration tests.
+pub fn api_router(state: AppState) -> Router {
+    routes::api_router().with_state(state)
 }
 
 fn build_router(state: AppState) -> Router {
