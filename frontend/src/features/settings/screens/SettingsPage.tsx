@@ -1,8 +1,9 @@
-import { Archive, Database } from "lucide-react";
+import { Archive, Database, Palette } from "lucide-react";
 
 import { ErrorBanner } from "../../../components/ErrorBanner";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { PageHeader } from "../../../components/PageHeader";
+import { ThemeSelector } from "../../../components/ThemeSelector";
 import { SettingsHarnessCard } from "../components/SettingsHarnessCard";
 import { useSettingsCopy } from "../i18n";
 import { useSettingsPageController } from "../model/use-settings-page-controller";
@@ -57,6 +58,20 @@ export default function SettingsPage() {
                 <p className="settings-row__sub">{copy.storage.cacheSubtitle}</p>
               </div>
               <span className="settings-path">{controller.data.storage.marketplaceCachePath}</span>
+            </div>
+          </section>
+
+          <section className="settings-section">
+            <h2 className="settings-section__heading">{copy.appearance.heading}</h2>
+            <div className="settings-row">
+              <span className="settings-row__icon">
+                <Palette size={15} />
+              </span>
+              <div className="settings-row__body">
+                <p className="settings-row__title">{copy.appearance.themeTitle}</p>
+                <p className="settings-row__sub">{copy.appearance.themeSubtitle}</p>
+              </div>
+              <ThemeSelector triggerClassName="settings-theme-btn" showChevron />
             </div>
           </section>
 

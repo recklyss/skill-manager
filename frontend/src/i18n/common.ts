@@ -26,8 +26,7 @@ const englishCommonCopy = {
     marketplace: "Marketplace",
     clis: "CLIs",
     settings: "Settings",
-    light: "Light",
-    lightComingSoon: "Light theme — coming soon",
+    theme: "Theme",
   },
   language: {
     label: "Language",
@@ -94,8 +93,7 @@ export const commonCopy = {
       marketplace: "商城",
       clis: "CLI",
       settings: "设置",
-      light: "浅色",
-      lightComingSoon: "浅色主题即将推出",
+      theme: "主题",
     },
     language: {
       label: "语言",

@@ -161,6 +161,15 @@
   color: var(--color-accent);
 }
 
+.theme-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border-strong);
+  flex-shrink: 0;
+}
+
 .ui-menu__item[data-destructive="true"] .ui-menu__icon {
   color: inherit;
 }

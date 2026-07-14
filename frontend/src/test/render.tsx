@@ -3,6 +3,7 @@ import { render, type RenderOptions } from "@testing-library/react";
 import { type ReactElement, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
+import { ThemeProvider } from "../lib/useTheme";
 import { ToastProvider } from "../components/Toast";
 import { UiTooltipProvider } from "../components/ui/UiTooltipProvider";
 import { LocaleProvider } from "../i18n";
@@ -29,15 +30,17 @@ export function renderWithAppProviders(
 ) {
   const result = render(ui, {
     wrapper: ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>
-        <LocaleProvider>
-          <UiTooltipProvider delayDuration={0} skipDelayDuration={0}>
-            <ToastProvider>
-              <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
-            </ToastProvider>
-          </UiTooltipProvider>
-        </LocaleProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <LocaleProvider>
+            <UiTooltipProvider delayDuration={0} skipDelayDuration={0}>
+              <ToastProvider>
+                <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+              </ToastProvider>
+            </UiTooltipProvider>
+          </LocaleProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     ),
     ...renderOptions,
   });
@@ -56,7 +59,9 @@ export function renderWithRouter(
 ) {
   return render(ui, {
     wrapper: ({ children }: { children: ReactNode }) => (
-      <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+      </ThemeProvider>
     ),
     ...renderOptions,
   });

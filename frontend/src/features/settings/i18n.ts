@@ -4,6 +4,11 @@ const englishSettingsCopy = {
   title: "Settings",
   subtitle: "Local paths and per-harness discovery.",
   loading: "Loading settings",
+  appearance: {
+    heading: "Appearance",
+    themeTitle: "Theme",
+    themeSubtitle: "Switch between light and dark mode.",
+  },
   storage: {
     heading: "Local storage",
     storeTitle: "Skill Manager store",
@@ -32,6 +37,11 @@ export const settingsCopy = {
     title: "设置",
     subtitle: "本地路径和每个 harness 的发现设置。",
     loading: "正在加载设置",
+    appearance: {
+      heading: "外观",
+      themeTitle: "主题",
+      themeSubtitle: "在浅色和深色模式之间切换。",
+    },
     storage: {
       heading: "本地存储",
       storeTitle: "Skill Manager 存储",

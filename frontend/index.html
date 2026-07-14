@@ -7,6 +7,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // Apply stored theme before first paint to prevent flash.
+      (function () {
+        try {
+          var theme = localStorage.getItem("skill-manager-theme");
+          document.documentElement.setAttribute("data-theme", theme || "dark");
+        } catch (_) { /* localStorage unavailable — use default */ }
+      })();
+    </script>
     <title>Skill Manager</title>
   </head>
   <body>

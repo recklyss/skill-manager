@@ -18,14 +18,13 @@ import {
   RefreshCw,
   Settings,
   Store,
-  SunMedium,
   Terminal,
 } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { useSidebarModel, type SidebarIconKey } from "../app/capability-registry";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { useToast } from "./Toast";
+import { ThemeSelector } from "./ThemeSelector";
 import { useCommonCopy, useLocale } from "../i18n";
 
 interface SidebarProps {
@@ -35,7 +34,6 @@ interface SidebarProps {
 
 export function Sidebar({ onRefresh, refreshPending }: SidebarProps) {
   const model = useSidebarModel();
-  const { toast } = useToast();
   const common = useCommonCopy();
 
   return (
@@ -86,14 +84,7 @@ export function Sidebar({ onRefresh, refreshPending }: SidebarProps) {
           {refreshPending ? <LoadingSpinner size="sm" label={common.actions.refreshing} /> : <RefreshCw size={16} />}
           <span>{common.actions.refresh}</span>
         </button>
-        <button
-          type="button"
-          className="sidebar-footer-btn"
-          onClick={() => toast(common.nav.lightComingSoon)}
-        >
-          <SunMedium size={16} />
-          <span>{common.nav.light}</span>
-        </button>
+        <ThemeSelector triggerClassName="sidebar-footer-btn" />
         <SidebarLanguageMenu />
         <NavLink
           to="/settings"
