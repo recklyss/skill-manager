@@ -2,24 +2,56 @@ use serde::Serialize;
 
 use crate::harness::HarnessKernel;
 
-use super::manifest::{SkillSource, SkillStatus};
-use super::store::{SkillStore, StoredSkill};
+use super::store::SkillStore;
 
-/// Read model sent to the frontend — enriched with harness bindings.
 #[derive(Debug, Serialize)]
-pub struct SkillReadModel {
-    pub name: String,
+pub struct HarnessColumnResponse {
+    pub harness: String,
+    pub installed: bool,
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logoKey: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct HarnessCellResponse {
+    pub harness: String,
+    pub interactive: bool,
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logoKey: Option<String>,
+    pub state: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SkillRowActionsResponse {
+    pub canDelete: bool,
+    pub canManage: bool,
+    pub canStopManaging: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SkillTableRowResponse {
+    pub actions: SkillRowActionsResponse,
+    pub cells: Vec<HarnessCellResponse>,
     pub description: String,
-    pub version: String,
-    pub author: String,
-    pub tags: Vec<String>,
-    pub status: SkillStatus,
-    pub source: Option<SkillSource>,
-    pub origin_harness: Option<String>,
-    /// Harnesses where this skill is enabled.
-    pub enabled_harnesses: Vec<String>,
-    /// Whether this skill is managed (in shared store) vs. unmanaged.
-    pub managed: bool,
+    pub displayStatus: String,
+    pub name: String,
+    pub skillRef: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SkillsSummaryResponse {
+    pub managed: usize,
+    pub unmanaged: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SkillsPageResponse {
+    #[serde(rename = "harnessColumns")]
+    pub harness_columns: Vec<HarnessColumnResponse>,
+    pub rows: Vec<SkillTableRowResponse>,
+    pub summary: SkillsSummaryResponse,
 }
 
 #[derive(Clone)]
@@ -33,40 +65,72 @@ impl SkillsReadModelService {
         Self { store, kernel }
     }
 
-    /// Build the read model for all managed skills.
-    pub fn managed_skills(&self) -> Vec<SkillReadModel> {
-        self.store
-            .list_skills()
-            .into_iter()
-            .map(|s| self.to_read_model(s, true))
-            .collect()
-    }
-
-    /// Unmanaged skills are discovered from harness skill directories.
-    /// For now, return an empty list (will be implemented with harness probing).
-    pub fn unmanaged_skills(&self) -> Vec<SkillReadModel> {
-        vec![]
-    }
-
-    fn to_read_model(&self, skill: StoredSkill, managed: bool) -> SkillReadModel {
-        let harnesses = self.kernel.statuses();
-        let enabled_harnesses: Vec<String> = harnesses
+    pub fn page_response(&self) -> SkillsPageResponse {
+        let statuses = self.kernel.statuses();
+        let installed_harnesses: Vec<String> = statuses
             .iter()
             .filter(|h| h.installed)
             .map(|h| h.harness.clone())
             .collect();
 
-        SkillReadModel {
-            name: skill.name,
-            description: skill.manifest.description,
-            version: skill.manifest.version,
-            author: skill.manifest.author,
-            tags: skill.manifest.tags,
-            status: skill.status,
-            source: skill.source,
-            origin_harness: skill.origin_harness,
-            enabled_harnesses,
-            managed,
+        let harness_columns: Vec<HarnessColumnResponse> = statuses
+            .iter()
+            .map(|h| HarnessColumnResponse {
+                harness: h.harness.clone(),
+                installed: h.installed,
+                label: h.label.clone(),
+                logoKey: h.logo_key.clone(),
+            })
+            .collect();
+
+        let skills = self.store.list_skills();
+        let managed_count = skills.len();
+
+        let rows: Vec<SkillTableRowResponse> = skills
+            .into_iter()
+            .map(|s| {
+                let cells: Vec<HarnessCellResponse> = statuses
+                    .iter()
+                    .map(|h| {
+                        let state = if h.installed && installed_harnesses.contains(&h.harness) {
+                            "enabled"
+                        } else if h.installed {
+                            "disabled"
+                        } else {
+                            "empty"
+                        };
+                        HarnessCellResponse {
+                            harness: h.harness.clone(),
+                            interactive: h.installed,
+                            label: h.label.clone(),
+                            logoKey: h.logo_key.clone(),
+                            state: state.to_string(),
+                        }
+                    })
+                    .collect();
+
+                SkillTableRowResponse {
+                    actions: SkillRowActionsResponse {
+                        canDelete: true,
+                        canManage: true,
+                        canStopManaging: true,
+                    },
+                    cells,
+                    description: s.manifest.description,
+                    displayStatus: "Managed".to_string(),
+                    name: s.name.clone(),
+                    skillRef: format!("managed:{}", s.name),
+                }
+            })
+            .collect();
+
+        SkillsPageResponse {
+            harness_columns,
+            rows,
+            summary: SkillsSummaryResponse {
+                managed: managed_count,
+                unmanaged: 0,
+            },
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::read_models::{SkillReadModel, SkillsReadModelService};
+use super::read_models::{SkillsPageResponse, SkillsReadModelService};
 
 #[derive(Clone)]
 pub struct SkillsQueryService {
@@ -10,25 +10,11 @@ impl SkillsQueryService {
         Self { read_models }
     }
 
-    /// Get all skills for the frontend (in-use / needs-review split).
-    pub fn all_skills(&self) -> SkillsListResponse {
-        let managed = self.read_models.managed_skills();
-        let unmanaged = self.read_models.unmanaged_skills();
-
-        SkillsListResponse {
-            managed,
-            unmanaged,
-        }
+    pub fn page_response(&self) -> SkillsPageResponse {
+        self.read_models.page_response()
     }
 
-    /// Health check — verifies the store is accessible.
     pub fn health(&self) -> bool {
         true
     }
-}
-
-#[derive(serde::Serialize)]
-pub struct SkillsListResponse {
-    pub managed: Vec<SkillReadModel>,
-    pub unmanaged: Vec<SkillReadModel>,
 }
