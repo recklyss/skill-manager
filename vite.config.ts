@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => {
   return {
     root: "frontend",
     plugins: [react()],
+    optimizeDeps: {
+      include: ["@tauri-apps/api/core"],
+    },
     server: {
       host: "127.0.0.1",
       port: 5173,

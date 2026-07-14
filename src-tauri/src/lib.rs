@@ -4,8 +4,6 @@ mod harness;
 mod skills;
 
 use std::net::TcpListener;
-use std::sync::OnceLock;
-use tauri::Manager;
 
 use paths::AppPaths;
 use harness::HarnessKernel;
@@ -13,7 +11,7 @@ use skills::store::SkillStore;
 use skills::read_models::SkillsReadModelService;
 use skills::queries::SkillsQueryService;
 
-static SERVER_PORT: OnceLock<u16> = OnceLock::new();
+const SERVER_PORT: u16 = 18000;
 
 /// Shared application state injected into axum routes.
 #[derive(Clone)]
@@ -21,13 +19,6 @@ pub struct AppState {
     pub paths: AppPaths,
     pub harness_kernel: HarnessKernel,
     pub skills_queries: SkillsQueryService,
-}
-
-/// Returns the base URL of the embedded axum server.
-#[tauri::command]
-fn get_server_url() -> String {
-    let port = SERVER_PORT.get().copied().unwrap_or(0);
-    format!("http://127.0.0.1:{}", port)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -45,16 +36,14 @@ pub fn run() {
         skills_queries,
     };
 
-    // Bind to an OS-assigned port.
-    let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind server socket");
-    let port = listener.local_addr().unwrap().port();
-    SERVER_PORT.set(port).ok();
+    // Bind to a fixed port so the frontend always knows where the API is.
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", SERVER_PORT))
+        .expect("failed to bind server socket");
 
     let server_handle = server::start(listener, state);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_server_url])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 

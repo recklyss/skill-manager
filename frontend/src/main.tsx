@@ -26,16 +26,15 @@ import "./features/mcp/styles/pages.css";
 import "./features/mcp/styles/detail-sheet.css";
 import "./features/mcp/styles/edit-dialogs.css";
 
-// Resolve the API origin before mounting so the first query already
-// has the correct server URL (Tauri IPC or fallback).
-initApiOrigin().then(() => {
-  ReactDOM.createRoot(document.getElementById("root")!).render(
-    <React.StrictMode>
-      <ThemeProvider>
-        <HashRouter>
-          <App />
-        </HashRouter>
-      </ThemeProvider>
-    </React.StrictMode>,
-  );
-});
+// Resolve API origin synchronously — Tauri detection is instant.
+initApiOrigin();
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <ThemeProvider>
+      <HashRouter>
+        <App />
+      </HashRouter>
+    </ThemeProvider>
+  </React.StrictMode>,
+);

@@ -8,30 +8,24 @@ function normalizeBase(value: string | undefined): string {
 
 const apiBase = normalizeBase(import.meta.env.VITE_API_BASE);
 
+// In Tauri, the Rust backend always binds to this fixed port.
+// The frontend detects Tauri via the injected __TAURI_INTERNALS__ flag.
+const TAURI_API_PORT = 18000;
+
 let apiOrigin = "";
 
-export async function initApiOrigin(): Promise<void> {
-  // Try the Tauri IPC bridge first (most reliable).
-  try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const url: string = await invoke("get_server_url");
-    if (url) {
-      apiOrigin = url;
-      return;
-    }
-  } catch {
-    // Not running in Tauri — use fallback.
-  }
+function isTauri(): boolean {
+  return !!(window as any).__TAURI_INTERNALS__;
+}
 
-  // Fallback: check for injected window variable.
-  const injected = (window as any).__SKILL_MANAGER_API_ORIGIN__ as string | undefined;
-  if (injected) {
-    apiOrigin = injected;
-    return;
+export function initApiOrigin(): void {
+  if (isTauri()) {
+    apiOrigin = `http://127.0.0.1:${TAURI_API_PORT}`;
+    console.log("[skill-manager] Tauri mode, API at", apiOrigin);
+  } else {
+    apiOrigin = "";
+    console.log("[skill-manager] Browser mode, relative API URLs");
   }
-
-  // Final fallback: relative URLs (traditional dev server or same-origin deploy).
-  apiOrigin = "";
 }
 
 export function apiPath(path: string): string {
