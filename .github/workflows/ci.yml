@@ -25,56 +25,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-compat:
+  rust-backend:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-          - "3.11"
-          - "3.12"
-          - "3.13"
-          - "3.14"
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Python dependencies
-        run: |
-          python -m venv .venv
-          ./.venv/bin/python -m pip install --upgrade pip
-          ./.venv/bin/pip install -r requirements.txt
-
-      - name: Backend compatibility tests
-        run: bash scripts/test_backend.sh
+      - name: Rust integration tests
+        run: bash scripts/test_rust.sh
 
   frontend-validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
 
-      - name: Install Python dependencies
-        run: |
-          python -m venv .venv
-          ./.venv/bin/pip install -r requirements.txt
-
       - name: Install Node dependencies
         run: npm ci
 
       - name: Check version sync
-        run: ./.venv/bin/python scripts/sync_version.py --check
+        run: node scripts/sync_version.mjs --check
 
       - name: Check release target resolver
         run: npm run release-targets:check
@@ -82,21 +57,18 @@ jobs:
       - name: Frontend typecheck
         run: npm run typecheck
 
-      - name: OpenAPI codegen drift check
-        run: npm run codegen:check
-
       - name: Frontend tests
         run: npm test
 
       - name: Frontend build
         run: npm run build
 
-  package-smoke:
-    name: package-smoke-${{ matrix.target }}
+  tauri-build-smoke:
+    name: tauri-build-smoke-${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
     if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
     needs:
-      - backend-compat
+      - rust-backend
       - frontend-validate
     strategy:
       fail-fast: false
@@ -104,58 +76,28 @@ jobs:
         include:
           - target: darwin-arm64
             runner: macos-14
-            homebrew: true
           - target: darwin-x64
             runner: macos-15-intel
-            homebrew: true
           - target: linux-x64
             runner: ubuntu-latest
-            homebrew: false
-          - target: linux-arm64
-            runner: ubuntu-24.04-arm
-            homebrew: false
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
 
-      - name: Install build dependencies
-        run: |
-          python -m venv .venv
-          ./.venv/bin/python -m pip install --upgrade pip
-          ./.venv/bin/python -m pip install -r requirements.txt .[build]
-          npm ci
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build release artifact
-        run: ./.venv/bin/python scripts/build_release.py
+      - name: Build Tauri app
+        run: npm run tauri:build
 
-      - name: Validate packaged binary
-        run: |
-          VERSION="$(cat skill_manager/VERSION)"
-          ARTIFACT="$(find .artifacts/release -name '*${{ matrix.target }}.tar.gz' -print -quit)"
-          ./.venv/bin/python scripts/validate_release_artifact.py --artifact "$ARTIFACT" --version "$VERSION"
-
-      - name: Validate npm wrapper with local artifact
-        run: |
-          ARTIFACT="$(find .artifacts/release -name '*${{ matrix.target }}.tar.gz' -print -quit)"
-          bash scripts/validate_npm_wrapper.sh "$ARTIFACT"
-
-      - name: Validate Homebrew formula install smoke
-        if: matrix.homebrew
-        run: |
-          VERSION="$(cat skill_manager/VERSION)"
-          ARTIFACT="$(find .artifacts/release -name '*${{ matrix.target }}.tar.gz' -print -quit)"
-          bash scripts/validate_homebrew_formula.sh "$VERSION" "$ARTIFACT"
-
-      - name: Upload packaged artifacts
+      - name: Upload Tauri bundles
         uses: actions/upload-artifact@v7
         with:
-          name: package-smoke-${{ matrix.target }}
-          path: .artifacts/release/*
+          name: tauri-build-${{ matrix.target }}
+          path: src-tauri/target/release/bundle/**/*

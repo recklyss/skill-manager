@@ -308,28 +308,14 @@ Build a native installer:
 npm run tauri:build
 ```
 
-### Python backend (legacy dev server)
-
-Requirements: Python 3.11+, Node.js 18+, npm.
-
-```bash
-scripts/install-dev.sh
-scripts/start-dev.sh            # managed server + Vite
-# or split:
-npm run dev                      # Vite hot reload on :5173
-npm run dev:backend              # Python backend on :8000
-```
-
-Stop: `scripts/stop-dev.sh`
-
 ### Validation
 
 ```bash
 npm run typecheck
 npm test
+npm run test:rust                # Rust integration tests
 npm run build
-cargo check                      # Rust backend
-cargo test                       # Rust tests
+cd src-tauri && cargo check      # Rust compile check
 ```
 
 ## Troubleshooting

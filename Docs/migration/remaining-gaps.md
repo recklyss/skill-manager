@@ -42,6 +42,6 @@ All API routes exist (56/56). Items below are **behavioral** gaps still missing 
 
 ## Non-API (out of HTTP parity scope)
 
-- Tauri native shell lifecycle (`start`/`stop`/`status` CLI parity with Python `skill_manager` CLI)
-- PyInstaller / Homebrew distribution path vs Tauri bundle
-- Frontend vitest suite not run against Rust backend in CI
+- Tauri native shell lifecycle (`start`/`stop`/`status` CLI parity with removed Python `skill_manager` CLI)
+- PyInstaller / Homebrew distribution path vs Tauri bundle (release workflow migrated to `tauri:build`; npm/Homebrew wrappers need artifact format update)
+- Frontend vitest suite not run against Rust backend in CI (runs against mocked API contract)

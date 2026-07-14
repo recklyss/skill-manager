@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-bash "$ROOT_DIR/scripts/test_backend.sh"
-npm run test
+bash "$ROOT_DIR/scripts/test_rust.sh"
+npm run typecheck
+npm test
 npm run build

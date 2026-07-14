@@ -1,6 +1,6 @@
 {
   "name": "@mode-io/skill-manager",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Public macOS/Linux installer wrapper for the Mode IO skill-manager native release artifact.",
   "license": "MIT",
   "private": false,
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "preinstall": "node scripts/preinstall.js",
-    "prepack": "python3 ../../scripts/sync_public_metadata.py --write",
+    "prepack": "node ../../scripts/sync_public_metadata.mjs --write",
     "postpack": "rm -f LICENSE",
     "postinstall": "node scripts/install.js"
   },
