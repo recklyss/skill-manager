@@ -1,5 +1,13 @@
-pub mod store;
+pub mod adapters;
+pub mod github;
+pub mod identity;
+pub mod inventory;
 pub mod manifest;
-pub mod read_models;
-pub mod queries;
 pub mod mutations;
+pub mod observations;
+pub mod package;
+pub mod policy;
+pub mod queries;
+pub mod read_models;
+pub mod source_fetch;
+pub mod store;
