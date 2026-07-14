@@ -292,53 +292,44 @@ MCP config locations are harness-owned. Skill Manager writes only to verified co
 
 ## From source
 
-### Requirements
+### Tauri desktop app (recommended)
 
-- Python 3.11+
-- Node.js 18+
-- npm
+```bash
+# Requirements: Rust 1.85+, Node.js 18+
+npm install
+npm run tauri:dev
+```
 
-`skill-manager` supports Python 3.11+. CI validates backend compatibility on Python 3.11 through 3.14, while packaging and release builds stay pinned to Python 3.11 for determinism.
+The app opens as a native desktop window — no browser, no manual server start.
 
-### Contributor setup
+Build a native installer:
+
+```bash
+npm run tauri:build
+```
+
+### Python backend (legacy dev server)
+
+Requirements: Python 3.11+, Node.js 18+, npm.
 
 ```bash
 scripts/install-dev.sh
+scripts/start-dev.sh            # managed server + Vite
+# or split:
+npm run dev                      # Vite hot reload on :5173
+npm run dev:backend              # Python backend on :8000
 ```
 
-### Run locally
+Stop: `scripts/stop-dev.sh`
+
+### Validation
 
 ```bash
-scripts/start-dev.sh
-```
-
-Stop the managed local instance:
-
-```bash
-scripts/stop-dev.sh
-```
-
-The split dev flow is available when you want Vite hot reload:
-
-```bash
-npm run dev
-npm run dev:backend
-```
-
-Default local URLs:
-
-- Frontend: `http://127.0.0.1:5173`
-- Backend: `http://127.0.0.1:8000`
-- Health: `http://127.0.0.1:8000/api/health`
-
-Validation:
-
-```bash
-scripts/install-dev.sh
 npm run typecheck
-bash scripts/test_backend.sh
 npm test
 npm run build
+cargo check                      # Rust backend
+cargo test                       # Rust tests
 ```
 
 ## Troubleshooting

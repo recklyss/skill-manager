@@ -16,7 +16,10 @@
     "test": "vitest run",
     "release-targets:check": "node scripts/check_release_targets_js.cjs",
     "codegen:openapi": "./.venv/bin/python scripts/dump_openapi.py && openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts",
-    "codegen:check": "npm run codegen:openapi && git diff --exit-code frontend/src/api/openapi.json frontend/src/api/generated.ts"
+    "codegen:check": "npm run codegen:openapi && git diff --exit-code frontend/src/api/openapi.json frontend/src/api/generated.ts",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -33,6 +36,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^25.6.0",

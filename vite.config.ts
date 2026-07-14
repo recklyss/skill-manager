@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => {
       host: "127.0.0.1",
       port: 5173,
       strictPort: true,
+      // Proxy is used in traditional dev mode (npm run dev).
+      // In Tauri mode, the frontend calls the Rust backend directly via
+      // window.__SKILL_MANAGER_API_ORIGIN__ (see paths.ts).
       proxy:
         apiBase === ""
           ? undefined
