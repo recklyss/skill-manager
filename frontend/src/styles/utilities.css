@@ -1,20 +1,22 @@
 @layer utilities {
 
 /* -------------------------------------------------------------------------- */
-/* Misc page patterns                                                           */
+/* Shared utilities                                                            */
 /* -------------------------------------------------------------------------- */
 
 .panel-state {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 180px;
+  min-height: 160px;
   color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .muted-text {
   margin: 0;
   color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .toggle-switch {
@@ -25,19 +27,21 @@
 }
 
 .toggle-switch__label {
-  font-size: 0.88rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text);
+  user-select: none;
 }
 
 .toggle-switch__root {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 40px;
+  width: 38px;
   height: 22px;
   padding: 2px;
+  border: none;
   border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
+  background: var(--color-border-strong);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -46,21 +50,28 @@
   background: var(--color-accent);
 }
 
+.toggle-switch__root:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
 .toggle-switch__thumb {
   display: block;
   width: 16px;
   height: 16px;
-  border-radius: 999px;
-  background: #f6f8fb;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
   transform: translateX(0);
-  transition: transform 140ms ease;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .toggle-switch__thumb[data-state="checked"] {
-  transform: translateX(18px);
+  transform: translateX(16px);
 }
 
-/* Utilities                                                                    */
+/* -------------------------------------------------------------------------- */
+/* Utility helpers                                                             */
 /* -------------------------------------------------------------------------- */
 
 .u-visually-hidden {
@@ -77,38 +88,37 @@
 
 .section-stack {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .dialog-section {
   display: grid;
-  gap: var(--space-3);
-  margin: var(--space-4) 0;
+  gap: var(--space-4);
+  margin: var(--space-5) 0;
 }
 
 .settings-row__controls {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .text-input {
-  height: 38px;
+  height: 36px;
   padding: 0 var(--space-4);
-  border: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .text-input:focus-visible {
   outline: none;
-  background: var(--color-surface-raised);
-  box-shadow: 0 0 0 2px var(--color-accent-softer);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-softer);
 }
-
-/* -------------------------------------------------------------------------- */
 
 }

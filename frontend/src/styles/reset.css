@@ -1,9 +1,29 @@
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-family: var(--font-sans); background: var(--color-bg); color: var(--color-text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
-img, svg { display: block; max-width: 100%; }
-input, button, textarea, select { font: inherit; }
-p, h1, h2, h3, h4 { overflow-wrap: break-word; margin: 0; }
-ul, ol { list-style: none; padding: 0; margin: 0; }
-a { color: inherit; text-decoration: none; }
-button { background: none; border: none; cursor: pointer; color: inherit; }
-table { border-collapse: collapse; width: 100%; }
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  img, svg { display: block; max-width: 100%; }
+  input, button, textarea, select { font: inherit; }
+  p, h1, h2, h3, h4 { overflow-wrap: break-word; margin: 0; }
+  ul, ol { list-style: none; padding: 0; margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  button { background: none; border: none; cursor: pointer; color: inherit; }
+  table { border-collapse: collapse; width: 100%; }
+
+  /* Selection — accent-tinted */
+  ::selection { background: var(--color-accent-soft); color: var(--color-text); }
+
+  /* Focus ring — consistent across the app */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-accent-soft);
+    border-radius: var(--radius-xs);
+  }
+}
