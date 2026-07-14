@@ -7,8 +7,9 @@ import type {
   MarketplacePageResultDto,
 } from "./types";
 
-interface OkResponse {
+interface InstallMarketplaceSkillResponse {
   ok: boolean;
+  reinstalled?: boolean;
 }
 
 interface MarketplacePageParams {
@@ -32,9 +33,9 @@ export async function fetchMarketplaceDocument(itemId: string): Promise<Marketpl
   return fetchJson<MarketplaceDocumentDto>(`/marketplace/items/${encodeURIComponent(itemId)}/document`);
 }
 
-export async function installMarketplaceSkill(installToken: string): Promise<OkResponse> {
+export async function installMarketplaceSkill(installToken: string): Promise<InstallMarketplaceSkillResponse> {
   const body: InstallMarketplaceSkillRequest = { installToken };
-  return postJson<OkResponse>("/marketplace/install", body);
+  return postJson<InstallMarketplaceSkillResponse>("/marketplace/install", body);
 }
 
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {

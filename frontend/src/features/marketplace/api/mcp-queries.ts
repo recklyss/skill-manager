@@ -4,6 +4,7 @@ import { useToast } from "../../../components/Toast";
 import { flattenUniquePageItems, queryPolicy } from "../../../lib/query";
 import { invalidateMcpQueries } from "../../mcp/public";
 import { useMarketplaceCopy } from "../i18n";
+import { friendlyMarketplaceInstallError } from "../model/install-messages";
 import { useInstallingState } from "../model/installing-context";
 import {
   fetchMcpMarketplaceDetail,
@@ -86,10 +87,17 @@ export function useAddMcpServerMutation() {
       // Invalidate the central inventory so the card button flips to
       // "Open in MCPs" in place. User stays on the marketplace.
       void invalidateMcpQueries(queryClient);
-      toast(copy.detail.installButton.addedToMcp(displayName ?? response.server.name));
+      const name = displayName ?? response.server.name;
+      const reinstalled = (response as { reinstalled?: boolean }).reinstalled === true;
+      toast(
+        reinstalled
+          ? copy.detail.installButton.reinstalledToMcp(name)
+          : copy.detail.installButton.addedToMcp(name),
+      );
     },
     onError: (error) => {
-      toast(error instanceof Error ? error.message : copy.detail.installButton.installFailed);
+      const message = error instanceof Error ? error.message : copy.detail.installButton.installFailed;
+      toast(friendlyMarketplaceInstallError(message));
     },
     onSettled: (_data, _err, { qualifiedName }) => {
       finish(qualifiedName);

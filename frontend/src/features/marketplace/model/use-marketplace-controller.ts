@@ -8,6 +8,7 @@ import {
   useMarketplaceFeedQuery,
 } from "../api/queries";
 import type { MarketplaceItemDto } from "../api/types";
+import { friendlyMarketplaceInstallError } from "./install-messages";
 import { marketplaceInstallActionKey, marketplaceSearchActionKey } from "./pending";
 
 export interface MarketplaceController {
@@ -28,7 +29,7 @@ export interface MarketplaceController {
   submitSearch: () => Promise<void>;
   openItem: (itemId: string) => void;
   closeItem: () => void;
-  installItem: (item: Pick<MarketplaceItemDto, "id" | "installToken">) => Promise<void>;
+  installItem: (item: Pick<MarketplaceItemDto, "id" | "installToken" | "name">) => Promise<void>;
   isInstallPending: (itemId: string) => boolean;
   openInstalledSkill: (skillRef: string) => void;
   dismissError: () => void;
@@ -140,15 +141,18 @@ export function useMarketplaceController(
     setErrorMessage("");
   }
 
-  async function installItem(item: Pick<MarketplaceItemDto, "id" | "installToken">): Promise<void> {
+  async function installItem(item: Pick<MarketplaceItemDto, "id" | "installToken" | "name">): Promise<void> {
     try {
       setErrorMessage("");
       await pendingRegistry.run(
         marketplaceInstallActionKey(item.id),
-        () => installMutation.mutateAsync({ installToken: item.installToken }),
+        () => installMutation.mutateAsync({ installToken: item.installToken, name: item.name }),
       );
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to install the skill.");
+      const message = friendlyMarketplaceInstallError(
+        error instanceof Error ? error.message : "Unable to install the skill.",
+      );
+      setErrorMessage(message);
       throw error;
     }
   }

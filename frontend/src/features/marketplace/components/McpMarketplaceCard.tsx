@@ -74,6 +74,14 @@ export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardPro
 
         <div className="market-card__footer mcp-card__footer">
           <div className="mcp-card__actions">
+            {installAction.installedState.kind === "installed" ? (
+              <span
+                className="chip chip--installed"
+                aria-label={copy.detail.installButton.installedAria(item.displayName)}
+              >
+                {copy.detail.installButton.installed}
+              </span>
+            ) : null}
             <McpInstallButton
               displayName={item.displayName}
               installedState={installAction.installedState}

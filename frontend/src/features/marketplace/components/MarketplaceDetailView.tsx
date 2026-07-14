@@ -1,5 +1,5 @@
 import { lazy, Suspense, useId, useMemo } from "react";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { ArrowUpRight, Plus, RotateCcw } from "lucide-react";
 
 import { DetailDisclosure } from "../../../components/detail/DetailDisclosure";
 import { DetailHeader } from "../../../components/detail/DetailHeader";
@@ -22,7 +22,7 @@ interface MarketplaceDetailViewProps {
   actionErrorMessage: string;
   onDismissActionError: () => void;
   onClose: () => void;
-  onInstall: (item: Pick<MarketplaceItemDto, "id" | "installToken">) => Promise<void>;
+  onInstall: (item: Pick<MarketplaceItemDto, "id" | "installToken" | "name">) => Promise<void>;
   onOpenInstalledSkill: (skillRef: string) => void;
 }
 
@@ -51,17 +51,36 @@ export function MarketplaceDetailView({
       return undefined;
     }
 
-    if (detail.installation.status === "installed" && detail.installation.installedSkillRef) {
+    const installed =
+      detail.installation.status === "installed" && Boolean(detail.installation.installedSkillRef);
+
+    if (installed) {
       return (
-        <button
-          type="button"
-          className="action-pill"
-          onClick={() => onOpenInstalledSkill(detail.installation.installedSkillRef!)}
-          aria-label={copy.detail.skill.openInSkillsAria(detail.name)}
-        >
-          <ArrowUpRight size={12} aria-hidden="true" />
-          {copy.detail.skill.openInSkills}
-        </button>
+        <div className="marketplace-install-actions">
+          <button
+            type="button"
+            className="action-pill"
+            onClick={() => void onInstall(detail)}
+            aria-label={copy.detail.skill.reinstallAria(detail.name)}
+            data-pending={installPending || undefined}
+          >
+            {installPending ? (
+              <LoadingSpinner size="sm" label={copy.detail.skill.installing(detail.name)} />
+            ) : (
+              <RotateCcw size={12} aria-hidden="true" />
+            )}
+            {copy.detail.skill.reinstall}
+          </button>
+          <button
+            type="button"
+            className="action-pill action-pill--ghost"
+            onClick={() => onOpenInstalledSkill(detail.installation.installedSkillRef!)}
+            aria-label={copy.detail.skill.openInSkillsAria(detail.name)}
+          >
+            <ArrowUpRight size={12} aria-hidden="true" />
+            {copy.detail.skill.openInSkills}
+          </button>
+        </div>
       );
     }
 
@@ -106,7 +125,16 @@ export function MarketplaceDetailView({
     <>
       <div className="skill-detail__chrome">
         <DetailHeader
-          title={<h2 id={headingId}>{detail.name}</h2>}
+          title={
+            <div className="marketplace-detail__title-row">
+              <h2 id={headingId}>{detail.name}</h2>
+              {detail.installation.status === "installed" ? (
+                <span className="chip chip--installed" aria-label={copy.detail.skill.installedAria(detail.name)}>
+                  {copy.detail.skill.installed}
+                </span>
+              ) : null}
+            </div>
+          }
           titleAction={actionButton}
           meta={
             <DetailSourceLinks

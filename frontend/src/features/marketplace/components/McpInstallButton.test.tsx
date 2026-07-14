@@ -50,10 +50,14 @@ describe("McpInstallButton", () => {
     expect(screen.queryByRole("button", { name: /cursor/i })).not.toBeInTheDocument();
   });
 
-  it("renders 'Open in MCPs' when already installed", () => {
-    renderButton({
+  it("renders Re-install and Open in MCPs when already installed", () => {
+    const { onInstall } = renderButton({
       installedState: { kind: "installed", managedName: "exa-mcp" },
     });
+    const reinstallButton = screen.getByRole("button", { name: /re-install exa search/i });
+    expect(reinstallButton).toBeInTheDocument();
+    fireEvent.click(reinstallButton);
+    expect(onInstall).toHaveBeenCalledTimes(1);
     const link = screen.getByRole("link", { name: /open exa search in mcps/i });
     expect(link).toHaveAttribute("href", "/mcp/use?server=exa-mcp");
     expect(link).toHaveTextContent(/open in mcps/i);

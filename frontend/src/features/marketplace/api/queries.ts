@@ -1,8 +1,11 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useToast } from "../../../components/Toast";
 import { flattenUniquePageItems, queryPolicy } from "../../../lib/query";
 import { invalidateSettingsQueries } from "../../settings/public";
 import { invalidateSkillsQueries } from "../../skills/public";
+import { useMarketplaceCopy } from "../i18n";
+import { friendlyMarketplaceInstallError } from "../model/install-messages";
 import {
   fetchMarketplaceDetail,
   fetchMarketplaceDocument,
@@ -65,15 +68,28 @@ export function flattenMarketplaceItems(data: { pages: MarketplacePageResultDto[
 
 export function useInstallMarketplaceSkillMutation() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const copy = useMarketplaceCopy();
 
   return useMutation({
-    mutationFn: ({ installToken }: { installToken: string }) => installMarketplaceSkill(installToken),
-    onSuccess: async () => {
+    mutationFn: ({ installToken }: { installToken: string; name?: string }) =>
+      installMarketplaceSkill(installToken),
+    onSuccess: async (response, { name }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: marketplaceKeys.all }),
         invalidateSkillsQueries(queryClient),
         invalidateSettingsQueries(queryClient),
       ]);
+      const itemName = name ?? "Skill";
+      toast(
+        response.reinstalled
+          ? copy.detail.skill.reinstalledToast(itemName)
+          : copy.detail.skill.installedToast(itemName),
+      );
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : copy.errors.skills;
+      toast(friendlyMarketplaceInstallError(message));
     },
   });
 }

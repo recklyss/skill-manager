@@ -11,7 +11,7 @@ interface MarketplaceDetailSheetProps {
   actionErrorMessage: string;
   onDismissActionError: () => void;
   onClose: () => void;
-  onInstall: (item: Pick<MarketplaceItemDto, "id" | "installToken">) => Promise<void>;
+  onInstall: (item: Pick<MarketplaceItemDto, "id" | "installToken" | "name">) => Promise<void>;
   onOpenInstalledSkill: (skillRef: string) => void;
 }
 

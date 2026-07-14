@@ -1,5 +1,5 @@
-import { type KeyboardEvent, useState } from "react";
-import { ArrowUpRight, Plus, Star } from "lucide-react";
+import { type KeyboardEvent, type MouseEvent, useState } from "react";
+import { ArrowUpRight, Plus, RotateCcw, Star } from "lucide-react";
 
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import type { MarketplaceItemDto } from "../api/types";
@@ -23,6 +23,10 @@ function avatarFallbackLabel(item: MarketplaceItemDto): string {
   return item.name.slice(0, 2).toUpperCase();
 }
 
+function isInstalled(item: MarketplaceItemDto): boolean {
+  return item.installation.status === "installed" && Boolean(item.installation.installedSkillRef);
+}
+
 export function MarketplaceCard({
   item,
   installing,
@@ -35,6 +39,7 @@ export function MarketplaceCard({
   const avatarSrc = item.repoImageUrl && !avatarFailed ? item.repoImageUrl : null;
   const stars = item.stars ?? 0;
   const installs = formatMarketplaceInstalls(item.installs);
+  const installed = isInstalled(item);
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>): void {
     if (event.key !== "Enter" && event.key !== " ") {
@@ -44,7 +49,8 @@ export function MarketplaceCard({
     onOpenDetail();
   }
 
-  function handleOpenInstalled(): void {
+  function handleOpenInstalled(event: MouseEvent<HTMLButtonElement>): void {
+    event.stopPropagation();
     if (!item.installation.installedSkillRef) {
       return;
     }
@@ -76,50 +82,75 @@ export function MarketplaceCard({
           <h4 className="market-card__title">{item.name}</h4>
           <p className="market-card__repo">{item.repoLabel}</p>
         </div>
-        {stars > 0 ? (
-          <span className="market-card__stars">
-            <Star size={11} fill="currentColor" />
-            {formatMarketplaceStars(stars)}
-          </span>
-        ) : null}
+        <div className="market-card__head-actions">
+          {installed ? (
+            <span className="chip chip--installed" aria-label={copy.detail.skill.installedAria(item.name)}>
+              {copy.detail.skill.installed}
+            </span>
+          ) : null}
+          {stars > 0 ? (
+            <span className="market-card__stars">
+              <Star size={11} fill="currentColor" />
+              {formatMarketplaceStars(stars)}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <p className="market-card__body">{item.description || copy.detail.cards.noSkillSummary}</p>
 
       <div className="market-card__footer">
         <span className="market-card__installs">{copy.detail.skill.installs(installs)}</span>
-        {item.installation.status === "installed" && item.installation.installedSkillRef ? (
-          <button
-            type="button"
-            className="action-pill"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleOpenInstalled();
-            }}
-            aria-label={copy.detail.skill.openInSkillsAria(item.name)}
-          >
-            <ArrowUpRight size={12} aria-hidden="true" />
-            {copy.detail.skill.openInSkills}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="action-pill"
-            onClick={(event) => {
-              event.stopPropagation();
-              onInstall();
-            }}
-            aria-label={copy.detail.skill.installAria(item.name)}
-            data-pending={installing || undefined}
-          >
-            {installing ? (
-              <LoadingSpinner size="sm" label={copy.detail.skill.installing(item.name)} />
-            ) : (
-              <Plus size={12} aria-hidden="true" />
-            )}
-            {copy.detail.skill.install}
-          </button>
-        )}
+        <div className="marketplace-install-actions">
+          {installed ? (
+            <>
+              <button
+                type="button"
+                className="action-pill"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onInstall();
+                }}
+                aria-label={copy.detail.skill.reinstallAria(item.name)}
+                data-pending={installing || undefined}
+              >
+                {installing ? (
+                  <LoadingSpinner size="sm" label={copy.detail.skill.installing(item.name)} />
+                ) : (
+                  <RotateCcw size={12} aria-hidden="true" />
+                )}
+                {copy.detail.skill.reinstall}
+              </button>
+              <button
+                type="button"
+                className="action-pill action-pill--ghost"
+                onClick={handleOpenInstalled}
+                aria-label={copy.detail.skill.openInSkillsAria(item.name)}
+              >
+                <ArrowUpRight size={12} aria-hidden="true" />
+                {copy.detail.skill.openInSkills}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="action-pill"
+              onClick={(event) => {
+                event.stopPropagation();
+                onInstall();
+              }}
+              aria-label={copy.detail.skill.installAria(item.name)}
+              data-pending={installing || undefined}
+            >
+              {installing ? (
+                <LoadingSpinner size="sm" label={copy.detail.skill.installing(item.name)} />
+              ) : (
+                <Plus size={12} aria-hidden="true" />
+              )}
+              {copy.detail.skill.install}
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

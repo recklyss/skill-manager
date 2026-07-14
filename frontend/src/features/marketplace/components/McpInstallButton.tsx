@@ -1,6 +1,6 @@
 import { type MouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Loader2, Plus } from "lucide-react";
+import { ArrowUpRight, Loader2, Plus, RotateCcw } from "lucide-react";
 
 import { UiTooltip } from "../../../components/ui/UiTooltip";
 import { useMarketplaceCopy } from "../i18n";
@@ -14,11 +14,11 @@ interface McpInstallButtonProps {
 }
 
 /**
- * Three-state install affordance for a marketplace server.
+ * Install affordance for a marketplace MCP server.
  *
  *   installing  → disabled pill with spinner + "Installing"
- *   installed   → link to /mcp/use?server=<name> with "Open in MCPs"
- *   default     → normal Install pill that triggers onInstall
+ *   installed   → Re-install pill + optional Open in MCPs link
+ *   default     → Install pill that triggers onInstall
  */
 export function McpInstallButton({
   displayName,
@@ -45,18 +45,32 @@ export function McpInstallButton({
 
   if (installedState.kind === "installed") {
     return (
-      <UiTooltip content={copy.detail.installButton.openInMcpTooltip}>
-        <Link
-          to={`/mcp/use?server=${encodeURIComponent(installedState.managedName)}`}
+      <div className="marketplace-install-actions">
+        <button
+          type="button"
           className="action-pill"
-          style={{ textDecoration: "none" }}
-          aria-label={copy.detail.installButton.openInMcpAria(displayName)}
-          onClick={stopPropagation}
+          onClick={(event) => {
+            stopPropagation(event);
+            onInstall();
+          }}
+          aria-label={copy.detail.installButton.reinstallToMcpAria(displayName)}
         >
-          <ArrowUpRight size={12} aria-hidden="true" />
-          {copy.detail.installButton.openInMcp}
-        </Link>
-      </UiTooltip>
+          <RotateCcw size={12} aria-hidden="true" />
+          {copy.detail.installButton.reinstallToMcp}
+        </button>
+        <UiTooltip content={copy.detail.installButton.openInMcpTooltip}>
+          <Link
+            to={`/mcp/use?server=${encodeURIComponent(installedState.managedName)}`}
+            className="action-pill action-pill--ghost"
+            style={{ textDecoration: "none" }}
+            aria-label={copy.detail.installButton.openInMcpAria(displayName)}
+            onClick={stopPropagation}
+          >
+            <ArrowUpRight size={12} aria-hidden="true" />
+            {copy.detail.installButton.openInMcp}
+          </Link>
+        </UiTooltip>
+      </div>
     );
   }
 
