@@ -55,13 +55,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![get_server_url])
-        .setup(move |app| {
-            let url = format!("http://127.0.0.1:{}", port);
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.eval(&format!("window.__SKILL_MANAGER_API_ORIGIN__ = '{}';", url));
-            }
-            Ok(())
-        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 

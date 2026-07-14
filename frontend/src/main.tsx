@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 
 import { App } from "./App";
+import { initApiOrigin } from "./api/paths";
 import { ThemeProvider } from "./lib/useTheme";
 import "./styles/index.css";
 
@@ -25,12 +26,16 @@ import "./features/mcp/styles/pages.css";
 import "./features/mcp/styles/detail-sheet.css";
 import "./features/mcp/styles/edit-dialogs.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <HashRouter>
-        <App />
-      </HashRouter>
-    </ThemeProvider>
-  </React.StrictMode>,
-);
+// Resolve the API origin before mounting so the first query already
+// has the correct server URL (Tauri IPC or fallback).
+initApiOrigin().then(() => {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <ThemeProvider>
+        <HashRouter>
+          <App />
+        </HashRouter>
+      </ThemeProvider>
+    </React.StrictMode>,
+  );
+});
