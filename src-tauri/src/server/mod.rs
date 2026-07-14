@@ -1,6 +1,6 @@
 mod routes;
 
-use std::net::TcpListener as StdTcpListener;
+use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -8,7 +8,6 @@ use std::thread;
 use axum::Router;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
-use tracing::info;
 
 use crate::AppState;
 
@@ -22,9 +21,8 @@ impl ServerHandle {
     }
 }
 
-/// Start the axum HTTP server on the given listener, returning a handle
-/// that can be used to shut it down.
-pub fn start(listener: StdTcpListener, state: AppState) -> ServerHandle {
+/// Start the axum HTTP server, returning a handle that can shut it down.
+pub fn start(addr: SocketAddr, state: AppState) -> ServerHandle {
     let shutdown = Arc::new(AtomicBool::new(false));
     let shutdown_flag = shutdown.clone();
 
@@ -37,14 +35,14 @@ pub fn start(listener: StdTcpListener, state: AppState) -> ServerHandle {
             .expect("failed to build tokio runtime");
 
         rt.block_on(async move {
-            info!("skill-manager server listening on {}", listener.local_addr().unwrap());
+            let listener = tokio::net::TcpListener::bind(addr)
+                .await
+                .expect("failed to bind server socket");
 
-            let tokio_listener = tokio::net::TcpListener::from_std(listener)
-                .expect("failed to convert listener to tokio");
-            axum::serve(tokio_listener, app)
+            println!("skill-manager server listening on {}", addr);
+
+            axum::serve(listener, app)
                 .with_graceful_shutdown(async move {
-                    // Wait until shutdown is signaled. In a production app we'd
-                    // also listen for Ctrl-C, but the Tauri lifecycle manages this.
                     loop {
                         if shutdown_flag.load(Ordering::SeqCst) {
                             break;
@@ -61,8 +59,6 @@ pub fn start(listener: StdTcpListener, state: AppState) -> ServerHandle {
 }
 
 fn build_router(state: AppState) -> Router {
-    // In debug mode, the frontend is served by the Vite dev server.
-    // In release, we serve the built assets from frontend/dist.
     let frontend_dist =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../frontend/dist");
 

@@ -3,7 +3,7 @@ mod paths;
 mod harness;
 mod skills;
 
-use std::net::TcpListener;
+use std::net::SocketAddr;
 
 use paths::AppPaths;
 use harness::HarnessKernel;
@@ -12,6 +12,7 @@ use skills::read_models::SkillsReadModelService;
 use skills::queries::SkillsQueryService;
 
 const SERVER_PORT: u16 = 18000;
+const SERVER_ADDR: &str = "127.0.0.1";
 
 /// Shared application state injected into axum routes.
 #[derive(Clone)]
@@ -36,11 +37,10 @@ pub fn run() {
         skills_queries,
     };
 
-    // Bind to a fixed port so the frontend always knows where the API is.
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", SERVER_PORT))
-        .expect("failed to bind server socket");
-
-    let server_handle = server::start(listener, state);
+    let addr: SocketAddr = format!("{}:{}", SERVER_ADDR, SERVER_PORT)
+        .parse()
+        .expect("invalid server address");
+    let server_handle = server::start(addr, state);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())

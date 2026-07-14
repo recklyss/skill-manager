@@ -14,8 +14,8 @@ pub fn api_router() -> Router<AppState> {
         .route("/health", get(health::health_check))
         .merge(settings::router())
         .merge(skills::router())
-        .merge(mcp::router())
         .merge(slash_commands::router())
-        .merge(marketplace::router())
-        .merge(scan::router())
+        .nest("/mcp", mcp::router())
+        .nest("/marketplace", marketplace::router())
+        .nest("/scan", scan::router())
 }
