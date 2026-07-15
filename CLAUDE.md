@@ -86,7 +86,7 @@ Shared components live in `frontend/src/components/`. The API client (`api/gener
 
 ### Migration Notes
 
-See `Docs/migration/parity-checklist.md` and `Docs/migration/remaining-gaps.md` for Python→Rust parity status. All 56 API routes exist; some behaviors (LLM scan, HTTP MCP probe) are partial.
+See `full-repo-review-report.md` for Python→Rust migration status and remaining parity gaps. All 56 API routes exist; some behaviors (LLM scan, HTTP MCP probe) are partial.
 
 ### Integration Tests
 

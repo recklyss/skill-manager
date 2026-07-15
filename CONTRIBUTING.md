@@ -19,12 +19,18 @@ Use the standard repo setup:
 scripts/install-dev.sh
 ```
 
+Start the desktop app for local development:
+
+```bash
+npm run tauri:dev
+```
+
 ## Validate before opening a PR
 
 Run the smallest set of checks that proves your change is correct. For most changes, that means:
 
 ```bash
-bash scripts/test_backend.sh
+npm run test:rust                # or: bash scripts/test_rust.sh
 npm test
 npm run build
 ```
