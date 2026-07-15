@@ -92,13 +92,13 @@ describe("MarketplacePage", () => {
       if (url.includes("/api/marketplace/popular?limit=20&offset=0")) {
         return okJson(marketplacePage([baseItem("mode-switch", "Mode Switch", 128)]));
       }
-      if (url.includes("/api/marketplace/items/skillssh%3Amode-io%2Fskills%3Amode-switch/document")) {
+      if (url.includes("/api/marketplace/items/github%3Amode-io%2Fskills%2Fmode-switch/document")) {
         return okJson({
           status: "ready",
           documentMarkdown: "# Mode Switch",
         });
       }
-      if (url.includes("/api/marketplace/items/skillssh%3Amode-io%2Fskills%3Amode-switch")) {
+      if (url.includes("/api/marketplace/items/github%3Amode-io%2Fskills%2Fmode-switch")) {
         return okJson(
           createMarketplaceDetail({
             sourceLinks: {
@@ -149,7 +149,7 @@ describe("MarketplacePage", () => {
 
 function baseItem(id: string, name: string, installs: number) {
   return createMarketplaceItem({
-    id: `skillssh:mode-io/skills:${id}`,
+    id: `github:mode-io/skills/${id}`,
     name,
     description: `${name} description`,
     installs,

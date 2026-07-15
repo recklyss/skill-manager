@@ -40,7 +40,7 @@ export default function MarketplaceMcpPage({
   // Skills and CLIs have explicit marketplace namespaces; MCP owns MCP Registry qualified names.
   const ownsItemId = Boolean(
     selectedName &&
-      !selectedName.startsWith("skillssh:") &&
+      !selectedName.startsWith("github:") &&
       !selectedName.startsWith("clisdev:"),
   );
   const resolvedName = isActive && ownsItemId ? selectedName : null;

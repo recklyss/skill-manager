@@ -41,8 +41,8 @@ export default function MarketplacePage({
       : copy.errors.skills;
 
   // Only open the detail modal if this tab is active AND the URL item id
-  // is in our namespace (skills.sh items are prefixed `skillssh:`).
-  const ownsItemId = Boolean(selectedItemId?.startsWith("skillssh:"));
+  // is in our namespace (skills.sh items are prefixed `github:`).
+  const ownsItemId = Boolean(selectedItemId?.startsWith("github:"));
   const resolvedItemId = isActive && ownsItemId ? selectedItemId : null;
 
   return (

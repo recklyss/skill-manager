@@ -15,7 +15,7 @@ export function marketplaceRepoImageUrl(repoLabel: string): string {
 
 export function createMarketplaceItem(overrides: Partial<MarketplaceItemDto> = {}): MarketplaceItemDto {
   const repoLabel = overrides.repoLabel ?? "mode-io/skills";
-  const id = overrides.id ?? `skillssh:${repoLabel}:mode-switch`;
+  const id = overrides.id ?? `github:${repoLabel}/mode-switch`;
   const skillId = skillIdFromItemId(id);
 
   return {

@@ -138,6 +138,54 @@ async fn install_skill_rejects_unknown_token() {
     assert_eq!(status, 400);
 }
 
+/// Popular feed marks centralized managed skills that match a marketplace github token.
+#[tokio::test]
+async fn skills_popular_marks_installed_centralized_skill() {
+    let fixture = TestFixture::new();
+    fs::create_dir_all(&fixture.paths.skills_store_root).expect("store root");
+    seed_named_skill(
+        &fixture.paths.skills_store_root,
+        "find-skills",
+        "find-skills",
+        "Discover and install skills from skills.sh.",
+    );
+    seed_store_manifest(
+        &fixture.paths,
+        &[serde_json::json!({
+            "packageDir": "find-skills",
+            "declaredName": "find-skills",
+            "sourceKind": "centralized",
+            "sourceLocator": "centralized:find-skills",
+            "revision": "abc123",
+        })],
+    );
+
+    let app = fixture.rebuild_app();
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/marketplace/popular?limit=60")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    assert_eq!(response.status(), 200);
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let items = body["items"].as_array().expect("items array");
+    let find_skills = items
+        .iter()
+        .find(|item| item["id"].as_str() == Some("github:vercel-labs/skills/find-skills"))
+        .expect("find-skills should appear in the popular feed");
+    assert_eq!(find_skills["installation"]["status"], "installed");
+    assert_eq!(
+        find_skills["installation"]["installedSkillRef"].as_str(),
+        Some("shared:find-skills")
+    );
+}
+
 /// Marketplace detail reflects managed skills already present in the shared store.
 #[tokio::test]
 async fn skill_detail_marks_installed_managed_skill() {

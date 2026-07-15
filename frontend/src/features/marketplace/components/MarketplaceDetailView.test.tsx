@@ -33,7 +33,7 @@ describe("MarketplaceDetailView", () => {
 
     render(
       <MarketplaceDetailView
-        itemId="skillssh:mode-io/skills:mode-switch"
+        itemId="github:mode-io/skills/mode-switch"
         initialItem={null}
         installPending={false}
         actionErrorMessage=""
@@ -72,7 +72,7 @@ describe("MarketplaceDetailView", () => {
 
     render(
       <MarketplaceDetailView
-        itemId="skillssh:mode-io/skills:mode-switch"
+        itemId="github:mode-io/skills/mode-switch"
         initialItem={null}
         installPending={false}
         actionErrorMessage=""
