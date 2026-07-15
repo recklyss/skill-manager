@@ -63,7 +63,7 @@ describe("App shell", () => {
     expect(within(nav).getByRole("group", { name: /^Skills$/i })).toBeInTheDocument();
     expect(within(nav).getByRole("group", { name: /^Slash Commands$/i })).toBeInTheDocument();
     expect(within(nav).getByRole("group", { name: /^MCP Servers$/i })).toBeInTheDocument();
-    expect(within(nav).getByRole("group", { name: /^Marketplace$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: /^Marketplace$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Settings$/i })).toBeInTheDocument();
   });
 
@@ -102,10 +102,7 @@ describe("App shell", () => {
     expect(screen.getByRole("link", { name: "Needs review 3" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "In use 2" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Needs review 1" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Marketplace" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Skills" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "MCP" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "CLIs" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Marketplace" })).toBeInTheDocument();
   });
 
   it("omits sidebar counts before query data resolves", () => {
@@ -120,7 +117,7 @@ describe("App shell", () => {
     expect(screen.getByRole("group", { name: "Skills" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Slash Commands" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "MCP Servers" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Marketplace" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Marketplace" })).toBeInTheDocument();
   });
 
   it.each([
@@ -221,8 +218,7 @@ describe("App shell", () => {
     expect(screen.getByRole("link", { name: "设置" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: /Skill/i })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: /MCP 服务器/i })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: /^商城$/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^CLI$/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^商城$/ })).toBeInTheDocument();
     expect(screen.queryByText("界面语言")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("link", { name: /^总览$/ }));
