@@ -34,7 +34,7 @@ impl SkillsQueryService {
         let inventory = self.read_models.inventory();
         let entry = inventory.find(skill_ref)?;
         let mut detail = self.read_models.detail_response(entry);
-        detail.sourceLinks = self.build_source_links(entry);
+        detail.source_links = self.build_source_links(entry);
         Some(detail)
     }
 
@@ -42,7 +42,7 @@ impl SkillsQueryService {
         let inventory = self.read_models.inventory();
         let entry = inventory.find(skill_ref)?;
         Some(SkillSourceStatusResponse {
-            updateStatus: self.resolve_update_status(entry),
+            update_status: self.resolve_update_status(entry),
         })
     }
 
@@ -85,9 +85,9 @@ impl SkillsQueryService {
         }
         let repo = github_repo_from_locator(&entry.source.locator)?;
         Some(SkillSourceLinksResponse {
-            repoLabel: repo.clone(),
-            repoUrl: github_repo_url(&repo),
-            folderUrl: self.github_folder_url(entry, &repo),
+            repo_label: repo.clone(),
+            repo_url: github_repo_url(&repo),
+            folder_url: self.github_folder_url(entry, &repo),
         })
     }
 

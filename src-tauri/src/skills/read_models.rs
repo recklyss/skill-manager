@@ -15,39 +15,43 @@ use super::policy::{
 use super::store::SkillStore;
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HarnessColumnResponse {
     pub harness: String,
     pub installed: bool,
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub logoKey: Option<String>,
+    pub logo_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HarnessCellResponse {
     pub harness: String,
     pub interactive: bool,
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub logoKey: Option<String>,
+    pub logo_key: Option<String>,
     pub state: String,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillRowActionsResponse {
-    pub canDelete: bool,
-    pub canManage: bool,
-    pub canStopManaging: bool,
+    pub can_delete: bool,
+    pub can_manage: bool,
+    pub can_stop_managing: bool,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillTableRowResponse {
     pub actions: SkillRowActionsResponse,
     pub cells: Vec<HarnessCellResponse>,
     pub description: String,
-    pub displayStatus: String,
+    pub display_status: String,
     pub name: String,
-    pub skillRef: String,
+    pub skill_ref: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -57,23 +61,25 @@ pub struct SkillsSummaryResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillsPageResponse {
-    #[serde(rename = "harnessColumns")]
     pub harness_columns: Vec<HarnessColumnResponse>,
     pub rows: Vec<SkillTableRowResponse>,
     pub summary: SkillsSummaryResponse,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillDetailActionsResponse {
-    pub canManage: bool,
-    pub stopManagingStatus: Option<String>,
-    pub stopManagingHarnessLabels: Vec<String>,
-    pub canDelete: bool,
-    pub deleteHarnessLabels: Vec<String>,
+    pub can_manage: bool,
+    pub stop_managing_status: Option<String>,
+    pub stop_managing_harness_labels: Vec<String>,
+    pub can_delete: bool,
+    pub delete_harness_labels: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillLocationResponse {
     pub kind: String,
     pub harness: Option<String>,
@@ -81,35 +87,38 @@ pub struct SkillLocationResponse {
     pub scope: Option<String>,
     pub path: Option<String>,
     pub revision: Option<String>,
-    pub sourceKind: String,
-    pub sourceLocator: String,
+    pub source_kind: String,
+    pub source_locator: String,
     pub detail: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillSourceLinksResponse {
-    pub repoLabel: String,
-    pub repoUrl: String,
-    pub folderUrl: Option<String>,
+    pub repo_label: String,
+    pub repo_url: String,
+    pub folder_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillDetailResponse {
-    pub skillRef: String,
+    pub skill_ref: String,
     pub name: String,
     pub description: String,
-    pub displayStatus: String,
-    pub attentionMessage: Option<String>,
+    pub display_status: String,
+    pub attention_message: Option<String>,
     pub actions: SkillDetailActionsResponse,
-    pub harnessCells: Vec<HarnessCellResponse>,
+    pub harness_cells: Vec<HarnessCellResponse>,
     pub locations: Vec<SkillLocationResponse>,
-    pub sourceLinks: Option<SkillSourceLinksResponse>,
-    pub documentMarkdown: Option<String>,
+    pub source_links: Option<SkillSourceLinksResponse>,
+    pub document_markdown: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillSourceStatusResponse {
-    pub updateStatus: Option<String>,
+    pub update_status: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -272,19 +281,19 @@ impl SkillsReadModelService {
         let linked_labels = linked_harness_labels(entry, &inventory.columns);
 
         SkillDetailResponse {
-            skillRef: entry.skill_ref.clone(),
+            skill_ref: entry.skill_ref.clone(),
             name: entry.name.clone(),
             description: entry.description.clone(),
-            displayStatus: display_status(entry).to_string(),
-            attentionMessage: super::policy::attention_message(entry).map(str::to_string),
+            display_status: display_status(entry).to_string(),
+            attention_message: super::policy::attention_message(entry).map(str::to_string),
             actions: SkillDetailActionsResponse {
-                canManage: can_manage(entry),
-                stopManagingStatus: stop_managing_status(entry).map(str::to_string),
-                stopManagingHarnessLabels: linked_labels.clone(),
-                canDelete: can_delete(entry),
-                deleteHarnessLabels: linked_labels,
+                can_manage: can_manage(entry),
+                stop_managing_status: stop_managing_status(entry).map(str::to_string),
+                stop_managing_harness_labels: linked_labels.clone(),
+                can_delete: can_delete(entry),
+                delete_harness_labels: linked_labels,
             },
-            harnessCells: inventory
+            harness_cells: inventory
                 .columns
                 .iter()
                 .map(|column| cell_payload(entry, column))
@@ -294,8 +303,8 @@ impl SkillsReadModelService {
                 .into_iter()
                 .map(sighting_payload)
                 .collect(),
-            sourceLinks: None,
-            documentMarkdown: document_markdown,
+            source_links: None,
+            document_markdown: document_markdown,
         }
     }
 }
@@ -304,21 +313,21 @@ fn column_payload(column: &InventoryColumn) -> HarnessColumnResponse {
     HarnessColumnResponse {
         harness: column.harness.clone(),
         label: column.label.clone(),
-        logoKey: column.logo_key.clone(),
+        logo_key: column.logo_key.clone(),
         installed: column.installed,
     }
 }
 
 fn row_payload(entry: &InventoryEntry, columns: &[InventoryColumn]) -> SkillTableRowResponse {
     SkillTableRowResponse {
-        skillRef: entry.skill_ref.clone(),
+        skill_ref: entry.skill_ref.clone(),
         name: entry.name.clone(),
         description: entry.description.clone(),
-        displayStatus: display_status(entry).to_string(),
+        display_status: display_status(entry).to_string(),
         actions: SkillRowActionsResponse {
-            canManage: can_manage(entry),
-            canStopManaging: stop_managing_status(entry) == Some("available"),
-            canDelete: can_delete(entry),
+            can_manage: can_manage(entry),
+            can_stop_managing: stop_managing_status(entry) == Some("available"),
+            can_delete: can_delete(entry),
         },
         cells: columns
             .iter()
@@ -333,7 +342,7 @@ fn cell_payload(entry: &InventoryEntry, column: &InventoryColumn) -> HarnessCell
     HarnessCellResponse {
         harness: column.harness.clone(),
         label: column.label.clone(),
-        logoKey: column.logo_key.clone(),
+        logo_key: column.logo_key.clone(),
         state: state.to_string(),
         interactive,
     }
@@ -347,8 +356,8 @@ fn sighting_payload(sighting: &super::observations::InventorySighting) -> SkillL
         scope: sighting.scope.clone(),
         path: sighting.path.as_ref().map(|p| p.display().to_string()),
         revision: sighting.revision.clone(),
-        sourceKind: sighting.source.kind.clone(),
-        sourceLocator: sighting.source.locator.clone(),
+        source_kind: sighting.source.kind.clone(),
+        source_locator: sighting.source.locator.clone(),
         detail: if sighting.detail.is_empty() {
             None
         } else {
