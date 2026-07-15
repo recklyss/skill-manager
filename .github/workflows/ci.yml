@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - "release/**"
+      - release
     paths-ignore:
       - README.md
       - README.zh-CN.md
@@ -13,6 +13,9 @@ on:
       - LICENSE
       - assets/**
   pull_request:
+    branches:
+      - main
+      - release
     paths-ignore:
       - README.md
       - README.zh-CN.md
@@ -74,7 +77,6 @@ jobs:
   tauri-build-smoke:
     name: tauri-build-smoke-${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
-    if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
     needs:
       - rust-backend
       - frontend-validate
@@ -82,14 +84,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: darwin-arm64
-            runner: macos-14
-          - target: darwin-x64
-            runner: macos-15-intel
           - target: linux-x64
             runner: ubuntu-latest
-          - target: linux-arm64
-            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
 
@@ -101,7 +97,6 @@ jobs:
           cache: npm
 
       - name: Install Linux system dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -130,7 +125,7 @@ jobs:
           VERSION="$(tr -d '[:space:]' < VERSION)"
           bash scripts/package_release_artifact.sh "${{ matrix.target }}" "$VERSION"
 
-      - name: Upload release artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: tauri-build-${{ matrix.target }}

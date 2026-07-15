@@ -1,0 +1,122 @@
+name: Release Prep
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare-release-pr:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Detect releasable changes
+        id: changes
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if git show-ref --verify --quiet refs/remotes/origin/release; then
+            git fetch origin release
+            AHEAD="$(git rev-list --count origin/release..origin/main)"
+            if [ "$AHEAD" -eq 0 ]; then
+              echo "has_changes=false" >> "$GITHUB_OUTPUT"
+              echo "No commits on main ahead of release."
+              exit 0
+            fi
+            BASE_VERSION="$(git show origin/release:VERSION | tr -d '[:space:]')"
+            echo "first_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "first_release=true" >> "$GITHUB_OUTPUT"
+            BASE_VERSION="0.0.0"
+          fi
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Skip when main is already released
+        if: steps.changes.outputs.has_changes != 'true'
+        run: echo "Release PR not needed."
+
+      - name: Ensure release branch exists
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          set -euo pipefail
+          if git show-ref --verify --quiet refs/remotes/origin/release; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan release-bootstrap
+          git reset --hard
+          git commit --allow-empty -m "Initialize release branch"
+          git push origin HEAD:release
+          git fetch origin main
+          git checkout -B main origin/main
+
+      - name: Skip when an open release PR already exists
+        if: steps.changes.outputs.has_changes == 'true'
+        id: existing_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="$(gh pr list --base release --state open --json headRefName,number --jq '.[] | select(.headRefName | startswith("automated/release-")) | .number' | head -n 1)"
+          echo "number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Open release PR #${PR_NUMBER} already exists."
+          fi
+
+      - name: Bump version and push release branch
+        if: steps.changes.outputs.has_changes == 'true' && steps.existing_pr.outputs.number == ''
+        id: prep
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git pull --ff-only origin main
+          if [ "${{ steps.changes.outputs.first_release }}" = "true" ]; then
+            node scripts/bump_version.mjs --first-release
+          else
+            node scripts/bump_version.mjs --from="${{ steps.changes.outputs.base_version }}"
+          fi
+          node scripts/sync_public_metadata.mjs --write
+          NEW_VERSION="$(tr -d '[:space:]' < VERSION)"
+          BRANCH="automated/release-${NEW_VERSION}"
+          git checkout -B "$BRANCH"
+          git add VERSION package.json package-lock.json packaging/npm/package.json packaging/npm/LICENSE src-tauri/Cargo.toml src-tauri/tauri.conf.json
+          git commit -m "chore: bump version to ${NEW_VERSION}"
+          git push --force origin "$BRANCH"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Open release PR
+        if: steps.changes.outputs.has_changes == 'true' && steps.existing_pr.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --base release \
+            --head "${{ steps.prep.outputs.branch }}" \
+            --title "Release v${{ steps.prep.outputs.version }}" \
+            --body "Automated release PR from main. Version v${{ steps.prep.outputs.version }}. Merge to publish GitHub Release, npm, and Homebrew. Only maintainers should merge this PR."
