@@ -134,7 +134,9 @@ export function useSlashCommandsController() {
       setSelectedCommandName(savedCommand.name);
       setFormMode(null);
       setEditingCommand(null);
-      toast(result.ok ? "Slash command saved" : "Saved with sync warnings");
+      toast(result.ok ? "Slash command saved" : "Saved with sync warnings", {
+        variant: result.ok ? "success" : "info",
+      });
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to save slash command.");
     }
@@ -157,6 +159,7 @@ export function useSlashCommandsController() {
         result.ok
           ? `${target.label} ${isEnabled ? "disabled" : "enabled"}`
           : "Sync finished with warnings",
+        { variant: result.ok ? "success" : "info" },
       );
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to update sync target.");
@@ -184,6 +187,7 @@ export function useSlashCommandsController() {
             ? "Slash command enabled"
             : "Slash command disabled"
           : "Sync finished with warnings",
+        { variant: result.ok ? "success" : "info" },
       );
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to update slash command.");
@@ -227,7 +231,7 @@ export function useSlashCommandsController() {
         );
       } else {
         setCheckedNames(new Set());
-        toast(successMessage);
+        toast(successMessage, { variant: "success" });
       }
     } catch {
       setActionError(failureMessage);
@@ -282,7 +286,7 @@ export function useSlashCommandsController() {
         next.delete(deleteCommand.name);
         return next;
       });
-      toast("Slash command deleted");
+      toast("Slash command deleted", { variant: "success" });
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to delete slash command.");
     }

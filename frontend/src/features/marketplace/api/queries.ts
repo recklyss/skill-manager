@@ -85,11 +85,12 @@ export function useInstallMarketplaceSkillMutation() {
         response.reinstalled
           ? copy.detail.skill.reinstalledToast(itemName)
           : copy.detail.skill.installedToast(itemName),
+        { variant: "success" },
       );
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : copy.errors.skills;
-      toast(friendlyMarketplaceInstallError(message));
+      toast(friendlyMarketplaceInstallError(message), { variant: "error" });
     },
   });
 }

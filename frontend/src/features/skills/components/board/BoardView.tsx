@@ -121,9 +121,9 @@ export function BoardView({
           const verbPartial = target === "enabled" ? "enabled" : "disabled";
           const total = result.succeeded.length + result.failed.length;
           if (result.failed.length === 0 && result.succeeded.length > 0) {
-            toast(`${verbPast} ${row.name} everywhere`);
+            toast(`${verbPast} ${row.name} everywhere`, { variant: "success" });
           } else if (result.succeeded.length > 0 && result.failed.length > 0) {
-            toast(`Partially ${verbPartial} ${row.name} (${result.succeeded.length}/${total})`);
+            toast(`Partially ${verbPartial} ${row.name} (${result.succeeded.length}/${total})`, { variant: "info" });
           }
         });
         return;
@@ -162,9 +162,9 @@ export function BoardView({
         if (total === 0) {
           // No-op (every skill already in the target bucket).
         } else if (withFailures.length === 0) {
-          toast(`${verbPast} ${fullySucceeded.length} skills everywhere`);
+          toast(`${verbPast} ${fullySucceeded.length} skills everywhere`, { variant: "success" });
         } else if (fullySucceeded.length > 0) {
-          toast(`${verbPast} ${fullySucceeded.length} of ${total} skills`);
+          toast(`${verbPast} ${fullySucceeded.length} of ${total} skills`, { variant: "info" });
         }
         // Full-failure case is surfaced via actionErrorMessage banner; no toast.
         onClearMultiSelect();

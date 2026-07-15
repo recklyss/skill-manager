@@ -169,7 +169,7 @@ export default function SkillsInUsePage() {
               <button
                 type="button"
                 className="action-pill action-pill--md"
-                onClick={() => toast(copy.inUse.importFolderComingSoon)}
+                onClick={() => toast(copy.inUse.importFolderComingSoon, { variant: "info" })}
               >
                 <FolderPlus size={14} />
                 {copy.inUse.importFolder}

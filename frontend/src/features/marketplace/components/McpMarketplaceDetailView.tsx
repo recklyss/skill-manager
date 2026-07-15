@@ -104,13 +104,13 @@ export function McpMarketplaceDetailView({
   );
   function handleCopy(value: string, label: string): void {
     if (!navigator.clipboard?.writeText) {
-      toast(copy.detail.mcp.copied(label));
+      toast(copy.detail.mcp.copied(label), { variant: "info" });
       return;
     }
     void navigator.clipboard
       .writeText(value)
-      .then(() => toast(copy.detail.mcp.copied(label)))
-      .catch(() => toast(copy.detail.mcp.copyFailed));
+      .then(() => toast(copy.detail.mcp.copied(label), { variant: "info" }))
+      .catch(() => toast(copy.detail.mcp.copyFailed, { variant: "error" }));
   }
 
   const installButton = (

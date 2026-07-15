@@ -93,11 +93,12 @@ export function useAddMcpServerMutation() {
         reinstalled
           ? copy.detail.installButton.reinstalledToMcp(name)
           : copy.detail.installButton.addedToMcp(name),
+        { variant: "success" },
       );
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : copy.detail.installButton.installFailed;
-      toast(friendlyMarketplaceInstallError(message));
+      toast(friendlyMarketplaceInstallError(message), { variant: "error" });
     },
     onSettled: (_data, _err, { qualifiedName }) => {
       finish(qualifiedName);

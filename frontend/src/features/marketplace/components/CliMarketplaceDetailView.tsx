@@ -46,13 +46,13 @@ export function CliMarketplaceDetailView({
 
   function handleCopy(value: string): void {
     if (!navigator.clipboard?.writeText) {
-      toast(copy.detail.cli.commandCopied);
+      toast(copy.detail.cli.commandCopied, { variant: "info" });
       return;
     }
     void navigator.clipboard
       .writeText(value)
-      .then(() => toast(copy.detail.cli.commandCopied))
-      .catch(() => toast(copy.detail.cli.copyFailed));
+      .then(() => toast(copy.detail.cli.commandCopied, { variant: "info" }))
+      .catch(() => toast(copy.detail.cli.copyFailed, { variant: "error" }));
   }
 
   if (!detail && detailQuery.isPending) {

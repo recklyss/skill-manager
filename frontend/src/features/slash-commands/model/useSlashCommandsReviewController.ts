@@ -63,7 +63,7 @@ export function useSlashCommandsReviewController() {
       } else {
         await resolveMutation.mutateAsync({ target: row.target, name: row.name, action });
       }
-      toast(reviewSuccessMessage(action));
+      toast(reviewSuccessMessage(action), { variant: "success" });
       return true;
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to update slash command review item.");
@@ -83,7 +83,7 @@ export function useSlashCommandsReviewController() {
       if (failures.length > 0) {
         setActionError(`${failures.length} slash command adoption${failures.length === 1 ? "" : "s"} failed.`);
       } else {
-        toast("Slash commands adopted");
+        toast("Slash commands adopted", { variant: "success" });
       }
     } finally {
       setImportAllPending(false);

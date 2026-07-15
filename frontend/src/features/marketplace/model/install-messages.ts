@@ -8,7 +8,7 @@ const ALREADY_INSTALLED_PATTERNS = [
 export function friendlyMarketplaceInstallError(message: string): string {
   const lower = message.toLowerCase();
   if (ALREADY_INSTALLED_PATTERNS.some((pattern) => lower.includes(pattern))) {
-    return "This item is already installed. Use Re-install to update it.";
+    return "Already installed. Choose Re-install to update.";
   }
   return message;
 }
