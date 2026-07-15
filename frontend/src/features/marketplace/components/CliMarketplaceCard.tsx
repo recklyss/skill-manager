@@ -68,9 +68,13 @@ export function CliMarketplaceCard({
             </>
           )}
         </div>
-        <div>
-          <h4 className="market-card__title">{item.name}</h4>
-          <p className="market-card__repo">{sourceLine(item)}</p>
+        <div className="market-card__identity">
+          <h4 className="market-card__title" title={item.name}>
+            {item.name}
+          </h4>
+          <p className="market-card__repo" title={sourceLine(item)}>
+            {sourceLine(item)}
+          </p>
         </div>
       </div>
 

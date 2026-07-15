@@ -78,26 +78,34 @@ export function MarketplaceCard({
             avatarFallbackLabel(item)
           )}
         </div>
-        <div>
-          <h4 className="market-card__title">{item.name}</h4>
-          <p className="market-card__repo">{item.repoLabel}</p>
-        </div>
-        <div className="market-card__head-actions">
-          {installed ? (
-            <span className="chip chip--installed" aria-label={copy.detail.skill.installedAria(item.name)}>
-              {copy.detail.skill.installed}
-            </span>
-          ) : null}
-          {stars > 0 ? (
-            <span className="market-card__stars">
-              <Star size={11} fill="currentColor" />
-              {formatMarketplaceStars(stars)}
-            </span>
-          ) : null}
+        <div className="market-card__identity">
+          <div className="market-card__title-row">
+            <h4 className="market-card__title" title={item.name}>
+              {item.name}
+            </h4>
+            {installed ? (
+              <span className="chip chip--installed" aria-label={copy.detail.skill.installedAria(item.name)}>
+                {copy.detail.skill.installed}
+              </span>
+            ) : null}
+          </div>
+          <div className="market-card__meta">
+            <p className="market-card__repo" title={item.repoLabel}>
+              {item.repoLabel}
+            </p>
+            {stars > 0 ? (
+              <span className="market-card__stars">
+                <Star size={11} fill="currentColor" />
+                {formatMarketplaceStars(stars)}
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <p className="market-card__body">{item.description || copy.detail.cards.noSkillSummary}</p>
+      <p className="market-card__body" title={item.description || undefined}>
+        {item.description || copy.detail.cards.noSkillSummary}
+      </p>
 
       <div className="market-card__footer">
         <span className="market-card__installs">{copy.detail.skill.installs(installs)}</span>

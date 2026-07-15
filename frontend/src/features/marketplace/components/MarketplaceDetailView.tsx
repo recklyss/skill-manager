@@ -127,7 +127,9 @@ export function MarketplaceDetailView({
         <DetailHeader
           title={
             <div className="marketplace-detail__title-row">
-              <h2 id={headingId}>{detail.name}</h2>
+              <h2 id={headingId} title={detail.name}>
+                {detail.name}
+              </h2>
               {detail.installation.status === "installed" ? (
                 <span className="chip chip--installed" aria-label={copy.detail.skill.installedAria(detail.name)}>
                   {copy.detail.skill.installed}

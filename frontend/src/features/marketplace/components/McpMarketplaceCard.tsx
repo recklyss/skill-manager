@@ -56,12 +56,16 @@ export function McpMarketplaceCard({ item, onOpenDetail }: McpMarketplaceCardPro
             )}
           </div>
           <div className="market-card__identity">
-            <h4 className="market-card__title" title={item.displayName}>
-              {item.displayName}
-            </h4>
-            <p className="market-card__repo" title={item.qualifiedName}>
-              {item.qualifiedName}
-            </p>
+            <div className="market-card__title-row">
+              <h4 className="market-card__title" title={item.displayName}>
+                {item.displayName}
+              </h4>
+            </div>
+            <div className="market-card__meta">
+              <p className="market-card__repo" title={item.qualifiedName}>
+                {item.qualifiedName}
+              </p>
+            </div>
           </div>
         </div>
 
