@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
+import { ExternalAnchor } from "./ExternalAnchor";
 import "./markdown-content.css";
 
 const sanitizeSchema = {
@@ -14,11 +15,16 @@ const sanitizeSchema = {
 };
 
 const markdownComponents: Components = {
-  a: ({ href, children, ...rest }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
-      {children}
-    </a>
-  ),
+  a: ({ href, children, ...rest }) => {
+    if (!href) {
+      return <span {...rest}>{children}</span>;
+    }
+    return (
+      <ExternalAnchor href={href} {...rest}>
+        {children}
+      </ExternalAnchor>
+    );
+  },
 };
 
 export interface MarkdownContentProps {

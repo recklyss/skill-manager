@@ -1,5 +1,6 @@
 import { ExternalLink, FolderGit2, GitBranch, Globe2 } from "lucide-react";
 
+import { ExternalAnchor } from "../ExternalAnchor";
 import { UiTooltipTriggerBoundary } from "../ui/UiTooltipTriggerBoundary";
 
 export type DetailSourceLinkKind = "repo" | "folder" | "marketplace" | "external" | "website";
@@ -58,16 +59,10 @@ export function DetailSourceLinks({
             );
           }
           return (
-            <a
-              key={key}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={className}
-            >
+            <ExternalAnchor key={key} href={link.href} className={className}>
               <Icon size={12} aria-hidden="true" />
               {link.label}
-            </a>
+            </ExternalAnchor>
           );
         })}
       </div>

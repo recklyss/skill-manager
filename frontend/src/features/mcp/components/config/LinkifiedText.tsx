@@ -1,3 +1,5 @@
+import { ExternalAnchor } from "../../../../components/ExternalAnchor";
+
 const LINK_CANDIDATE_RE =
   /https?:\/\/[^\s)]+|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s)]*)?/gi;
 
@@ -30,15 +32,14 @@ export function LinkifiedText({ text }: { text: string }) {
         typeof node === "string" ? (
           node
         ) : (
-          <a
+          <ExternalAnchor
             key={`${node.text}-${index}`}
             className="scan-config-panel__hint-link"
             href={node.href}
-            target="_blank"
             rel="noreferrer"
           >
             {node.text}
-          </a>
+          </ExternalAnchor>
         ),
       )}
     </>
