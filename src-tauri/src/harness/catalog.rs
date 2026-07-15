@@ -7,8 +7,8 @@ use super::contracts::{
 };
 use super::resolution::{
     agents_skills_root, claude_skills_root, codex_admin_skills_root, codex_legacy_skills_root,
-    codex_skills_root, cursor_skills_root, hermes_home, hermes_skills_root, opencode_skills_root,
-    openclaw_skills_root, ResolutionContext,
+    codex_skills_root, copilot_skills_root, cursor_skills_root, hermes_home, hermes_skills_root,
+    opencode_skills_root, openclaw_skills_root, ResolutionContext,
 };
 
 fn codex_config(ctx: &ResolutionContext) -> PathBuf {
@@ -63,6 +63,10 @@ fn openclaw_config(ctx: &ResolutionContext) -> PathBuf {
     ctx.home.join(".openclaw").join("openclaw.json")
 }
 
+fn copilot_config(ctx: &ResolutionContext) -> PathBuf {
+    ctx.home.join(".copilot").join("mcp-config.json")
+}
+
 static CODEX_DISCOVERY_ROOTS: &[FileTreeDiscoveryRoot] = &[
     FileTreeDiscoveryRoot {
         kind: "admin-root",
@@ -98,6 +102,15 @@ static OPENCLAW_DISCOVERY_ROOTS: &[FileTreeDiscoveryRoot] = &[
         kind: "personal-root",
         scope: "personal-agent",
         label: "Personal agent skills root",
+        path_resolver: agents_skills_root,
+    },
+];
+
+static COPILOT_DISCOVERY_ROOTS: &[FileTreeDiscoveryRoot] = &[
+    FileTreeDiscoveryRoot {
+        kind: "compat-root",
+        scope: "agents-compat",
+        label: "Agents compatibility root",
         path_resolver: agents_skills_root,
     },
 ];
@@ -301,6 +314,32 @@ static HERMES_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
     ),
 ];
 
+static COPILOT_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
+    (
+        FamilyKey::Skills,
+        BindingProfile::FileTree(FileTreeBindingProfile {
+            managed_env: Some("SKILL_MANAGER_COPILOT_ROOT"),
+            managed_default: copilot_skills_root,
+            discovery_roots: COPILOT_DISCOVERY_ROOTS,
+            availability: FileTreeAvailability::Cli,
+            app_probe_paths: &[],
+            layout: FileTreeLayout::Flat,
+            default_category: None,
+        }),
+    ),
+    (
+        FamilyKey::Mcp,
+        BindingProfile::ConfigSubtree(ConfigSubtreeBindingProfile {
+            config_path_resolver: copilot_config,
+            file_format: ConfigFileFormat::Json,
+            subtree_path: &["mcpServers"],
+            codec: "copilot",
+            capability_probe: None,
+            capability_unavailable_reason: None,
+        }),
+    ),
+];
+
 static OPENCLAW_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
     (
         FamilyKey::Skills,
@@ -371,6 +410,13 @@ pub static SUPPORTED_HARNESS_DEFINITIONS: &[HarnessDefinition] = &[
         logo_key: Some("openclaw"),
         install_probe: "openclaw",
         bindings: OPENCLAW_BINDINGS,
+    },
+    HarnessDefinition {
+        harness: "copilot",
+        label: "GitHub Copilot",
+        logo_key: Some("copilot"),
+        install_probe: "copilot",
+        bindings: COPILOT_BINDINGS,
     },
 ];
 

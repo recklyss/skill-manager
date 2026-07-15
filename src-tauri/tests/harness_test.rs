@@ -11,12 +11,12 @@ fn test_kernel(settings_path: PathBuf) -> HarnessKernelService {
     HarnessKernelService::from_environment(None, store)
 }
 
-/// Harness kernel reports all six catalog harnesses with install probes.
+/// Harness kernel reports all catalog harnesses with install probes.
 #[test]
-fn harness_kernel_lists_six_harnesses() {
+fn harness_kernel_lists_catalog_harnesses() {
     let dir = tempfile::tempdir().expect("tempdir");
     let statuses = test_kernel(dir.path().join("settings.json")).statuses();
-    assert_eq!(statuses.len(), 6);
+    assert_eq!(statuses.len(), harness_ids().len());
 
     let ids: Vec<&str> = statuses.iter().map(|s| s.harness.as_str()).collect();
     for expected in harness_ids() {
@@ -48,6 +48,21 @@ fn harness_codex_managed_location() {
         codex.managed_location.as_ref().unwrap(),
         &home.join(".agents").join("skills")
     );
+}
+
+/// managed_location points at the expected skills root for copilot.
+#[test]
+fn harness_copilot_managed_location() {
+    let home = dirs::home_dir().expect("HOME");
+    let dir = tempfile::tempdir().expect("tempdir");
+    let statuses = test_kernel(dir.path().join("settings.json")).statuses();
+    let copilot = statuses.iter().find(|s| s.harness == "copilot").unwrap();
+    assert_eq!(
+        copilot.managed_location.as_ref().unwrap(),
+        &home.join(".copilot").join("skills")
+    );
+    assert_eq!(copilot.label, "GitHub Copilot");
+    assert_eq!(copilot.logo_key.as_deref(), Some("copilot"));
 }
 
 /// Install detection runs without network (local which probe only).

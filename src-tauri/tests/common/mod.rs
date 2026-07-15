@@ -195,7 +195,15 @@ pub fn seed_named_skill(
 }
 
 pub fn harness_ids() -> Vec<&'static str> {
-    vec!["codex", "claude", "cursor", "opencode", "hermes", "openclaw"]
+    vec![
+        "codex",
+        "claude",
+        "cursor",
+        "opencode",
+        "hermes",
+        "openclaw",
+        "copilot",
+    ]
 }
 
 pub fn find_harness<'a>(harnesses: &'a [serde_json::Value], id: &str) -> &'a serde_json::Value {

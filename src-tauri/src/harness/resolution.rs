@@ -109,6 +109,10 @@ pub fn openclaw_skills_root(ctx: &ResolutionContext) -> PathBuf {
     ctx.home.join(".openclaw").join("skills")
 }
 
+pub fn copilot_skills_root(ctx: &ResolutionContext) -> PathBuf {
+    ctx.home.join(".copilot").join("skills")
+}
+
 pub fn cursor_app_paths(ctx: &ResolutionContext) -> Vec<PathBuf> {
     vec![
         PathBuf::from("/Applications/Cursor.app"),

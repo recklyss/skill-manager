@@ -452,12 +452,112 @@ impl TransportMapper for OpenClawMapper {
     }
 }
 
+struct CopilotMapper;
+
+impl TransportMapper for CopilotMapper {
+    fn observed_harness(&self) -> &str {
+        "copilot"
+    }
+
+    fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
+        let mut payload = if spec.transport == "stdio" {
+            let mut local = HashMap::from([
+                ("type".into(), json!("local")),
+                ("tools".into(), json!(["*"])),
+            ]);
+            if let Some(cmd) = &spec.command {
+                local.insert("command".into(), json!(cmd));
+            }
+            if let Some(args) = &spec.args {
+                if !args.is_empty() {
+                    local.insert("args".into(), json!(args));
+                }
+            }
+            if let Some(env) = &spec.env {
+                if !env.is_empty() {
+                    local.insert("env".into(), json!(env));
+                }
+            }
+            local
+        } else {
+            let mut remote = HashMap::from([
+                ("type".into(), json!(spec.transport)),
+                ("tools".into(), json!(["*"])),
+            ]);
+            if let Some(url) = &spec.url {
+                remote.insert("url".into(), json!(url));
+            }
+            if let Some(headers) = &spec.headers {
+                if !headers.is_empty() {
+                    remote.insert("headers".into(), json!(headers));
+                }
+            }
+            remote
+        };
+        if payload.get("tools").is_none() {
+            payload.insert("tools".into(), json!(["*"]));
+        }
+        payload
+    }
+
+    fn dict_to_spec(
+        &self,
+        name: &str,
+        raw: &HashMap<String, Value>,
+        source: Option<&McpSource>,
+    ) -> Result<McpServerSpec, String> {
+        let type_value = str_or_none(raw.get("type"));
+        if type_value.as_deref() == Some("local")
+            || type_value.as_deref() == Some("stdio")
+            || raw.contains_key("command")
+            || raw.contains_key("args")
+        {
+            return Ok(McpServerSpec {
+                name: name.into(),
+                display_name: name.into(),
+                source: source.cloned().unwrap_or_else(|| McpSource::adopted("copilot", name)),
+                transport: "stdio".into(),
+                command: str_or_none(raw.get("command")),
+                args: str_vec(raw.get("args")),
+                env: str_map(raw.get("env")),
+                url: None,
+                headers: None,
+                installed_at: String::new(),
+                revision: String::new(),
+            });
+        }
+        if raw.contains_key("url") {
+            let transport = match type_value.as_deref() {
+                Some("sse") => "sse",
+                _ => "http",
+            };
+            return Ok(McpServerSpec {
+                name: name.into(),
+                display_name: name.into(),
+                source: source.cloned().unwrap_or_else(|| McpSource::adopted("copilot", name)),
+                transport: transport.into(),
+                command: None,
+                args: None,
+                env: None,
+                url: str_or_none(raw.get("url")),
+                headers: str_map(raw.get("headers")),
+                installed_at: String::new(),
+                revision: String::new(),
+            });
+        }
+        Err(format!(
+            "unsupported copilot mcp entry '{name}': missing 'command' and 'url'"
+        ))
+    }
+}
+
 static CLAUDE_MAPPER: TypedMcpServersMapper = TypedMcpServersMapper { harness: "claude" };
 static CURSOR_MAPPER: TypedMcpServersMapper = TypedMcpServersMapper { harness: "cursor" };
 static OPENCODE_MAPPER: OpenCodeMapper = OpenCodeMapper;
 static CODEX_MAPPER: CodexMapper = CodexMapper;
 static HERMES_MAPPER: HermesMapper = HermesMapper;
 static OPENCLAW_MAPPER: OpenClawMapper = OpenClawMapper;
+static COPILOT_MAPPER: CopilotMapper = CopilotMapper;
 
 pub fn get_mapper(kind: &str) -> &'static dyn TransportMapper {
     match kind {
@@ -467,6 +567,7 @@ pub fn get_mapper(kind: &str) -> &'static dyn TransportMapper {
         "codex" => &CODEX_MAPPER,
         "hermes" => &HERMES_MAPPER,
         "openclaw" => &OPENCLAW_MAPPER,
+        "copilot" => &COPILOT_MAPPER,
         other => panic!("unknown mapper kind: {other}"),
     }
 }

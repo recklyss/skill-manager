@@ -39,7 +39,7 @@ Tauri shell (lib.rs) → Axum server (server/) → Domain services → Harness/D
 ```
 
 - **`src-tauri/src/server/`** — Axum router serving `/api/*` routes and the built frontend SPA from `frontend/dist/`.
-- **`src-tauri/src/harness/`** — Abstraction over 6 AI agent harnesses (Codex, Claude Code, Cursor, OpenCode, Hermes Agent, OpenClaw). Each harness is defined in `harness/catalog.rs` with binding profiles for skills, MCP, and slash commands.
+- **`src-tauri/src/harness/`** — Abstraction over 7 AI agent harnesses (Codex, Claude Code, Cursor, OpenCode, Hermes Agent, OpenClaw, GitHub Copilot). Each harness is defined in `harness/catalog.rs` with binding profiles for skills, MCP, and slash commands.
 - **`src-tauri/src/skills/`** — Skill inventory, policy, mutations, source fetch, and read models.
 - **`src-tauri/src/mcp/`** — MCP manifest store, harness adapters, availability probes, and config sync.
 - **`src-tauri/src/slash_commands/`** — TOML command library, sync state, and review queue.
@@ -79,7 +79,7 @@ Shared components live in `frontend/src/components/`. The API client (`api/gener
 ### Key Conventions
 
 - API request/response shapes use serde with camelCase JSON field names matching the frontend contract.
-- Harness identity: `codex`, `claude`, `cursor`, `opencode`, `hermes`, `openclaw`.
+- Harness identity: `codex`, `claude`, `cursor`, `opencode`, `hermes`, `openclaw`, `copilot`.
 - Extension families: `skills`, `mcp`, `slash_commands`.
 - Env vars for custom skill roots: `SKILL_MANAGER_<HARNESS>_ROOT`.
 - Frontend uses CSS custom properties for theming.

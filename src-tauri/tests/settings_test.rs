@@ -25,14 +25,14 @@ async fn get_settings_storage_paths_match_fixture() {
     assert!(storage["platform"].is_string());
 }
 
-/// Settings must expose all six catalog harnesses.
+/// Settings must expose all catalog harnesses.
 #[tokio::test]
-async fn get_settings_lists_six_harnesses() {
+async fn get_settings_lists_catalog_harnesses() {
     let fixture = TestFixture::new();
     let (_, body) = fixture.get("/api/settings").await;
 
     let harnesses = body["harnesses"].as_array().expect("harnesses array");
-    assert_eq!(harnesses.len(), 6);
+    assert_eq!(harnesses.len(), harness_ids().len());
     for id in harness_ids() {
         find_harness(harnesses, id);
     }
