@@ -56,9 +56,23 @@ impl InventoryEntry {
                 s.kind == "harness"
                     && s.harness.is_some()
                     && s.scope.as_deref() == Some("canonical")
+                    && self.canonical_binding_is_merged(s)
             })
             .filter_map(|s| s.harness.clone())
             .collect()
+    }
+
+    pub fn canonical_binding_is_merged(&self, sighting: &InventorySighting) -> bool {
+        let (Some(package_path), Some(sighting_path)) = (&self.package_path, &sighting.path) else {
+            return false;
+        };
+        let Ok(target) = package_path.canonicalize() else {
+            return false;
+        };
+        let Ok(current) = sighting_path.canonicalize() else {
+            return false;
+        };
+        current == target
     }
 }
 

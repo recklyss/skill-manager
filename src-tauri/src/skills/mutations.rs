@@ -39,8 +39,14 @@ impl SkillsMutationService {
             .package_path
             .as_ref()
             .ok_or_else(|| ApiError::internal("managed skill is missing its shared package path"))?;
+        let package_dir = entry
+            .package_dir
+            .as_deref()
+            .ok_or_else(|| ApiError::internal("managed skill is missing its package directory name"))?;
         let adapter = self.read_models.require_enabled_adapter(harness)?;
-        adapter.enable_shared_package(package_path)?;
+        if !adapter.is_symlinked_to_shared(package_dir, package_path) {
+            adapter.enable_shared_package(package_path)?;
+        }
         self.read_models.invalidate();
         Ok(serde_json::json!({ "ok": true }))
     }
@@ -93,10 +99,11 @@ impl SkillsMutationService {
 
         for adapter in self.read_models.enabled_installed_adapters() {
             let has_binding = adapter.has_binding(package_dir);
-            if target == "enabled" && has_binding {
-                continue;
-            }
-            if target == "disabled" && !has_binding {
+            if target == "enabled" {
+                if adapter.is_symlinked_to_shared(package_dir, package_path.unwrap()) {
+                    continue;
+                }
+            } else if !has_binding {
                 continue;
             }
             let result = if target == "enabled" {

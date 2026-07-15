@@ -595,3 +595,159 @@ async fn copilot_plugin_skills_mark_managed_rows_as_found() {
         .expect("copilot cell");
     assert_eq!(copilot_cell["state"], "found");
 }
+
+/// Copilot canonical real directories that are not symlinked to shared show as found.
+#[tokio::test]
+async fn copilot_real_directory_bindings_show_found_until_merged() {
+    let fixture = TestFixture::new();
+    fs::create_dir_all(&fixture.paths.skills_store_root).unwrap();
+    seed_named_skill(
+        &fixture.paths.skills_store_root,
+        "parallel-code-review",
+        "parallel-code-review",
+        "Parallel review",
+    );
+
+    let copilot_managed = fixture._dir.path().join("harness-roots").join("copilot");
+    seed_named_skill(
+        &copilot_managed,
+        "parallel-code-review",
+        "parallel-code-review",
+        "Parallel review from Copilot",
+    );
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let list_response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("list");
+    let list_bytes = list_response.into_body().collect().await.unwrap().to_bytes();
+    let list_body: serde_json::Value = serde_json::from_slice(&list_bytes).unwrap();
+
+    let row = list_body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "parallel-code-review")
+        .expect("managed parallel-code-review row");
+    let copilot_cell = row["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|cell| cell["harness"] == "copilot")
+        .expect("copilot cell");
+    assert_eq!(
+        copilot_cell["state"], "found",
+        "real copilot directory should be detected but not merged yet"
+    );
+
+    let enable_response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::post("/api/skills/shared:parallel-code-review/enable")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "harness": "copilot" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .expect("enable");
+    assert_eq!(enable_response.status(), 200);
+
+    let copilot_binding = copilot_managed.join("parallel-code-review");
+    assert!(
+        copilot_binding.is_symlink(),
+        "copilot binding should be converted to a shared symlink"
+    );
+    assert_eq!(
+        copilot_binding.canonicalize().unwrap(),
+        fixture
+            .paths
+            .skills_store_root
+            .join("parallel-code-review")
+            .canonicalize()
+            .unwrap()
+    );
+}
+
+/// Copilot-only real directory skills appear as unmanaged and can be adopted into shared.
+#[tokio::test]
+async fn copilot_real_directory_skill_can_be_adopted_into_shared() {
+    let fixture = TestFixture::new();
+    let copilot_managed = fixture._dir.path().join("harness-roots").join("copilot");
+    seed_named_skill(
+        &copilot_managed,
+        "subagent-driven-development",
+        "subagent-driven-development",
+        "Subagent driven development",
+    );
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let list_response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("list");
+    let list_bytes = list_response.into_body().collect().await.unwrap().to_bytes();
+    let list_body: serde_json::Value = serde_json::from_slice(&list_bytes).unwrap();
+
+    let row = list_body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "subagent-driven-development")
+        .expect("unmanaged subagent-driven-development row");
+    assert_eq!(row["displayStatus"], "Unmanaged");
+    let skill_ref = row["skillRef"].as_str().expect("skill ref");
+
+    let manage_response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::post(format!("/api/skills/{skill_ref}/manage"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("manage");
+    assert_eq!(manage_response.status(), 200);
+
+    assert!(
+        fixture
+            .paths
+            .skills_store_root
+            .join("subagent-driven-development")
+            .is_dir(),
+        "shared store should contain adopted skill"
+    );
+    let copilot_binding = copilot_managed.join("subagent-driven-development");
+    assert!(copilot_binding.is_symlink());
+    assert_eq!(
+        copilot_binding.canonicalize().unwrap(),
+        fixture
+            .paths
+            .skills_store_root
+            .join("subagent-driven-development")
+            .canonicalize()
+            .unwrap()
+    );
+}

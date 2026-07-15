@@ -101,9 +101,12 @@ impl SkillsHarnessAdapter {
                 resolved_target.display()
             )));
         }
+        if link.is_dir() {
+            return self.adopt_local_copy(&link, package_path);
+        }
         if link.exists() {
             return Err(ApiError::conflict(format!(
-                "real directory exists at {}; will not overwrite",
+                "non-directory file exists at {}; will not overwrite",
                 link.display()
             )));
         }
@@ -157,6 +160,20 @@ impl SkillsHarnessAdapter {
     pub fn has_binding(&self, package_dir: &str) -> bool {
         let candidate = self.binding_path(package_dir);
         candidate.exists() || candidate.is_symlink()
+    }
+
+    pub fn is_symlinked_to_shared(&self, package_dir: &str, package_path: &Path) -> bool {
+        let binding = self.binding_path(package_dir);
+        if !binding.is_symlink() {
+            return false;
+        }
+        let Ok(current) = binding.canonicalize() else {
+            return false;
+        };
+        let Ok(target) = package_path.canonicalize() else {
+            return false;
+        };
+        current == target
     }
 
     pub fn prepare_materialize(&self, package_dir: &str, expected_target: &Path) -> ApiResult<()> {

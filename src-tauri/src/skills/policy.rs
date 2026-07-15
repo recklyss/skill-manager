@@ -56,6 +56,7 @@ pub fn cell_state(entry: &InventoryEntry, harness: &str) -> &'static str {
         s.kind == "harness"
             && s.harness.as_deref() == Some(harness)
             && s.scope.as_deref() == Some("canonical")
+            && entry.canonical_binding_is_merged(s)
     }) {
         "enabled"
     } else if entry

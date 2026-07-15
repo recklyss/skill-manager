@@ -43,12 +43,23 @@ pub fn find_skill_roots(root: &Path) -> Vec<PathBuf> {
     };
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.is_dir() && path.join("SKILL.md").is_file() {
+        if is_skill_package_dir(&path) {
             roots.push(path);
         }
     }
     roots.sort();
     roots
+}
+
+fn is_skill_package_dir(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    has_skill_manifest(path)
+}
+
+fn has_skill_manifest(path: &Path) -> bool {
+    path.join("SKILL.md").is_file()
 }
 
 pub fn find_plugin_skill_containers(root: &Path) -> Vec<PathBuf> {
@@ -245,4 +256,55 @@ fn normalize_scalar(value: &str) -> String {
         }
     }
     normalized.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+    use tempfile::tempdir;
+
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
+
+    fn seed_skill(root: &Path, dir_name: &str) -> PathBuf {
+        let skill_dir = root.join(dir_name);
+        fs::create_dir_all(&skill_dir).expect("skill dir");
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            format!("---\nname: {dir_name}\ndescription: test\n---\n"),
+        )
+        .expect("SKILL.md");
+        skill_dir
+    }
+
+    #[test]
+    fn find_skill_roots_includes_real_directories() {
+        let dir = tempdir().expect("tempdir");
+        seed_skill(dir.path(), "parallel-code-review");
+        let roots = find_skill_roots(dir.path());
+        assert_eq!(roots.len(), 1);
+        assert_eq!(
+            roots[0].file_name().unwrap().to_string_lossy(),
+            "parallel-code-review"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn find_skill_roots_follows_symlinks_to_skill_directories() {
+        let dir = tempdir().expect("tempdir");
+        let target = seed_skill(dir.path(), "brainstorming");
+        let skills_root = dir.path().join("copilot-skills");
+        fs::create_dir_all(&skills_root).expect("copilot root");
+        symlink(&target, skills_root.join("brainstorming")).expect("symlink");
+
+        let roots = find_skill_roots(&skills_root);
+        assert_eq!(roots.len(), 1);
+        assert_eq!(
+            roots[0].file_name().unwrap().to_string_lossy(),
+            "brainstorming"
+        );
+    }
 }
