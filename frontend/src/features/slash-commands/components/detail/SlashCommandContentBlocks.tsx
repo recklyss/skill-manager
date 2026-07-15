@@ -1,4 +1,6 @@
+import MarkdownContent from "../../../../components/MarkdownContent";
 import { DetailSection } from "../../../../components/detail/DetailSection";
+import type { SlashRenderFormat } from "../../api/types";
 import { useSlashCommandsCopy } from "../../i18n";
 
 interface SlashCommandTextProps {
@@ -6,6 +8,7 @@ interface SlashCommandTextProps {
   prompt?: string | null;
   descriptionEmptyText?: string;
   promptEmptyText?: string;
+  promptRenderFormat?: SlashRenderFormat;
 }
 
 export function SlashCommandContentSections({
@@ -13,6 +16,7 @@ export function SlashCommandContentSections({
   prompt,
   descriptionEmptyText,
   promptEmptyText,
+  promptRenderFormat = "frontmatter_markdown",
 }: SlashCommandTextProps) {
   const copy = useSlashCommandsCopy();
 
@@ -28,6 +32,7 @@ export function SlashCommandContentSections({
         <SlashCommandPromptPreview
           prompt={prompt}
           emptyText={promptEmptyText}
+          renderFormat={promptRenderFormat}
         />
       </DetailSection>
     </>
@@ -39,6 +44,7 @@ export function SlashCommandSourcePreview({
   prompt,
   descriptionEmptyText,
   promptEmptyText,
+  promptRenderFormat = "frontmatter_markdown",
 }: SlashCommandTextProps) {
   const copy = useSlashCommandsCopy();
 
@@ -56,6 +62,7 @@ export function SlashCommandSourcePreview({
         <SlashCommandPromptPreview
           prompt={prompt}
           emptyText={promptEmptyText}
+          renderFormat={promptRenderFormat}
         />
       </div>
     </div>
@@ -83,15 +90,23 @@ export function SlashCommandDescriptionBlock({
 export function SlashCommandPromptPreview({
   prompt,
   emptyText,
+  renderFormat = "frontmatter_markdown",
 }: {
   prompt?: string | null;
   emptyText?: string;
+  renderFormat?: SlashRenderFormat;
 }) {
   const copy = useSlashCommandsCopy();
+  const content = prompt?.trim() || emptyText || copy.detail.noPrompt;
+
+  if (renderFormat === "cursor_plaintext") {
+    return <pre className="slash-command-detail__prompt ui-scrollbar">{content}</pre>;
+  }
 
   return (
-    <pre className="slash-command-detail__prompt ui-scrollbar">
-      {prompt?.trim() || emptyText || copy.detail.noPrompt}
-    </pre>
+    <MarkdownContent
+      markdown={content}
+      className="markdown-content slash-command-detail__prompt-markdown"
+    />
   );
 }

@@ -12,7 +12,7 @@ import type { CliMarketplaceItemDto } from "../api/cli-types";
 import { useMarketplaceCopy, type MarketplaceCopy } from "../i18n";
 import { formatMarketplaceStars } from "../model/formatters";
 
-const MarkdownDocument = lazy(() => import("../../../components/MarkdownDocument"));
+const MarkdownContent = lazy(() => import("../../../components/MarkdownContent"));
 
 interface CliMarketplaceDetailViewProps {
   itemId: string;
@@ -185,9 +185,9 @@ export function CliMarketplaceDetailView({
           </p>
           {detail.longDescription ? (
             <Suspense fallback={<LoadingSpinner size="sm" label={copy.detail.cli.loadingPreview} />}>
-              <MarkdownDocument
+              <MarkdownContent
                 markdown={detail.longDescription}
-                className="skill-detail__markdown cli-detail__markdown"
+                className="markdown-content cli-detail__markdown"
               />
             </Suspense>
           ) : null}

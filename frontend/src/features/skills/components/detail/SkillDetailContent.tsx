@@ -16,7 +16,7 @@ import { SkillDetailRemoveAction } from "./SkillDetailRemoveAction";
 import { SkillDetailUpdateControl } from "./SkillDetailUpdateControl";
 import { SkillDetailShell } from "./SkillDetailShell";
 
-const MarkdownDocument = lazy(() => import("../../../../components/MarkdownDocument"));
+const MarkdownContent = lazy(() => import("../../../../components/MarkdownContent"));
 
 interface SkillDetailContentProps {
   detail: SkillDetail;
@@ -104,7 +104,7 @@ export function SkillDetailContent({
           <div className="skill-detail__document-surface">
             {detail.documentMarkdown ? (
               <Suspense fallback={<LoadingSpinner size="sm" label={copy.detail.loadingDocument} />}>
-                <MarkdownDocument markdown={detail.documentMarkdown} />
+                <MarkdownContent markdown={detail.documentMarkdown} />
               </Suspense>
             ) : (
               <p className="skill-detail__copy">

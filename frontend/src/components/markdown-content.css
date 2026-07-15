@@ -1,0 +1,118 @@
+@layer components {
+  .markdown-content {
+    color: var(--color-text-muted, rgba(228, 232, 240, 0.9));
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .markdown-content > :first-child {
+    margin-top: 0;
+  }
+
+  .markdown-content > :last-child {
+    margin-bottom: 0;
+  }
+
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4 {
+    margin: var(--space-5) 0 var(--space-3);
+    color: var(--color-text);
+    letter-spacing: var(--letter-spacing-tight);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .markdown-content h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .markdown-content h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .markdown-content h3,
+  .markdown-content h4 {
+    font-size: var(--font-size-lg);
+  }
+
+  .markdown-content p,
+  .markdown-content ul,
+  .markdown-content ol,
+  .markdown-content blockquote,
+  .markdown-content pre,
+  .markdown-content table {
+    margin: 0 0 var(--space-4);
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    padding-left: var(--space-5);
+  }
+
+  .markdown-content li + li {
+    margin-top: var(--space-2);
+  }
+
+  .markdown-content a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .markdown-content a:hover {
+    color: var(--color-text);
+  }
+
+  .markdown-content blockquote {
+    padding-left: var(--space-3);
+    border-left: 2px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+    color: var(--color-text);
+  }
+
+  .markdown-content :not(pre) > code {
+    padding: 0.1rem 0.34rem;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+  }
+
+  .markdown-content pre {
+    overflow-x: auto;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-bg, #0a0d12) 94%, transparent);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+  }
+
+  .markdown-content pre code {
+    padding: 0;
+    background: transparent;
+    font-size: inherit;
+  }
+
+  .markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  .markdown-content th,
+  .markdown-content td {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .markdown-content thead th {
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--color-text) 4%, transparent);
+  }
+}

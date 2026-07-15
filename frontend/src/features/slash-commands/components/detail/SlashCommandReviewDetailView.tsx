@@ -86,7 +86,13 @@ export function SlashCommandReviewDetailView({
             </Notice>
           ) : null}
 
-          <ReviewContent row={row} canonicalCommand={canonicalCommand} isConflict={isConflict} copy={copy} />
+          <ReviewContent
+            row={row}
+            canonicalCommand={canonicalCommand}
+            targets={targets}
+            isConflict={isConflict}
+            copy={copy}
+          />
           <ReviewHarnessesSection row={row} targets={targets} copy={copy} />
           <ReviewLocationSection row={row} copy={copy} />
         </div>
@@ -158,19 +164,23 @@ function ReviewHarnessesSection({
 function ReviewContent({
   row,
   canonicalCommand,
+  targets,
   isConflict,
   copy,
 }: {
   row: SlashCommandReviewDto;
   canonicalCommand: SlashCommandDto | null;
+  targets: SlashTargetDto[];
   isConflict: boolean;
   copy: SlashCommandsCopy;
 }) {
+  const harnessRenderFormat = targetRenderFormat(targets, row.target);
+
   if (row.kind === "missing") {
     return <MissingContent canonicalCommand={canonicalCommand} copy={copy} />;
   }
   if (isConflict || row.kind === "drifted") {
-    return <ComparisonContent row={row} canonicalCommand={canonicalCommand} copy={copy} />;
+    return <ComparisonContent row={row} canonicalCommand={canonicalCommand} targets={targets} copy={copy} />;
   }
   return (
     <SlashCommandContentSections
@@ -178,6 +188,7 @@ function ReviewContent({
       prompt={row.prompt}
       descriptionEmptyText={copy.detail.review.noDescriptionParsed}
       promptEmptyText={copy.detail.review.noPromptParsed}
+      promptRenderFormat={harnessRenderFormat}
     />
   );
 }
@@ -200,12 +211,16 @@ function MissingContent({ canonicalCommand, copy }: { canonicalCommand: SlashCom
 function ComparisonContent({
   row,
   canonicalCommand,
+  targets,
   copy,
 }: {
   row: SlashCommandReviewDto;
   canonicalCommand: SlashCommandDto | null;
+  targets: SlashTargetDto[];
   copy: SlashCommandsCopy;
 }) {
+  const harnessRenderFormat = targetRenderFormat(targets, row.target);
+
   return (
     <div className="slash-review-detail__comparison">
       <DetailSection heading={copy.detail.review.skillManagerSource}>
@@ -213,6 +228,7 @@ function ComparisonContent({
           <SlashCommandSourcePreview
             description={canonicalCommand.description}
             prompt={canonicalCommand.prompt}
+            promptRenderFormat="frontmatter_markdown"
           />
         ) : (
           <p className="slash-review-detail__empty">{copy.detail.review.noCanonicalContent}</p>
@@ -224,6 +240,7 @@ function ComparisonContent({
           prompt={row.prompt}
           descriptionEmptyText={copy.detail.review.noDescriptionParsed}
           promptEmptyText={copy.detail.review.noPromptParsed}
+          promptRenderFormat={harnessRenderFormat}
         />
       </DetailSection>
     </div>
@@ -316,4 +333,8 @@ function reviewHarnessStatusLabel(row: SlashCommandReviewDto, copy: SlashCommand
 
 function logoKeyForHarness(id: string): string {
   return id === "claude" ? "claude" : id;
+}
+
+function targetRenderFormat(targets: SlashTargetDto[], targetId: SlashTargetDto["id"]) {
+  return targets.find((target) => target.id === targetId)?.renderFormat ?? "frontmatter_markdown";
 }

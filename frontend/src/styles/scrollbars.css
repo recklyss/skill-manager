@@ -8,7 +8,7 @@
 html,
 .ui-scrollbar,
 .ui-scrollbar--thin,
-.skill-detail__markdown pre {
+.markdown-content pre {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -18,11 +18,11 @@ html,
 html:hover,
 .ui-scrollbar:hover,
 .ui-scrollbar--thin:hover,
-.skill-detail__markdown pre:hover,
+.markdown-content pre:hover,
 html:focus-within,
 .ui-scrollbar:focus-within,
 .ui-scrollbar--thin:focus-within,
-.skill-detail__markdown pre:focus-within {
+.markdown-content pre:focus-within {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
@@ -30,14 +30,14 @@ html:focus-within,
 html::-webkit-scrollbar,
 .ui-scrollbar::-webkit-scrollbar,
 .ui-scrollbar--thin::-webkit-scrollbar,
-.skill-detail__markdown pre::-webkit-scrollbar {
+.markdown-content pre::-webkit-scrollbar {
   width: var(--scrollbar-size);
   height: var(--scrollbar-size);
   background: transparent;
 }
 
 .ui-scrollbar--thin::-webkit-scrollbar,
-.skill-detail__markdown pre::-webkit-scrollbar {
+.markdown-content pre::-webkit-scrollbar {
   width: var(--scrollbar-size-thin);
   height: var(--scrollbar-size-thin);
 }
@@ -45,14 +45,14 @@ html::-webkit-scrollbar,
 html::-webkit-scrollbar-track,
 .ui-scrollbar::-webkit-scrollbar-track,
 .ui-scrollbar--thin::-webkit-scrollbar-track,
-.skill-detail__markdown pre::-webkit-scrollbar-track {
+.markdown-content pre::-webkit-scrollbar-track {
   background: transparent;
 }
 
 html::-webkit-scrollbar-thumb,
 .ui-scrollbar::-webkit-scrollbar-thumb,
 .ui-scrollbar--thin::-webkit-scrollbar-thumb,
-.skill-detail__markdown pre::-webkit-scrollbar-thumb {
+.markdown-content pre::-webkit-scrollbar-thumb {
   background-color: transparent;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -65,11 +65,11 @@ html::-webkit-scrollbar-thumb,
 html:hover::-webkit-scrollbar-thumb,
 .ui-scrollbar:hover::-webkit-scrollbar-thumb,
 .ui-scrollbar--thin:hover::-webkit-scrollbar-thumb,
-.skill-detail__markdown pre:hover::-webkit-scrollbar-thumb,
+.markdown-content pre:hover::-webkit-scrollbar-thumb,
 html:focus-within::-webkit-scrollbar-thumb,
 .ui-scrollbar:focus-within::-webkit-scrollbar-thumb,
 .ui-scrollbar--thin:focus-within::-webkit-scrollbar-thumb,
-.skill-detail__markdown pre:focus-within::-webkit-scrollbar-thumb {
+.markdown-content pre:focus-within::-webkit-scrollbar-thumb {
   background-color: var(--scrollbar-thumb);
 }
 
@@ -77,20 +77,20 @@ html:focus-within::-webkit-scrollbar-thumb,
 html::-webkit-scrollbar-thumb:hover,
 .ui-scrollbar::-webkit-scrollbar-thumb:hover,
 .ui-scrollbar--thin::-webkit-scrollbar-thumb:hover,
-.skill-detail__markdown pre::-webkit-scrollbar-thumb:hover {
+.markdown-content pre::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);
 }
 
 html::-webkit-scrollbar-thumb:active,
 .ui-scrollbar::-webkit-scrollbar-thumb:active,
 .ui-scrollbar--thin::-webkit-scrollbar-thumb:active,
-.skill-detail__markdown pre::-webkit-scrollbar-thumb:active {
+.markdown-content pre::-webkit-scrollbar-thumb:active {
   background-color: var(--scrollbar-thumb-active);
 }
 
 html::-webkit-scrollbar-corner,
 .ui-scrollbar::-webkit-scrollbar-corner,
 .ui-scrollbar--thin::-webkit-scrollbar-corner,
-.skill-detail__markdown pre::-webkit-scrollbar-corner {
+.markdown-content pre::-webkit-scrollbar-corner {
   background: transparent;
 }

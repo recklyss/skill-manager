@@ -13,7 +13,7 @@ import { formatMarketplaceInstalls, formatMarketplaceStars } from "../model/form
 import { useMarketplaceCopy, type MarketplaceCopy } from "../i18n";
 import { MarketplaceDetailPendingDocument, MarketplaceDetailSkeleton } from "./MarketplaceDetailSkeleton";
 
-const MarkdownDocument = lazy(() => import("../../../components/MarkdownDocument"));
+const MarkdownContent = lazy(() => import("../../../components/MarkdownContent"));
 
 interface MarketplaceDetailViewProps {
   itemId: string;
@@ -184,7 +184,7 @@ export function MarketplaceDetailView({
           >
             <div className="skill-detail__document-surface">
               <Suspense fallback={<LoadingSpinner size="sm" label={copy.detail.skill.loadingDocument} />}>
-                <MarkdownDocument markdown={documentMarkdown} />
+                <MarkdownContent markdown={documentMarkdown} />
               </Suspense>
             </div>
           </DetailDisclosure>

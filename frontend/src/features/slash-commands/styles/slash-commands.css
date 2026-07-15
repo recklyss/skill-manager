@@ -337,6 +337,15 @@
   word-break: break-word;
 }
 
+.slash-command-detail__prompt-markdown {
+  max-height: 340px;
+  overflow: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
 .slash-review-detail__target-path code {
   min-width: 0;
   font-family: var(--font-mono);

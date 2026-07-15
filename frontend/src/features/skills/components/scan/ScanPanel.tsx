@@ -49,7 +49,7 @@ function FindingRow({ finding, remediationLabel }: { finding: ScanFinding; remed
       {open && (
         <div className="scan-report-finding__body">
           <div className="skill-detail__document-surface scan-report-finding__surface">
-            <div className="skill-detail__markdown scan-report-finding__content">
+            <div className="markdown-content scan-report-finding__content">
               <p className="scan-report-finding__description">{finding.description}</p>
               {finding.remediation && (
                 <p className="scan-report-finding__remediation">
