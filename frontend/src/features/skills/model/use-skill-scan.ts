@@ -82,6 +82,15 @@ function cacheScanResult(skillRef: string, result: ScanResult, savedAt = Date.no
   });
 }
 
+function clearCachedScanResult(skillRef: string): void {
+  const cached = readCachedScanReportEntries();
+  if (!cached[skillRef]) {
+    return;
+  }
+  const { [skillRef]: _removed, ...rest } = cached;
+  writeCachedScanReportEntries(rest);
+}
+
 function readStoredHarness(): string | null {
   if (typeof window === "undefined") return null;
   const value = window.localStorage.getItem(SCAN_HARNESS_KEY);
@@ -209,6 +218,7 @@ export function useSkillScan() {
   const scanSkill = useCallback(
     async (skillRef: string) => {
       if (!snapshot.selectedHarness) return;
+      clearCachedScanResult(skillRef);
       updateScanStore((current) => ({
         ...current,
         scanState: {

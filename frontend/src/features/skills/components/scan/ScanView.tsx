@@ -65,6 +65,17 @@ export function ScanView({
   const anyScanning = sortedRows.some((row) => getScanState(row.skillRef).status === "scanning");
   const checkedRows = sortedRows.filter((row) => checkedRefs.has(row.skillRef));
   const canScanChecked = canScan && checkedRows.length > 0 && !anyScanning;
+  const allCheckedDone =
+    checkedRows.length > 0 &&
+    checkedRows.every((row) => getScanState(row.skillRef).status === "done");
+  const bulkScanLabel =
+    checkedRows.length === rows.length
+      ? allCheckedDone
+        ? copy.view.rescanAll
+        : copy.view.scanAll
+      : allCheckedDone
+        ? copy.view.rescanSelected
+        : copy.view.scanSelected;
 
   useEffect(() => {
     setCheckedRefs((current) => {
@@ -192,7 +203,7 @@ export function ScanView({
               disabled={!canScanChecked}
             >
               {anyScanning ? <LoadingSpinner size="sm" label={copy.view.scanning} /> : <Shield size={15} />}
-              {checkedRows.length === rows.length ? copy.view.scanAll : copy.view.scanSelected}
+              {bulkScanLabel}
             </button>
           </div>
         </div>

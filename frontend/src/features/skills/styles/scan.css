@@ -134,12 +134,12 @@
 }
 
 .scan-table__col-action {
-  width: 132px;
+  width: 196px;
 }
 
 .scan-table .matrix-table__cell--action,
 .scan-table .matrix-table__th--action {
-  width: 132px;
+  width: 196px;
   text-align: right;
 }
 
@@ -148,9 +148,26 @@
   padding-left: var(--space-4);
 }
 
+.scan-table__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 .scan-table__action {
   justify-content: center;
   min-width: 92px;
+}
+
+.scan-table__actions .scan-table__action {
+  min-width: 0;
+  flex: 1 1 0;
+  padding-inline: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.scan-table__action--secondary {
+  color: var(--text-secondary);
 }
 
 .scan-config-panel__field {

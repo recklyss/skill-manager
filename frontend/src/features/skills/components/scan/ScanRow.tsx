@@ -78,17 +78,30 @@ export function ScanRow({
             {copy.scanning}
           </button>
         ) : isDone && scanState.result ? (
-          <button
-            type="button"
-            className="action-pill scan-table__action"
-            onClick={(event) => {
-              event.stopPropagation();
-              onViewResult(row.skillRef);
-            }}
-            aria-label={copy.viewResultFor(row.name)}
-          >
-            {copy.viewResult}
-          </button>
+          <div className="scan-table__actions">
+            <button
+              type="button"
+              className="action-pill scan-table__action scan-table__action--secondary"
+              onClick={(event) => {
+                event.stopPropagation();
+                onViewResult(row.skillRef);
+              }}
+              aria-label={copy.viewResultFor(row.name)}
+            >
+              {copy.viewResult}
+            </button>
+            <button
+              type="button"
+              className="action-pill scan-table__action"
+              onClick={(event) => {
+                event.stopPropagation();
+                onScanSkill(row.skillRef);
+              }}
+              aria-label={copy.rescanFor(row.name)}
+            >
+              {copy.rescan}
+            </button>
+          </div>
         ) : isError ? (
           <button
             type="button"

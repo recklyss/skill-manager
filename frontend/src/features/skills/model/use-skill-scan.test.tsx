@@ -67,4 +67,45 @@ describe("useSkillScan", () => {
     });
     expect(second.result.current.getScanState("shared:trace-lens").result?.skillName).toBe("Trace Lens");
   });
+
+  it("re-scans a completed skill and replaces the cached report", async () => {
+    const firstResult: ScanResult = {
+      ...scanResult,
+      skillName: "Trace Lens",
+      durationSeconds: 1.2,
+    };
+    const secondResult: ScanResult = {
+      ...scanResult,
+      skillName: "Trace Lens",
+      durationSeconds: 2.4,
+    };
+
+    scanClient.scanSkill
+      .mockResolvedValueOnce(firstResult)
+      .mockResolvedValueOnce(secondResult);
+
+    const { result } = renderHook(() => useSkillScan());
+    await waitFor(() => expect(result.current.selectedHarness).toBe("claude"));
+
+    await act(async () => {
+      await result.current.scanSkill("shared:trace-lens");
+    });
+    await waitFor(() => {
+      expect(result.current.getScanState("shared:trace-lens").status).toBe("done");
+    });
+    expect(result.current.getScanState("shared:trace-lens").result?.durationSeconds).toBe(1.2);
+
+    await act(async () => {
+      await result.current.scanSkill("shared:trace-lens");
+    });
+    await waitFor(() => {
+      expect(result.current.getScanState("shared:trace-lens").result?.durationSeconds).toBe(2.4);
+    });
+    expect(scanClient.scanSkill).toHaveBeenCalledTimes(2);
+
+    const cached = JSON.parse(
+      window.localStorage.getItem("skillmgr.securityReport.cache.v1") ?? "{}",
+    ) as Record<string, { result: ScanResult }>;
+    expect(cached["shared:trace-lens"]?.result.durationSeconds).toBe(2.4);
+  });
 });
