@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   build-release:
     name: build-release-${{ matrix.target }}
@@ -23,6 +26,8 @@ jobs:
             runner: macos-15-intel
           - target: linux-x64
             runner: ubuntu-latest
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
 
@@ -30,8 +35,24 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Install dependencies
         run: npm ci
@@ -39,14 +60,34 @@ jobs:
       - name: Check version sync
         run: node scripts/sync_version.mjs --check
 
+      - name: Check npm LICENSE sync
+        run: node scripts/sync_public_metadata.mjs --check
+
+      - name: Verify tag matches VERSION file
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match VERSION ($FILE_VERSION)." >&2
+            exit 1
+          fi
+
       - name: Build Tauri release
         run: npm run tauri:build
 
-      - name: Upload Tauri bundles
+      - name: Package npm/Homebrew tarball
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          bash scripts/package_release_artifact.sh "${{ matrix.target }}" "$VERSION"
+
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.target }}
-          path: src-tauri/target/release/bundle/**/*
+          path: |
+            .artifacts/release/**
+            src-tauri/target/release/bundle/**/*
 
   publish-release:
     needs: build-release
@@ -64,6 +105,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           files: .artifacts/release/**/*
 
   publish-npm:
@@ -75,8 +117,8 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
 
       - name: Validate npm publish secret
         env:
@@ -86,6 +128,18 @@ jobs:
             echo "NPM_TOKEN is required for tagged releases." >&2
             exit 1
           fi
+
+      - name: Verify release version metadata
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          NPM_VERSION="$(node -p "require('./packaging/npm/package.json').version")"
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ] || [ "$TAG_VERSION" != "$NPM_VERSION" ]; then
+            echo "Version mismatch: tag=$TAG_VERSION VERSION=$FILE_VERSION npm=$NPM_VERSION" >&2
+            exit 1
+          fi
+          node scripts/sync_version.mjs --check
+          node scripts/sync_public_metadata.mjs --check
 
       - name: Publish npm wrapper
         working-directory: packaging/npm

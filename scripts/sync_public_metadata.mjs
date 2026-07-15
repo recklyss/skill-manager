@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { copyFileSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,7 +15,7 @@ if (check === write) {
 }
 
 const expected = readFileSync(source, "utf8");
-const current = readFileSync(target, "utf8");
+const current = existsSync(target) ? readFileSync(target, "utf8") : "";
 if (expected === current) process.exit(0);
 if (!write) {
   console.error(`${target}: expected contents synced from ${source}`);

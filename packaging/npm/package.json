@@ -1,7 +1,7 @@
 {
-  "name": "@mode-io/skill-manager",
-  "version": "0.4.0",
-  "description": "Public macOS/Linux installer wrapper for the Mode IO skill-manager native release artifact.",
+  "name": "@recklyss/skill-manager",
+  "version": "0.0.1",
+  "description": "Public macOS/Linux installer wrapper for the skill-manager native release artifact.",
   "license": "MIT",
   "private": false,
   "bin": {
@@ -19,14 +19,14 @@
     "bin",
     "scripts"
   ],
-  "homepage": "https://github.com/mode-io/skill-manager",
+  "homepage": "https://github.com/recklyss/skill-manager",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mode-io/skill-manager.git",
+    "url": "git+https://github.com/recklyss/skill-manager.git",
     "directory": "packaging/npm"
   },
   "bugs": {
-    "url": "https://github.com/mode-io/skill-manager/issues"
+    "url": "https://github.com/recklyss/skill-manager/issues"
   },
   "os": [
     "darwin",

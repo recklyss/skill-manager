@@ -1,8 +1,8 @@
 [package]
 name = "skill-manager"
-version = "0.4.0"
+version = "0.0.1"
 description = "Local-first control center for AI extensions"
-authors = ["mode-io"]
+authors = ["recklyss"]
 edition = "2021"
 
 [lib]

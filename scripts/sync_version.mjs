@@ -39,9 +39,23 @@ function syncCargo() {
   return true;
 }
 
+function syncTauriConf() {
+  const path = join(root, "src-tauri/tauri.conf.json");
+  const payload = JSON.parse(readFileSync(path, "utf8"));
+  if (payload.version === version) return true;
+  if (!write) {
+    console.error(`tauri.conf.json: expected ${version}, found ${payload.version}`);
+    return false;
+  }
+  payload.version = version;
+  writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return true;
+}
+
 const ok =
   syncJson("package.json", "package.json") &
   syncJson("packaging/npm/package.json", "packaging/npm/package.json") &
-  syncCargo();
+  syncCargo() &
+  syncTauriConf();
 
 process.exit(ok ? 0 : 1);

@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
-const REMEDIATION_MESSAGE = "skill-manager is already installed via Homebrew. Run 'brew uninstall skill-manager' before 'npm install -g @mode-io/skill-manager', or keep using the Homebrew installation.";
+const REMEDIATION_MESSAGE = "skill-manager is already installed via Homebrew. Run 'brew uninstall skill-manager' before 'npm install -g @recklyss/skill-manager', or keep using the Homebrew installation.";
 
 function isGlobalNpmInstall() {
   const value = String(process.env.npm_config_global || "").toLowerCase();
