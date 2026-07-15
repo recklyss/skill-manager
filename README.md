@@ -3,7 +3,7 @@
 [中文说明](README.zh-CN.md)
 
 <p align="center">
-  <img src="src-tauri/icons/icon.png" alt="Skill Manager" width="128" />
+  <img src="assets/icon.png" alt="Skill Manager" width="128" />
 </p>
 
 <p align="center">
@@ -47,13 +47,17 @@ AI extensions are scattered across harness-specific folders, MCP config files, s
 
 Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active. Switch themes from the sidebar — light, dark, and Color Hunt palettes such as Earthy Sage, Ocean Depths, and Berry Sunset.
 
-![Overview dashboard with theme picker](./assets/change-theme.png)
+<p align="center">
+  <img src="assets/change-theme.png" alt="Overview dashboard with theme picker" width="920" />
+</p>
 
 ### Skills in use
 
 Browse adopted Skills in grid, board, or matrix views. Search by name, tag, or description, then enable or disable a Skill per harness or everywhere at once. Dark mode is available for long review sessions.
 
-![Skills in use with dark theme and grid view](./assets/dark-theme-and-different-view-of-skills.png)
+<p align="center">
+  <img src="assets/dark-theme-and-different-view-of-skills.png" alt="Skills in use with dark theme and grid view" width="920" />
+</p>
 
 ### Adopt a Skill
 
@@ -66,7 +70,9 @@ Typical flow:
 3. Enable it only where it should be available.
 4. Update, remove, or delete it from one place.
 
-![Add a harness Skill to Skill Manager](./assets/add-to-skill-manager.png)
+<p align="center">
+  <img src="assets/add-to-skill-manager.png" alt="Add a harness Skill to Skill Manager" width="920" />
+</p>
 
 ### Skill scanning
 
@@ -89,7 +95,9 @@ Typical flow:
 4. Run a scan for one Skill, selected Skills, or the full visible list.
 5. Review severity, findings, snippets, and remediation guidance.
 
-![Skill scan results with risk findings](./assets/scan-skill-risks.png)
+<p align="center">
+  <img src="assets/scan-skill-risks.png" alt="Skill scan results with risk findings" width="920" />
+</p>
 
 Static heuristics always run locally. The selected harness CLI performs semantic analysis and must return strict JSON (`verdict`, `riskLevel`, `summary`, `findings`).
 
@@ -104,7 +112,9 @@ Typical flow:
 3. Enable it where the server should be available.
 4. Resolve config differences, disable harness bindings, or uninstall it from one place.
 
-![MCP servers in use](./assets/mcp-in-use.png)
+<p align="center">
+  <img src="assets/mcp-in-use.png" alt="MCP servers in use" width="920" />
+</p>
 
 ### Slash commands
 
@@ -125,13 +135,17 @@ Marketplace is the discovery surface:
 - **MCP Marketplace**: browse and install MCP servers from the MCP Registry.
 - **CLI Marketplace**: preview external CLI tools from CLIs.dev. This is display-only; Skill Manager does not install or manage CLIs.
 
-![Skills marketplace](./assets/marketplace.png)
+<p align="center">
+  <img src="assets/marketplace.png" alt="Skills marketplace" width="920" />
+</p>
 
 ### Settings
 
 Enable or disable harness support, confirm where each harness stores Skills on disk, and choose your preferred theme. Skill Manager detects installed harnesses and shows their skill roots so you can verify paths before adopting extensions.
 
-![Settings with harness roots and theme](./assets/settings.png)
+<p align="center">
+  <img src="assets/settings.png" alt="Settings with harness roots and theme" width="920" />
+</p>
 
 ## Install
 
