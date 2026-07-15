@@ -1,126 +1,132 @@
-# Full-Repo Review Report
+# Full-Repo Review Report — Tauri Migration
 
-**Date**: 2026-07-15  
-**Scope**: Tauri migration worktree (`main`, 8 commits ahead + unstaged Rust backend)  
-**Files reviewed**: ~200 source files across `src-tauri/`, `frontend/`, `scripts/`  
-**Total findings**: 28 (Critical: 2, High: 7, Medium: 11, Low: 8)
+**Timestamp**: 2026-07-15 09:44:02  
+**Branch**: `main` (20 commits ahead of `origin/main`)  
+**Merge base**: `4f085f8193700ceb4fbc3b569f463bb409e3bcaa`  
+**HEAD**: `01279412ac8e890948dd97d7cc826822666f693d`  
+**Scope**: Full Python→Tauri migration + Python removal (378 files, +22,767 / −30,784 lines)
 
-## Executive Summary
+## Summary
 
-Skill Manager is mid-migration from a Python/FastAPI backend to a Tauri desktop app with an embedded Rust/Axum API server. **All 56 HTTP routes exist** in Rust with **57 integration tests passing** and **244 frontend tests passing**. Route coverage is 100%; behavioral parity is ~57% with documented gaps in LLM scanning, remote MCP probing, and release packaging. The architecture mirrors the Python CQRS layout and is suitable for Python removal on the Tauri-only dev path.
+The branch completes the planned migration from Python/FastAPI to **Tauri 2 + embedded Rust/Axum** on `127.0.0.1:18000`. Python backend (`skill_manager/`, `pyproject.toml`, Python tests) is removed. CI and release workflows now run `cargo test` and `npm run tauri:build`. All **56 HTTP routes** are registered in Rust; **57 Rust integration tests** and **244 frontend vitest tests** pass locally.
 
-## Structural Health (adapted pre-check)
+Core domains (skills inventory/symlinks, MCP manifest sync, slash commands, marketplace browse, settings, harness kernel) are implemented with architecture mirroring the former Python CQRS layout. Documented **behavioral parity gaps** remain in LLM scanning, HTTP MCP probing, and npm/Homebrew artifact packaging.
 
-`score-component.py` skipped — not applicable (agents/skills repo tooling). Structural review performed instead:
+---
 
-| Area | Health | Grade | Key Issues |
-|------|--------|-------|------------|
-| `src-tauri/` Rust backend | 56/56 routes, 57 tests | B+ | Behavioral gaps in LLM scan + HTTP MCP probe; dead-code warnings |
-| `frontend/` React SPA | 244 vitest tests pass | A- | Still references legacy Python dev scripts in root docs |
-| `scripts/` | Mixed Python + Rust | C | Python release/CI scripts obsolete after migration |
-| Python `skill_manager/` | Superseded | — | Safe to remove for Tauri path; keep gaps documented |
+### Strengths
 
-## Critical (fix immediately)
+- **Complete route surface**: All API routers exist under `src-tauri/src/server/routes/` — skills (11), MCP (10), slash commands (7), scan (9), marketplace (10), settings (2), health (1) = 56 endpoints.
+- **Python fully removed**: `skill_manager/`, `pyproject.toml`, `requirements.txt`, and Python CI matrix deleted; `scripts/start-dev.sh` delegates to `npm run tauri:dev`.
+- **Solid test coverage for core flows**: Integration tests cover skills adopt/manage, MCP install/list/redaction, slash command sync/review, scan config CRUD, marketplace wiremock, harness resolution, and settings toggles (`src-tauri/tests/`).
+- **Symlink safety**: `src-tauri/src/skills/adapters.rs` canonicalizes paths, refuses to delete non-symlink directories, and validates symlink targets before overwrite — matches Python safety model.
+- **MCP secret handling**: URL query params, env vars, and headers are redacted in API responses (`src-tauri/src/mcp/redaction.rs`); integration test asserts `api_key=%5Bredacted%5D`.
+- **Path policy for slash commands**: `src-tauri/src/slash_commands/path_policy.rs` normalizes `..` components and rejects paths outside harness output dirs.
+- **Local-first networking**: Axum binds `127.0.0.1:18000` only (`src-tauri/src/lib.rs:32`); appropriate for a desktop control plane.
+- **CI/release migrated**: `.github/workflows/ci.yml` runs Rust + frontend validation; `release.yml` builds Tauri bundles on tag push.
+- **Frontend themes + marketplace UX**: Multi-theme system (`frontend/src/lib/themes.ts`), installed/reinstall states for marketplace cards, Tauri API origin detection (`frontend/src/api/paths.ts`).
+- **Version sync**: Root `VERSION` (0.4.0) aligned with `package.json` and `tauri.conf.json`; `scripts/sync_version.mjs --check` in CI.
+- **Docs excluded from git**: `Docs/` in `.gitignore`; commit `0127941` stops tracking migration docs.
 
-- **`src-tauri/src/scan/llm.rs`** : [functional] `validate_config_connectivity` and skill scan with `useLlm: true` do not perform live LLM requests; Python invokes provider APIs with structured threat findings.
-  - Fix: Implement HTTP client calls to OpenAI/Anthropic validation endpoints; wire `LLMAnalyzer` equivalent for skill scans.
+---
 
-- **`.github/workflows/release.yml`** : [distribution] Release pipeline still builds PyInstaller artifacts via Python; Tauri `tauri:build` is the new distribution path but not wired in CI.
-  - Fix: Replace `build_release.py` job with Rust toolchain + `npm run tauri:build`; update Homebrew/npm wrapper validation for `.dmg`/`.AppImage` artifacts.
+### Issues
 
-## High (fix this sprint)
+#### Critical
 
-- **`src-tauri/src/mcp/availability.rs:37-48`** : [functional] HTTP/SSE MCP transports always return `unavailable`; Python performs TCP/JSON-RPC probing.
-  - Fix: Add TCP connect + optional JSON-RPC handshake probe with timeout.
+| # | Location | Issue |
+|---|----------|-------|
+| C1 | `src-tauri/src/scan/llm.rs:46-69` | `validate_config_connectivity` returns `ok: true` after field checks only — **no live LLM request**. Users see "Connectivity test passed" without provider reachability validation. |
+| C2 | `src-tauri/src/scan/service.rs:84-92` | `scan_skill` with `useLlm: true` runs **static heuristics only** but reports analyzers `["static_analyzer", "llm_analyzer"]` — misleading; README promises "LLM-backed security checks". |
+| C3 | `packaging/npm/scripts/release-targets.js:24-25` + `.github/workflows/release.yml:49` | **Artifact format mismatch**: npm wrapper downloads `skill-manager-v{version}-{target}.tar.gz` (PyInstaller layout); release CI uploads Tauri bundles (`.dmg`, `.AppImage`, `.deb`). Tagged releases will not satisfy `npm install @mode-io/skill-manager`. |
 
-- **`Docs/migration/remaining-gaps.md`** : [coverage] MCP/skills mutation routes lack offline integration tests (enable, disable, reconcile, uninstall).
-  - Fix: Add fixture-based tests mirroring `skills_test.rs` / `mcp_test.rs` patterns.
+#### Important
 
-- **`package.json`** : [devx] `dev:backend`, `codegen:openapi`, `build:release` still reference Python `.venv`.
-  - Fix: Point dev to `tauri:dev`; drop or replace OpenAPI codegen with checked-in `openapi.json`.
+| # | Location | Issue |
+|---|----------|-------|
+| I1 | `src-tauri/src/mcp/availability.rs:37-48` | HTTP/SSE MCP transports always return `unavailable`; comment says probing deferred. Python performed TCP/JSON-RPC checks. |
+| I2 | `Docs/migration/remaining-gaps.md` (local) | Skills/MCP mutation routes (enable, disable, reconcile, uninstall, manage-all) lack offline integration tests — implemented but untested beyond happy-path adopt. |
+| I3 | `frontend/src/api/generated.ts` | Generated from checked-in `openapi.json` (Python-era contract); no automated regen from Rust. Risk of silent request/response drift. |
+| I4 | `src-tauri/tauri.conf.json:25-27` | `"csp": null` — no Content Security Policy for the embedded webview. |
+| I5 | `.gitignore` | `src-tauri/gen/` (Tauri ACL schemas) is untracked but not ignored — will pollute `git status` on every `tauri dev/build`. |
+| I6 | `src-tauri/src/server/mod.rs:89` | `CorsLayer::permissive()` on localhost-only server — low risk today, but any future `0.0.0.0` bind would expose all origins. |
+| I7 | `packaging/npm/` + Homebrew | Distribution wrappers not updated for Tauri native binaries; parity doc item still open. |
 
-- **`CLAUDE.md` / `README.md`** : [docs] Architecture section describes Python FastAPI as primary backend.
-  - Fix: Document Tauri + Rust Axum as primary; note behavioral gaps.
+#### Minor
 
-- **`src-tauri/src/skills/read_models.rs`** : [style] ~30 `non_snake_case` warnings for camelCase JSON fields.
-  - Fix: Add `#[serde(rename = "...")]` on snake_case Rust fields or `#[allow(non_snake_case)]` on API response structs.
+| # | Location | Issue |
+|---|----------|-------|
+| M1 | `src-tauri/src/skills/read_models.rs` | ~30 `non_snake_case` warnings for camelCase JSON field names as Rust identifiers. |
+| M2 | `src-tauri/src/server/routes/scan.rs:3` | Unused `delete` import. |
+| M3 | `src-tauri/src/mcp/store.rs` | Unused `mut` binding (compiler warning). |
+| M4 | `src-tauri/src/harness/catalog.rs:384` | `harness_definitions_for_family` dead code. |
+| M5 | `src-tauri/tests/common/mod.rs` | Many test helper methods unused across files. |
+| M6 | `.nvmrc` (untracked) | Pins Node **24** while CI uses Node **20** — inconsistent if committed. |
+| M7 | `src-tauri/src/scan/config_service.rs:31-37` | `reveal_secret` returns full API key with no additional gate — acceptable for localhost desktop app, but worth documenting. |
 
-- **`skill_manager/VERSION` vs `package.json`** : [versioning] VERSION file reads `0.3.1` while `package.json`/`Cargo.toml` read `0.4.0`.
-  - Fix: Single `VERSION` at repo root; sync via Node script.
+---
 
-- **`.github/workflows/ci.yml`** : [ci] `backend-compat` matrix runs Python 3.11–3.14 tests against removed backend.
-  - Fix: Replace with `cargo test` job in `src-tauri/`.
+### Recommendations
 
-## Medium (fix when touching these files)
+1. **Before tagging v0.4.x release**: Resolve C3 — either (a) add a CI step that packages Tauri binaries into the existing `tar.gz` layout expected by `packaging/npm/scripts/install.js`, or (b) rewrite npm/Homebrew install scripts for `.dmg`/`.AppImage`/`.deb` artifacts.
+2. **LLM scan honesty (C1/C2)**: Implement live provider validation in `validate_config_connectivity`, wire real LLM analysis in `scan_skill`, or **downgrade UI copy** and remove `llm_analyzer` from the analyzers list until implemented.
+3. **MCP HTTP probe (I1)**: Add TCP connect + optional JSON-RPC handshake with timeout in `probe_http`.
+4. **Expand mutation tests (I2)**: Add fixture-based tests for skills enable/disable/delete and MCP reconcile/uninstall following `skills_test.rs` patterns.
+5. **Hygiene**: Add `src-tauri/gen/` to `.gitignore`; fix or drop `.nvmrc` to match CI Node 20; clean Rust warnings (`#[serde(rename)]` on API structs).
+6. **Contract**: Export OpenAPI from Rust or add a CI check that `openapi.json` matches route handlers.
+7. **Merge strategy**: Safe to merge for **Tauri dev path** and daily use; block **public release/npm publish** until C3 is fixed.
 
-- **`src-tauri/src/lib.rs`** : [architecture] `AppState` is a large god-container wiring all domains; acceptable for now but will grow.
-  - Fix: Consider per-route extension traits if domains multiply.
+---
 
-- **`src-tauri/src/mcp/store.rs:97`** : [lint] Unused `mut` binding.
-- **`src-tauri/src/server/routes/scan.rs:3`** : [lint] Unused `delete` import.
-- **`src-tauri/src/harness/catalog.rs:384`** : [dead-code] `harness_definitions_for_family` unused.
-- **`src-tauri/tests/common/mod.rs`** : [test-harness] Many helper methods unused across test files; consolidate or mark `#[allow(dead_code)]`.
-- **`frontend/src/features/marketplace/`** : [ux] Installed-state UX recently added; ensure reinstall path matches Rust `installation.rs` states.
-- **`src-tauri/gen/schemas/`** : [build] Generated Tauri ACL schemas untracked; add to `.gitignore` explicitly or commit if required by CI.
-- **Marketplace remote routes** : [testing] MCP/CLI catalog browse routes have no offline fixture tests (skills has wiremock coverage).
-- **Slash commands PUT/DELETE** : [testing] Routes exist; no dedicated fixture tests (low risk).
-- **OpenAPI drift** : [contract] `frontend/src/api/generated.ts` generated from Python OpenAPI; no automated regen after Rust migration.
-- **Packaging `npm` wrapper** : [distribution] `packaging/npm` still expects PyInstaller tarball artifacts.
+### Assessment
 
-## Low (nice to have)
-
-- Rust compiler warnings for unused imports in `mcp/mod.rs`, `mcp/identity.rs`, `mcp/queries.rs`.
-- `ResolvedRoot.label` field never read in `skills/adapters.rs`.
-- `McpBinding.name` field never read in `mcp/contracts.rs`.
-- `FileBackedMcpAdapter.context` field never read.
-- Frontend `npm run dev` still starts Vite-only without Tauri shell (useful for UI-only work).
-- `.nvmrc` untracked; consider committing for Node version pinning.
-- IDE config dirs (`.claude/`, `.cursor/`, `.gemini/`) untracked — do not commit.
-
-## Systemic Patterns
-
-- **CamelCase API structs in Rust**: Response models use JavaScript field names as Rust identifiers (`logoKey`, `skillRef`) instead of `#[serde(rename)]` — seen in `skills/read_models.rs`, `settings.rs`. Fix: standardize on snake_case Rust + serde rename.
-
-- **Partial behavioral parity with full route coverage**: 24/56 endpoints marked PARTIAL in parity checklist — routes return correct shapes but lack full Python behavior or fixture tests. Fix: prioritize LLM scan and MCP probe, then expand integration tests.
-
-- **Python script references in npm/package scripts**: 6 root `package.json` scripts still invoke `.venv/bin/python`. Fix: batch-replace during Python removal commit.
-
-## Python Removal Assessment
+**Ready to merge? — With fixes**
 
 | Criterion | Status |
 |-----------|--------|
-| All API routes exist | ✅ 56/56 |
-| Core flows work (skills, MCP, slash commands, settings) | ✅ Integration-tested |
-| LLM scan parity | ❌ Static heuristics only |
-| Release packaging parity | ❌ PyInstaller → Tauri transition incomplete |
-| Frontend tests pass against contract | ✅ 244 pass |
+| Replace Python app with Tauri | ✅ Done |
+| Feature parity: detection, adopt/manage, symlinks | ✅ Core flows tested |
+| Feature parity: marketplace browse/install | ✅ Browse + token validation; E2E install undertested |
+| Feature parity: LLM scan | ❌ Static-only; misleading success messages |
+| Feature parity: MCP HTTP availability | ❌ Stubbed unavailable |
+| Tests (57 Rust + 244 frontend) | ✅ Pass |
+| CI migrated to Rust/Tauri | ✅ |
+| Release/npm distribution | ❌ Artifact format mismatch (C3) |
+| No Docs/ in commits | ✅ `.gitignore` + untracked |
 
-**Recommendation**: Remove `skill_manager/`, `pyproject.toml`, `requirements.txt`, and Python CI jobs for the **Tauri-only dev path**. Document remaining behavioral gaps in `Docs/migration/remaining-gaps.md`. Keep `frontend/src/api/openapi.json` as the API contract source until Rust OpenAPI export exists.
+**Verdict**: Merge to `main` for the Tauri-only development and desktop use path. **Do not cut a public release or publish npm** until distribution packaging (C3) and LLM scan behavior (C1/C2) are addressed or explicitly documented as known limitations in release notes.
 
-## What to Delete (Python)
+---
 
-| Path | Reason |
-|------|--------|
-| `skill_manager/` | Replaced by `src-tauri/src/` |
-| `tests/` (Python unit/integration) | Replaced by `src-tauri/tests/` |
-| `pyproject.toml`, `requirements.txt` | No longer needed |
-| `scripts/test_backend.sh`, `scripts/build_release.py`, `scripts/dump_openapi.py` | Python-specific |
-| `scripts/start-dev.sh`, `scripts/stop-dev.sh` | Python managed server |
-| `scripts/sync_version.py` | Replace with Node `scripts/sync_version.mjs` |
+## Commits Reviewed (`origin/main..HEAD`)
 
-**Keep**: `frontend/`, `src-tauri/`, `scripts/test_rust.sh`, `scripts/dev-tauri.sh`, `scripts/check_release_targets_js.cjs`, marketplace wiremock fixtures inline in Rust tests.
+```
+0127941 chore: stop tracking Docs folder
+922aca3 chore: remove Python backend and migrate CI to Rust
+b452e4b docs: migration parity checklist and full-repo review
+1185035 chore: update Tauri app icons
+8521221 feat(frontend): marketplace installed state and MCP install UX
+1a8e56c test: Rust integration test suite across all domains
+b475e9b feat(tauri): wire API routes and application container
+32b03c2 feat(tauri): marketplace catalogs and scan services
+3b12602 feat(tauri): slash commands domain with sync and review queue
+cb393ca feat(tauri): MCP domain with manifest sync and harness adapters
+35b291b feat(tauri): skills domain with inventory, policy, and mutations
+61f0905 feat(tauri): harness kernel, database, and path resolution
+e35a294 fix: add all marketplace route handlers (detail + document)
+25621c2 fix: skills API returns correct SkillsPageResponse format
+bcd8dd8 fix: all API routes return proper JSON responses + fix tokio socket
+1a8e860 fix: use fixed port 18000 for Rust backend + sync Tauri detection
+f24c0a7 feat: Tauri desktop app + frontend redesign
+82c0b07 fix: reliable API URL resolution via Tauri IPC
+d184f00 feat: migrate to Tauri desktop app with Rust backend
+ef60cff feat: config-driven multi-theme system with 5 themes
+```
 
 ## Test Results (2026-07-15)
 
 | Command | Result |
 |---------|--------|
-| `cargo test --no-fail-fast -- --test-threads=1` | **57 passed**, 0 failed |
+| `bash scripts/test_rust.sh` | **57 passed**, 0 failed |
 | `npm run typecheck` | **PASS** |
 | `npm test` | **244 passed** (58 files), 0 failed |
-| `bash scripts/test_rust.sh` | **57 passed**, 0 failed |
-
-## Review Metadata
-
-- Waves executed: structural scan + domain review + test validation
-- Score pre-check: skipped (not applicable)
-- Migration parity docs: `Docs/migration/parity-checklist.md`, `Docs/migration/remaining-gaps.md`
