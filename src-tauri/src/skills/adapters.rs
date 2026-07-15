@@ -11,11 +11,12 @@ use uuid::Uuid;
 
 use crate::error::{ApiError, ApiResult};
 use crate::harness::{
-    BindingProfile, FamilyKey, FileTreeLayout, HarnessKernelService,
+    copilot_settings_skill_directories, BindingProfile, FamilyKey, FileTreeLayout,
+    HarnessKernelService,
 };
 use super::identity::SourceDescriptor;
 use super::observations::{SkillObservation, SkillsHarnessScan};
-use super::package::{find_skill_roots, parse_skill_package, SkillParseError};
+use super::package::{find_plugin_skill_containers, find_skill_roots, parse_skill_package, SkillParseError};
 
 #[derive(Debug, Clone)]
 pub struct SkillsHarnessAdapter {
@@ -286,6 +287,9 @@ struct SkillRootRef {
 }
 
 fn iter_skill_roots(root: &ResolvedRoot, layout: FileTreeLayout) -> Vec<SkillRootRef> {
+    if root.scope == "installed-plugins" {
+        return iter_plugin_skill_roots(root);
+    }
     let mut results = Vec::new();
     if layout == FileTreeLayout::Flat {
         for skill_root in find_skill_roots(&root.path) {
@@ -314,6 +318,32 @@ fn iter_skill_roots(root: &ResolvedRoot, layout: FileTreeLayout) -> Vec<SkillRoo
             let skill_name = skill_root.file_name().unwrap().to_string_lossy().to_string();
             results.push(SkillRootRef {
                 locator_name: format!("{category_name}/{skill_name}"),
+                path: skill_root,
+            });
+        }
+    }
+    results
+}
+
+fn iter_plugin_skill_roots(root: &ResolvedRoot) -> Vec<SkillRootRef> {
+    let mut results = Vec::new();
+    for skills_dir in find_plugin_skill_containers(&root.path) {
+        let container_relative = skills_dir
+            .strip_prefix(&root.path)
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_default();
+        for skill_root in find_skill_roots(&skills_dir) {
+            let skill_name = skill_root
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_string();
+            results.push(SkillRootRef {
+                locator_name: if container_relative.is_empty() {
+                    skill_name
+                } else {
+                    format!("{container_relative}/{skill_name}")
+                },
                 path: skill_root,
             });
         }
@@ -624,6 +654,18 @@ pub fn build_skills_adapters(kernel: &HarnessKernelService) -> Vec<SkillsHarness
                     label: root.label.to_string(),
                     path: (root.path_resolver)(&kernel.context),
                 });
+            }
+            if binding.definition.harness == "copilot" {
+                for (index, path) in copilot_settings_skill_directories(&kernel.context)
+                    .into_iter()
+                    .enumerate()
+                {
+                    resolved_roots.push(ResolvedRoot {
+                        scope: format!("skill-directories-{index}"),
+                        label: "Copilot settings skill directory".into(),
+                        path,
+                    });
+                }
             }
             let installed = statuses
                 .get(binding.definition.harness)

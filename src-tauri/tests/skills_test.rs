@@ -3,8 +3,8 @@ mod common;
 use std::fs;
 
 use common::{
-    codex_legacy_root, harness_ids, hermes_skills_root, seed_named_skill, seed_skill,
-    seed_store_manifest, write_json, TestFixture,
+    codex_legacy_root, copilot_installed_plugins_root, harness_ids, hermes_skills_root,
+    seed_named_skill, seed_skill, seed_store_manifest, write_json, TestFixture,
 };
 
 /// Empty store returns zero rows with valid page shape.
@@ -25,7 +25,7 @@ async fn list_skills_empty_page_shape() {
     );
     assert_eq!(
         body["harnessColumns"].as_array().unwrap().len(),
-        6
+        7
     );
 }
 
@@ -465,4 +465,133 @@ async fn source_links_use_persisted_folder_url() {
         detail["sourceLinks"]["folderUrl"],
         "https://github.com/mode-io/skills/tree/main/skills/shared-audit"
     );
+}
+
+/// Copilot scans ~/.copilot/skills and installed plugin skill trees.
+#[tokio::test]
+async fn copilot_discovery_roots_surface_plugin_and_local_skills() {
+    let fixture = TestFixture::new();
+    let copilot_managed = fixture._dir.path().join("harness-roots").join("copilot");
+    fs::create_dir_all(&copilot_managed).unwrap();
+    seed_named_skill(
+        &copilot_managed,
+        "copilot-local-skill",
+        "Copilot Local Skill",
+        "From Copilot managed skills root",
+    );
+
+    let plugin_skills = copilot_installed_plugins_root(fixture._dir.path())
+        .join("superpowers-marketplace")
+        .join("superpowers")
+        .join("skills");
+    fs::create_dir_all(&plugin_skills).unwrap();
+    seed_named_skill(
+        &plugin_skills,
+        "plugin-only-skill",
+        "Plugin Only Skill",
+        "From installed plugin",
+    );
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    let copilot_column = body["harnessColumns"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|column| column["harness"] == "copilot")
+        .expect("copilot harness column");
+
+    assert_eq!(copilot_column["installed"], true);
+
+    for skill_name in ["Copilot Local Skill", "Plugin Only Skill"] {
+        let row = body["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["name"] == skill_name)
+            .unwrap_or_else(|| panic!("expected row for {skill_name}"));
+        let copilot_cell = row["cells"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|cell| cell["harness"] == "copilot")
+            .expect("copilot cell");
+        assert_eq!(
+            copilot_cell["state"], "found",
+            "expected copilot cell to be found for {skill_name}"
+        );
+    }
+}
+
+/// Managed skills discovered via Copilot plugins show as found when not symlinked.
+#[tokio::test]
+async fn copilot_plugin_skills_mark_managed_rows_as_found() {
+    let fixture = TestFixture::new();
+    fs::create_dir_all(&fixture.paths.skills_store_root).unwrap();
+    seed_named_skill(
+        &fixture.paths.skills_store_root,
+        "managed-plugin-skill",
+        "Managed Plugin Skill",
+        "Managed in shared store",
+    );
+
+    let plugin_skills = copilot_installed_plugins_root(fixture._dir.path())
+        .join("superpowers-marketplace")
+        .join("superpowers")
+        .join("skills");
+    fs::create_dir_all(&plugin_skills).unwrap();
+    seed_named_skill(
+        &plugin_skills,
+        "managed-plugin-skill",
+        "Managed Plugin Skill",
+        "From installed plugin",
+    );
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    let rows: Vec<_> = body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["name"] == "Managed Plugin Skill")
+        .collect();
+    assert_eq!(rows.len(), 1, "expected a single managed row");
+
+    let copilot_cell = rows[0]["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|cell| cell["harness"] == "copilot")
+        .expect("copilot cell");
+    assert_eq!(copilot_cell["state"], "found");
 }

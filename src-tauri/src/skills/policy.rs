@@ -58,6 +58,12 @@ pub fn cell_state(entry: &InventoryEntry, harness: &str) -> &'static str {
             && s.scope.as_deref() == Some("canonical")
     }) {
         "enabled"
+    } else if entry
+        .sightings
+        .iter()
+        .any(|s| s.kind == "harness" && s.harness.as_deref() == Some(harness))
+    {
+        "found"
     } else {
         "disabled"
     }

@@ -121,7 +121,7 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
 
     let bin_dir = root.join("bin");
     fs::create_dir_all(&bin_dir).expect("bin dir");
-    for executable in ["codex", "claude", "cursor-agent", "opencode", "hermes", "openclaw"] {
+    for executable in ["codex", "claude", "cursor-agent", "opencode", "hermes", "openclaw", "copilot"] {
         write_cli_stub(&bin_dir.join(executable), executable);
     }
     let path = env.get("PATH").cloned().unwrap_or_default();
@@ -134,6 +134,7 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
         ("SKILL_MANAGER_OPENCODE_ROOT", "opencode"),
         ("SKILL_MANAGER_HERMES_ROOT", "hermes"),
         ("SKILL_MANAGER_OPENCLAW_ROOT", "openclaw"),
+        ("SKILL_MANAGER_COPILOT_ROOT", "copilot"),
     ] {
         let path = harness_roots.join(name);
         fs::create_dir_all(&path).expect("harness root");
@@ -163,6 +164,14 @@ pub fn codex_legacy_root(root: &Path) -> PathBuf {
 
 pub fn hermes_skills_root(root: &Path) -> PathBuf {
     root.join("harness-roots").join("hermes")
+}
+
+pub fn copilot_skills_root(root: &Path) -> PathBuf {
+    root.join("home").join(".copilot").join("skills")
+}
+
+pub fn copilot_installed_plugins_root(root: &Path) -> PathBuf {
+    root.join("home").join(".copilot").join("installed-plugins")
 }
 
 pub fn seed_store_manifest(paths: &AppPaths, entries: &[serde_json::Value]) {

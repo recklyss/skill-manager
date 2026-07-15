@@ -7,7 +7,8 @@ use super::contracts::{
 };
 use super::resolution::{
     agents_skills_root, claude_skills_root, codex_admin_skills_root, codex_legacy_skills_root,
-    codex_skills_root, copilot_skills_root, cursor_skills_root, hermes_home, hermes_skills_root,
+    codex_skills_root, copilot_installed_plugins_root, copilot_skills_root, cursor_skills_root,
+    hermes_home, hermes_skills_root,
     opencode_skills_root, openclaw_skills_root, ResolutionContext,
 };
 
@@ -112,6 +113,12 @@ static COPILOT_DISCOVERY_ROOTS: &[FileTreeDiscoveryRoot] = &[
         scope: "agents-compat",
         label: "Agents compatibility root",
         path_resolver: agents_skills_root,
+    },
+    FileTreeDiscoveryRoot {
+        kind: "plugin-root",
+        scope: "installed-plugins",
+        label: "Installed plugin skills",
+        path_resolver: copilot_installed_plugins_root,
     },
 ];
 

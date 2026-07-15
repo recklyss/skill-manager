@@ -113,6 +113,82 @@ pub fn copilot_skills_root(ctx: &ResolutionContext) -> PathBuf {
     ctx.home.join(".copilot").join("skills")
 }
 
+pub fn copilot_installed_plugins_root(ctx: &ResolutionContext) -> PathBuf {
+    ctx.home.join(".copilot").join("installed-plugins")
+}
+
+pub fn copilot_settings_skill_directories(ctx: &ResolutionContext) -> Vec<PathBuf> {
+    let settings_path = ctx.home.join(".copilot").join("settings.json");
+    let Ok(raw) = std::fs::read_to_string(&settings_path) else {
+        return Vec::new();
+    };
+    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&strip_jsonc_line_comments(&raw)) else {
+        return Vec::new();
+    };
+    let Some(values) = payload
+        .get("skillDirectories")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return Vec::new();
+    };
+
+    let mut directories = Vec::new();
+    for value in values {
+        let Some(raw_path) = value.as_str() else {
+            continue;
+        };
+        let trimmed = raw_path.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let expanded = if let Some(stripped) = trimmed.strip_prefix("~/") {
+            ctx.home.join(stripped)
+        } else if trimmed == "~" {
+            ctx.home.clone()
+        } else {
+            PathBuf::from(trimmed)
+        };
+        directories.push(expanded);
+    }
+    directories
+}
+
+fn strip_jsonc_line_comments(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if escaped {
+            output.push(ch);
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' && in_string {
+            output.push(ch);
+            escaped = true;
+            continue;
+        }
+        if ch == '"' {
+            in_string = !in_string;
+            output.push(ch);
+            continue;
+        }
+        if !in_string && ch == '/' && chars.peek() == Some(&'/') {
+            while matches!(chars.peek(), Some('\n' | '\r')) {
+                chars.next();
+            }
+            while matches!(chars.peek(), Some(c) if *c != '\n' && *c != '\r') {
+                chars.next();
+            }
+            continue;
+        }
+        output.push(ch);
+    }
+    output
+}
+
 pub fn cursor_app_paths(ctx: &ResolutionContext) -> Vec<PathBuf> {
     vec![
         PathBuf::from("/Applications/Cursor.app"),

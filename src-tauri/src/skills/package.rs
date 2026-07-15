@@ -51,6 +51,41 @@ pub fn find_skill_roots(root: &Path) -> Vec<PathBuf> {
     roots
 }
 
+pub fn find_plugin_skill_containers(root: &Path) -> Vec<PathBuf> {
+    let mut containers = Vec::new();
+    collect_plugin_skill_containers(root, &mut containers);
+    containers.sort();
+    containers.dedup();
+    containers
+}
+
+fn collect_plugin_skill_containers(dir: &Path, containers: &mut Vec<PathBuf>) {
+    if !dir.is_dir() {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = path
+            .file_name()
+            .map(|value| value.to_string_lossy().to_string())
+            .unwrap_or_default();
+        if name.starts_with('.') {
+            continue;
+        }
+        if name == "skills" {
+            containers.push(path);
+            continue;
+        }
+        collect_plugin_skill_containers(&path, containers);
+    }
+}
+
 pub fn fingerprint_package(root: &Path) -> Result<(String, Vec<String>), SkillParseError> {
     if !root.is_dir() {
         return Err(SkillParseError(format!(

@@ -86,6 +86,7 @@ impl SkillInventory {
         let mut entries: Vec<InventoryEntry> = Vec::new();
         let mut shared_path_index: HashMap<PathBuf, usize> = HashMap::new();
         let mut shared_match_index: HashMap<String, usize> = HashMap::new();
+        let mut managed_name_index: HashMap<String, usize> = HashMap::new();
         let excluded_hermes_names = excluded_hermes_names(harness_scans);
 
         for store_package in &store_scan.packages {
@@ -126,6 +127,7 @@ impl SkillInventory {
             let idx = entries.len();
             shared_path_index.insert(package.resolved_path.clone(), idx);
             shared_match_index.insert(managed_entry_key(&entry), idx);
+            managed_name_index.insert(package.declared_name.to_ascii_lowercase(), idx);
             entries.push(entry);
         }
 
@@ -141,6 +143,13 @@ impl SkillInventory {
                 }
                 let match_key = observation_match_key(&observation.package);
                 if let Some(idx) = shared_match_index.get(&match_key).copied() {
+                    entries[idx].sightings.push(sighting);
+                    continue;
+                }
+                if let Some(idx) = managed_name_index
+                    .get(&observation.package.declared_name.to_ascii_lowercase())
+                    .copied()
+                {
                     entries[idx].sightings.push(sighting);
                     continue;
                 }

@@ -8,7 +8,7 @@ pub use contracts::{
     BindingProfile, ConfigFileFormat, ConfigSubtreeBindingProfile, FamilyBinding, FamilyKey,
     FileTreeDiscoveryRoot, FileTreeLayout, HarnessDefinition, HarnessStatus,
 };
-pub use resolution::{resolve_context, Platform, ResolutionContext};
+pub use resolution::{copilot_settings_skill_directories, resolve_context, Platform, ResolutionContext};
 pub use support_store::HarnessSupportStore;
 
 use contracts::{BindingProfile as BP, FileTreeAvailability};
