@@ -1,9 +1,5 @@
 @layer components {
 
-/* -------------------------------------------------------------------------- */
-/* Bulk action bar (floating pill)                                             */
-/* -------------------------------------------------------------------------- */
-
 .bulk-dock {
   position: fixed;
   left: var(--sidebar-width);
@@ -12,23 +8,9 @@
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  padding-bottom: var(--space-7);
+  padding-bottom: var(--space-5);
   pointer-events: none;
   z-index: 40;
-}
-
-.bulk-dock__fade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 120px;
-  background: linear-gradient(
-    to top,
-    var(--color-bg) 0%,
-    transparent 100%
-  );
-  pointer-events: none;
 }
 
 .bulk-bar {
@@ -37,27 +19,10 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-lift);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
   pointer-events: auto;
-  transform-origin: bottom center;
-  animation: bulk-bar-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.bulk-bar[data-state="closed"] {
-  animation: bulk-bar-out 150ms ease forwards;
-}
-
-@keyframes bulk-bar-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes bulk-bar-out {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to   { opacity: 0; transform: translateY(8px) scale(0.98); }
 }
 
 .bulk-bar__group {
@@ -67,7 +32,7 @@
 }
 
 .bulk-bar__count {
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   white-space: nowrap;
@@ -82,18 +47,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: none;
-  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
 }
 
 .bulk-bar__clear:hover:not(:disabled) {
-  background: var(--color-surface);
   color: var(--color-text);
 }
 
@@ -108,20 +70,18 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 var(--space-4);
+  height: 30px;
+  padding: 0 var(--space-3);
   border: none;
-  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-sm);
   cursor: pointer;
-  transition: background 120ms ease;
 }
 
 .bulk-bar__action:hover:not(:disabled) {
-  background: var(--color-surface);
+  color: var(--color-accent);
 }
 
 .bulk-bar__action:disabled {
@@ -133,14 +93,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-danger);
   cursor: pointer;
-  transition: background 120ms ease;
 }
 
 .bulk-bar__danger:hover:not(:disabled) {

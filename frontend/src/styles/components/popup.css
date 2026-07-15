@@ -9,7 +9,7 @@
   border: 1px solid var(--color-border);
   background: var(--ui-popup-surface);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lift);
+  box-shadow: none;
   z-index: 95;
   transform-origin: var(--radix-popover-content-transform-origin, var(--radix-tooltip-content-transform-origin, center));
   animation: ui-popup-in 140ms cubic-bezier(0.22, 1, 0.36, 1);

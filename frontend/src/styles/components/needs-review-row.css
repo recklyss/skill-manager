@@ -6,32 +6,33 @@
 
 .needs-review-rows {
   display: grid;
-  gap: 1px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-border);
+  gap: 0;
   border: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .needs-review-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: var(--space-6);
-  padding: var(--space-5) var(--space-6);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   cursor: pointer;
-  transition: background 120ms ease;
+}
+
+.needs-review-row:last-child {
+  border-bottom: none;
 }
 
 .needs-review-row:hover {
-  background: var(--color-surface-raised);
+  background: var(--color-surface-sunken);
 }
 
 .needs-review-row:focus-visible {
-  outline: none;
-  background: var(--color-surface-raised);
-  box-shadow: inset 0 0 0 2px var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .needs-review-row__body {

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
@@ -56,13 +56,14 @@ describe("App shell", () => {
   it("renders the sidebar with primary nav groups", async () => {
     renderApp("/skills/use");
     await waitFor(() => expect(screen.getByLabelText(/primary navigation/i)).toBeInTheDocument());
+    const nav = screen.getByLabelText(/primary navigation/i);
     expect(screen.getByText(/skill-manager/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Overview$/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Skills/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Scan Config" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Slash Commands/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /MCP Servers/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Marketplace/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: /^Overview$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("group", { name: /^Skills$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Scan Config" })).toBeInTheDocument();
+    expect(within(nav).getByRole("group", { name: /^Slash Commands$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("group", { name: /^MCP Servers$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("group", { name: /^Marketplace$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Settings$/i })).toBeInTheDocument();
   });
 
@@ -93,16 +94,16 @@ describe("App shell", () => {
     renderApp("/settings");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Skills 13" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Slash Commands 6" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "MCP Servers 3" })).toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "Skills 13" })).toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "Slash Commands 6" })).toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "MCP Servers 3" })).toBeInTheDocument();
     });
     expect(screen.getByRole("link", { name: "In use 10" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Needs review 3" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Scan Config" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "In use 2" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Needs review 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Marketplace" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Marketplace" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Skills" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "MCP" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CLIs" })).toBeInTheDocument();
@@ -117,10 +118,10 @@ describe("App shell", () => {
 
     renderApp("/settings");
 
-    expect(screen.getByRole("button", { name: "Skills" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Slash Commands" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "MCP Servers" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Marketplace" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Skills" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Slash Commands" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "MCP Servers" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Marketplace" })).toBeInTheDocument();
   });
 
   it.each([
@@ -219,9 +220,9 @@ describe("App shell", () => {
     expect(screen.getByRole("link", { name: /^总览$/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "刷新" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "设置" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Skill/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /MCP 服务器/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^商城$/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Skill/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /MCP 服务器/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /^商城$/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^CLI$/ })).toBeInTheDocument();
     expect(screen.queryByText("界面语言")).not.toBeInTheDocument();
 

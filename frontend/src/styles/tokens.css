@@ -1,41 +1,38 @@
 /* ---------------------------------------------------------------------------
- * Shared design tokens — fonts, spacing, radii, breakpoints, layout.
- * Color tokens are managed dynamically by the theme system (see lib/themes.ts).
+ * Shared design tokens — typography, spacing, layout.
+ * Color tokens are managed by the theme system (lib/themes.ts).
  * --------------------------------------------------------------------------- */
 :root {
-  --font-sans: "Inter", "SF Pro Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-mono: "SF Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, monospace;
 
-  /* Typography scale — intentional, tighter rhythm */
-  --font-size-xs: 0.6875rem;    /* 11px — captions, badges */
-  --font-size-sm: 0.8125rem;    /* 13px — secondary text, meta */
-  --font-size-md: 0.875rem;     /* 14px — body, controls */
-  --font-size-lg: 1rem;         /* 16px — emphasized body */
-  --font-size-xl: 1.25rem;      /* 20px — section headings */
-  --font-size-2xl: 1.75rem;     /* 28px — page titles */
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-2xl: 1.5rem;
 
   --font-weight-normal: 400;
-  --font-weight-medium: 510;
-  --font-weight-semibold: 590;
-  --font-weight-bold: 680;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
-  --line-height-tight: 1.15;
-  --line-height-normal: 1.45;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
   --line-height-relaxed: 1.6;
 
-  --letter-spacing-tight: -0.025em;
-  --letter-spacing-normal: -0.01em;
-  --letter-spacing-wide: 0.02em;
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.04em;
 
-  /* Radii — clean, minimal system */
-  --radius-xs: 5px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
   --radius-pill: 999px;
 
-  /* Spacing scale — 4px base, generous rhythm */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -47,13 +44,11 @@
   --space-9: 48px;
   --space-10: 64px;
 
-  /* Breakpoints */
   --breakpoint-sm: 680px;
   --breakpoint-md: 900px;
   --breakpoint-lg: 1100px;
 
-  /* Layout */
-  --sidebar-width: 248px;
-  --page-max-width: 1280px;
-  --content-gutter: var(--space-7);
+  --sidebar-width: 220px;
+  --page-max-width: 1200px;
+  --content-gutter: var(--space-6);
 }
