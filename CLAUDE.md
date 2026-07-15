@@ -26,11 +26,11 @@ npm run build                  # Production frontend build
 npm run codegen:openapi
 ```
 
-The app ships as a **Tauri desktop application** with an embedded Axum HTTP server on `http://127.0.0.1:18000`. Health: `http://127.0.0.1:18000/api/health`.
+The app ships as a **Tauri desktop application** for **macOS and Linux only** (no Windows or mobile targets) with an embedded Axum HTTP server on `http://127.0.0.1:18000`. Health: `http://127.0.0.1:18000/api/health`.
 
 ## Architecture
 
-Skill Manager is a **local-first control center** for AI agent extensions (Skills, MCP servers, slash commands) across multiple agent harnesses. It ships as a Tauri desktop app (Rust backend + React frontend).
+Skill Manager is a **local-first control center** for AI agent extensions (Skills, MCP servers, slash commands) across multiple agent harnesses. It ships as a Tauri **desktop-only** app for **macOS and Linux** (Windows not supported yet) with a Rust backend and React frontend.
 
 ### Rust Backend (`src-tauri/`)
 
@@ -46,7 +46,7 @@ Tauri shell (lib.rs) → Axum server (server/) → Domain services → Harness/D
 - **`src-tauri/src/scan/`** — SQLite-backed LLM scan configs and static skill analysis.
 - **`src-tauri/src/marketplace/`** — Skills, MCP, and CLI catalog clients with install tokens.
 - **`src-tauri/src/db/`** — SQLite database for scan configs. Schema via `db/migrations.rs`.
-- **`src-tauri/src/paths.rs`** — App-owned file paths under `~/Library/Application Support/skill-manager` (macOS) or XDG dirs (Linux).
+- **`src-tauri/src/paths.rs`** — App-owned file paths under `~/Library/Application Support/skill-manager` (macOS) or XDG dirs (Linux). Windows is not supported yet.
 
 ### Application Container
 

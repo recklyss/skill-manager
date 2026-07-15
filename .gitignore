@@ -14,7 +14,7 @@ task_plan.md
 findings.md
 progress.md
 
-# Tauri
+# Tauri (desktop-only; mobile icon outputs are not versioned)
 src-tauri/target/
 src-tauri/icons/android/
 src-tauri/icons/ios/

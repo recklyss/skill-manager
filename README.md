@@ -149,6 +149,8 @@ Enable or disable harness support, confirm where each harness stores Skills on d
 
 ## Install
 
+**Platform support:** macOS (ARM64/x64) and Linux (x64/ARM64) only. Windows and mobile (iOS/Android) are **not supported** yet — path resolution, install detection, and release artifacts are built for Unix-style desktop environments today.
+
 ### Homebrew (macOS recommended)
 
 ```bash
@@ -333,7 +335,7 @@ npm install
 npm run tauri:dev
 ```
 
-The app opens as a native desktop window — no browser, no manual server start.
+The app opens as a native desktop window — no browser, no manual server start. Supported desktop targets are **macOS and Linux** only (no Windows or mobile builds).
 
 Build a native installer:
 
