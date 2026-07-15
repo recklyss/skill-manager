@@ -40,6 +40,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux system dependencies
+        run: bash scripts/install_linux_tauri_deps.sh
+
       - name: Rust integration tests
         run: bash scripts/test_rust.sh
 
