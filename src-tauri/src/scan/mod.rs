@@ -1,4 +1,5 @@
 mod config_service;
+mod harness_scanner;
 mod llm;
 mod service;
 
@@ -6,6 +7,7 @@ pub use config_service::ScanConfigService;
 pub use service::ScanService;
 
 use crate::db::Database;
+use crate::harness::HarnessKernelService;
 use crate::skills::queries::SkillsQueryService;
 
 #[derive(Clone)]
@@ -15,10 +17,14 @@ pub struct ScanServices {
 }
 
 impl ScanServices {
-    pub fn new(db: std::sync::Arc<Database>, skills_queries: SkillsQueryService) -> Self {
+    pub fn new(
+        db: std::sync::Arc<Database>,
+        harness_kernel: HarnessKernelService,
+        skills_queries: SkillsQueryService,
+    ) -> Self {
         Self {
-            config: ScanConfigService::new(db.clone()),
-            service: ScanService::new(db, skills_queries),
+            config: ScanConfigService::new(db),
+            service: ScanService::new(harness_kernel, skills_queries),
         }
     }
 }

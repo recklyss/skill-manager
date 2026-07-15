@@ -6,13 +6,7 @@ import { useSkillScan } from "./use-skill-scan";
 
 const scanClient = vi.hoisted(() => ({
   scanSkill: vi.fn(),
-  getScanConfigs: vi.fn(),
-  createScanConfig: vi.fn(),
-  updateScanConfig: vi.fn(),
-  deleteScanConfig: vi.fn(),
-  setActiveScanConfig: vi.fn(),
-  validateScanConfig: vi.fn(),
-  revealScanConfigApiKey: vi.fn(),
+  getScanHarnesses: vi.fn(),
 }));
 
 vi.mock("../api/scan-client", () => scanClient);
@@ -23,7 +17,7 @@ const scanResult: ScanResult = {
   maxSeverity: "SAFE",
   findingsCount: 0,
   findings: [],
-  analyzersUsed: ["llm_analyzer"],
+  analyzersUsed: ["claude_scanner"],
   durationSeconds: 1.2,
 };
 
@@ -31,31 +25,14 @@ describe("useSkillScan", () => {
   beforeEach(() => {
     window.localStorage.clear();
     scanClient.scanSkill.mockReset();
-    scanClient.getScanConfigs.mockReset();
-    scanClient.createScanConfig.mockReset();
-    scanClient.updateScanConfig.mockReset();
-    scanClient.deleteScanConfig.mockReset();
-    scanClient.setActiveScanConfig.mockReset();
-    scanClient.validateScanConfig.mockReset();
-    scanClient.revealScanConfigApiKey.mockReset();
-    scanClient.getScanConfigs.mockResolvedValue({
-      activeId: 1,
-      configs: [
+    scanClient.getScanHarnesses.mockReset();
+    scanClient.getScanHarnesses.mockResolvedValue({
+      harnesses: [
         {
-          id: 1,
-          name: "Default",
-          baseUrl: "https://api.example.com/v1",
-          apiKeyMasked: "sk-t...cret",
-          model: "model-a",
-          provider: "openai-compatible",
-          apiVersion: "",
-          awsRegion: "",
-          awsProfile: "",
-          maxTokens: 8192,
-          consensusRuns: 1,
-          isActive: true,
-          lastValidatedAt: null,
-          lastValidationError: "",
+          harness: "claude",
+          label: "Claude",
+          cliAvailable: true,
+          scannable: true,
         },
       ],
     });
@@ -68,7 +45,7 @@ describe("useSkillScan", () => {
     }));
 
     const first = renderHook(() => useSkillScan());
-    await waitFor(() => expect(first.result.current.llmConfig?.id).toBe(1));
+    await waitFor(() => expect(first.result.current.selectedHarness).toBe("claude"));
 
     let pendingScan: Promise<void> = Promise.resolve();
     act(() => {

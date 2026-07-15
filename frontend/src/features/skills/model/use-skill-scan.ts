@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 
-import type { ScanResult, ScanConfigItem } from "../api/scan-types";
+import type { ScanResult } from "../api/scan-types";
 import {
   scanSkill as scanSkillApi,
-  getScanConfigs,
-  createScanConfig,
-  updateScanConfig,
-  deleteScanConfig as deleteScanConfigApi,
-  setActiveScanConfig,
-  validateScanConfig,
-  revealScanConfigApiKey,
+  getScanHarnesses,
+  type ScanHarnessOption,
 } from "../api/scan-client";
 
 export type ScanStatus = "idle" | "scanning" | "done" | "error";
@@ -25,21 +20,9 @@ export interface ScanStateMap {
   [skillRef: string]: SkillScanState;
 }
 
-export interface LLMScanConfig {
-  id: number;
-  name: string;
-  baseUrl: string;
-  model: string;
-  provider: string;
-  apiVersion: string;
-  maxTokens: number;
-  consensusRuns: number;
-  awsRegion: string;
-  awsProfile: string;
-}
-
 const IDLE_STATE: SkillScanState = { status: "idle", result: null, error: null, completedAt: null };
 const SCAN_REPORT_CACHE_KEY = "skillmgr.securityReport.cache.v1";
+export const SCAN_HARNESS_KEY = "skillmgr.scan.harness.v1";
 
 interface CachedScanReport {
   savedAt: number;
@@ -99,49 +82,29 @@ function cacheScanResult(skillRef: string, result: ScanResult, savedAt = Date.no
   });
 }
 
-function buildConfigFromItem(item: ScanConfigItem): LLMScanConfig {
-  return {
-    id: item.id,
-    name: item.name,
-    baseUrl: item.baseUrl,
-    model: item.model,
-    provider: item.provider,
-    apiVersion: item.apiVersion,
-    maxTokens: item.maxTokens,
-    consensusRuns: item.consensusRuns,
-    awsRegion: item.awsRegion,
-    awsProfile: item.awsProfile,
-  };
+function readStoredHarness(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = window.localStorage.getItem(SCAN_HARNESS_KEY);
+  return value && value.trim() ? value : null;
 }
 
-export interface LLMScanConfigInput {
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  provider?: string;
-  apiVersion?: string;
-  maxTokens?: number;
-  consensusRuns?: number;
-  awsRegion?: string;
-  awsProfile?: string;
-  awsSessionToken?: string;
+function writeStoredHarness(harness: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SCAN_HARNESS_KEY, harness);
 }
 
 interface SkillScanStoreSnapshot {
   scanState: ScanStateMap;
-  configs: ScanConfigItem[];
-  activeConfigId: number | null;
-  llmConfig: LLMScanConfig | null;
-  configLoaded: boolean;
+  harnesses: ScanHarnessOption[];
+  selectedHarness: string | null;
+  harnessesLoaded: boolean;
 }
 
 let scanStoreSnapshot: SkillScanStoreSnapshot = {
   scanState: {},
-  configs: [],
-  activeConfigId: null,
-  llmConfig: null,
-  configLoaded: false,
+  harnesses: [],
+  selectedHarness: readStoredHarness(),
+  harnessesLoaded: false,
 };
 let hydratedCachedReports = false;
 
@@ -181,6 +144,20 @@ function hydrateCachedScanReports(): void {
   }));
 }
 
+function pickDefaultHarness(
+  harnesses: ScanHarnessOption[],
+  current: string | null,
+): string | null {
+  const scannable = harnesses.filter((entry) => entry.scannable);
+  if (scannable.length === 0) {
+    return null;
+  }
+  if (current && scannable.some((entry) => entry.harness === current)) {
+    return current;
+  }
+  return scannable[0]?.harness ?? null;
+}
+
 export function useSkillScan() {
   const snapshot = useSyncExternalStore(
     subscribeToScanStore,
@@ -188,27 +165,29 @@ export function useSkillScan() {
     getScanStoreSnapshot,
   );
 
-  const refreshConfigs = useCallback(async () => {
+  const refreshHarnesses = useCallback(async () => {
     try {
-      const resp = await getScanConfigs();
-      const active = resp.activeId !== null
-        ? resp.configs.find((c) => c.id === resp.activeId)
-        : null;
-      updateScanStore((current) => ({
-        ...current,
-        configs: resp.configs,
-        activeConfigId: resp.activeId,
-        llmConfig: active ? buildConfigFromItem(active) : null,
-        configLoaded: true,
-      }));
+      const resp = await getScanHarnesses();
+      updateScanStore((current) => {
+        const selectedHarness = pickDefaultHarness(resp.harnesses, current.selectedHarness);
+        if (selectedHarness) {
+          writeStoredHarness(selectedHarness);
+        }
+        return {
+          ...current,
+          harnesses: resp.harnesses,
+          selectedHarness,
+          harnessesLoaded: true,
+        };
+      });
     } catch {
-      updateScanStore((current) => ({ ...current, configLoaded: true }));
+      updateScanStore((current) => ({ ...current, harnessesLoaded: true }));
     }
   }, []);
 
   useEffect(() => {
-    void refreshConfigs();
-  }, [refreshConfigs]);
+    void refreshHarnesses();
+  }, [refreshHarnesses]);
 
   useEffect(() => {
     hydrateCachedScanReports();
@@ -219,69 +198,17 @@ export function useSkillScan() {
     [snapshot.scanState],
   );
 
-  const addConfig = useCallback(
-    async (config: LLMScanConfigInput) => {
-      const item = await createScanConfig({
-        name: config.name,
-        baseUrl: config.baseUrl,
-        apiKey: config.apiKey,
-        model: config.model,
-        provider: config.provider,
-        apiVersion: config.apiVersion,
-        maxTokens: config.maxTokens,
-        consensusRuns: config.consensusRuns,
-        awsRegion: config.awsRegion,
-        awsProfile: config.awsProfile,
-        awsSessionToken: config.awsSessionToken,
-      });
-      await refreshConfigs();
-      return item;
-    },
-    [refreshConfigs],
-  );
-
-  const editConfig = useCallback(
-    async (
-      id: number,
-      config: LLMScanConfigInput,
-    ) => {
-      await updateScanConfig(id, {
-        name: config.name,
-        baseUrl: config.baseUrl,
-        apiKey: config.apiKey,
-        model: config.model,
-        provider: config.provider,
-        apiVersion: config.apiVersion,
-        maxTokens: config.maxTokens,
-        consensusRuns: config.consensusRuns,
-        awsRegion: config.awsRegion,
-        awsProfile: config.awsProfile,
-        awsSessionToken: config.awsSessionToken,
-      });
-      await refreshConfigs();
-    },
-    [refreshConfigs],
-  );
-
-  const removeConfig = useCallback(
-    async (id: number) => {
-      await deleteScanConfigApi(id);
-      await refreshConfigs();
-    },
-    [refreshConfigs],
-  );
-
-  const selectConfig = useCallback(
-    async (id: number) => {
-      await setActiveScanConfig(id);
-      await refreshConfigs();
-    },
-    [refreshConfigs],
-  );
+  const selectHarness = useCallback((harness: string) => {
+    writeStoredHarness(harness);
+    updateScanStore((current) => ({
+      ...current,
+      selectedHarness: harness,
+    }));
+  }, []);
 
   const scanSkill = useCallback(
     async (skillRef: string) => {
-      if (!snapshot.llmConfig) return;
+      if (!snapshot.selectedHarness) return;
       updateScanStore((current) => ({
         ...current,
         scanState: {
@@ -290,7 +217,7 @@ export function useSkillScan() {
         },
       }));
       try {
-        const result = await scanSkillApi(skillRef, { useLlm: true });
+        const result = await scanSkillApi(skillRef, { harness: snapshot.selectedHarness });
         const completedAt = Date.now();
         cacheScanResult(skillRef, result, completedAt);
         updateScanStore((current) => ({
@@ -315,35 +242,22 @@ export function useSkillScan() {
         }));
       }
     },
-    [snapshot.llmConfig],
+    [snapshot.selectedHarness],
   );
 
-  const validateConfig = useCallback(
-    async (config: LLMScanConfigInput & { existingConfigId?: number }) => validateScanConfig(config),
-    [],
-  );
-
-  const revealConfigApiKey = useCallback(
-    async (id: number) => {
-      const result = await revealScanConfigApiKey(id);
-      return result.apiKey;
-    },
-    [],
-  );
+  const selectedHarnessOption = snapshot.harnesses.find(
+    (entry) => entry.harness === snapshot.selectedHarness,
+  ) ?? null;
 
   return {
     scanState: snapshot.scanState,
     getScanState,
     scanSkill,
-    llmConfig: snapshot.llmConfig,
-    configs: snapshot.configs,
-    activeConfigId: snapshot.activeConfigId,
-    addConfig,
-    editConfig,
-    removeConfig,
-    selectConfig,
-    validateConfig,
-    revealConfigApiKey,
-    configLoaded: snapshot.configLoaded,
+    harnesses: snapshot.harnesses,
+    selectedHarness: snapshot.selectedHarness,
+    selectedHarnessOption,
+    selectHarness,
+    harnessesLoaded: snapshot.harnessesLoaded,
+    refreshHarnesses,
   };
 }

@@ -82,16 +82,12 @@ vi.mock("../model/use-skill-scan", () => ({
     scanState: {},
     getScanState: () => ({ status: "idle", result: null, error: null, completedAt: null }),
     scanSkill: hooks.scanSkill,
-    llmConfig: null,
-    configs: [],
-    activeConfigId: null,
-    addConfig: vi.fn(async () => ({ id: 1 })),
-    editConfig: vi.fn(async () => undefined),
-    removeConfig: vi.fn(async () => undefined),
-    selectConfig: vi.fn(async () => undefined),
-    validateConfig: hooks.validateConfig,
-    revealConfigApiKey: hooks.revealConfigApiKey,
-    configLoaded: true,
+    harnesses: [{ harness: "claude", label: "Claude", cliAvailable: true, scannable: true }],
+    selectedHarness: "claude",
+    selectedHarnessOption: { harness: "claude", label: "Claude", cliAvailable: true, scannable: true },
+    selectHarness: vi.fn(),
+    harnessesLoaded: true,
+    refreshHarnesses: vi.fn(async () => undefined),
   }),
 }));
 
@@ -180,7 +176,7 @@ describe("SkillsInUsePage", () => {
 
     expect(screen.getByRole("button", { name: "Scan" })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Skills scan table" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Configure LLM scan" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Select harness for security scan")).toBeInTheDocument();
   });
 
   it("opens a delete confirm popup from the skill card menu", async () => {

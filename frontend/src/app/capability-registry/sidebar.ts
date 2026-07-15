@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
 import { mcpRoutes, useMcpInventoryQuery } from "../../features/mcp/public";
-import { useSkillsCopy } from "../../features/skills/i18n";
 import { skillsRoutes, useSkillsListQuery } from "../../features/skills/public";
+import { useSkillsCopy } from "../../features/skills/i18n";
 import { slashCommandRoutes, useSlashCommandsQuery } from "../../features/slash-commands/public";
 import { marketplaceRoutes } from "../../features/marketplace/public";
 import { useCommonCopy } from "../../i18n";
@@ -34,13 +34,13 @@ export function useSidebarModel(): SidebarModel {
   const mcpQuery = useMcpInventoryQuery();
   const slashCommandsQuery = useSlashCommandsQuery();
   const common = useCommonCopy();
-  const skillsCopy = useSkillsCopy();
 
   const inUseSkills = skillsQuery.data?.summary.managed ?? null;
   const needsReviewSkills = skillsQuery.data?.summary.unmanaged ?? null;
   const slashCommandCount = slashCommandsQuery.data?.commands.length ?? null;
   const slashCommandReviewCount = slashCommandsQuery.data?.reviewCommands.length ?? null;
   const mcpCounts = mcpSidebarCounts(mcpQuery.data);
+  const skillsCopy = useSkillsCopy();
 
   return useMemo(
     () => ({
@@ -59,13 +59,8 @@ export function useSidebarModel(): SidebarModel {
           count: sumLoadedCounts(inUseSkills, needsReviewSkills),
           links: [
             { key: "skills-use", to: skillsRoutes.inUse, label: common.productLanguage.inUse, count: inUseSkills },
-            {
-              key: "skills-review",
-              to: skillsRoutes.needsReview,
-              label: common.productLanguage.needsReview,
-              count: needsReviewSkills,
-            },
-            { key: "skills-scan-config", to: skillsRoutes.scanConfig, label: skillsCopy.scan.configNav },
+            { key: "skills-review", to: skillsRoutes.needsReview, label: common.productLanguage.needsReview, count: needsReviewSkills },
+            { key: "skills-scan", to: skillsRoutes.scanConfig, label: skillsCopy.scan.configNav },
           ],
         },
         {
@@ -123,8 +118,8 @@ export function useSidebarModel(): SidebarModel {
       needsReviewSkills,
       slashCommandCount,
       slashCommandReviewCount,
+      skillsCopy.scan.configNav,
       common,
-      skillsCopy,
     ],
   );
 }

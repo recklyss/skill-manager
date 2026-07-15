@@ -6,27 +6,25 @@ import type { SkillsCopy } from "../../i18n";
 
 interface ScanRowProps {
   row: SkillListRow;
-  hasConfig: boolean;
+  canScan: boolean;
   checked: boolean;
   scanState: SkillScanState;
   copy: SkillsCopy["scan"]["view"];
   onOpenSkill: (skillRef: string) => void;
   onToggleChecked: (skillRef: string) => void;
   onScanSkill: (skillRef: string) => void;
-  onConfigure: () => void;
   onViewResult: (skillRef: string) => void;
 }
 
 export function ScanRow({
   row,
-  hasConfig,
+  canScan,
   checked,
   scanState,
   copy,
   onOpenSkill,
   onToggleChecked,
   onScanSkill,
-  onConfigure,
   onViewResult,
 }: ScanRowProps) {
   const isScanning = scanState.status === "scanning";
@@ -61,17 +59,14 @@ export function ScanRow({
       </td>
 
       <td className="matrix-table__cell matrix-table__cell--action">
-        {!hasConfig ? (
+        {!canScan ? (
           <button
             type="button"
             className="action-pill scan-table__action"
-            onClick={(event) => {
-              event.stopPropagation();
-              onConfigure();
-            }}
-            aria-label={copy.configureAria}
+            disabled
+            aria-label={copy.selectHarnessAria}
           >
-            {copy.configure}
+            {copy.selectHarness}
           </button>
         ) : isScanning ? (
           <button

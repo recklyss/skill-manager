@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { okJson } from "../../../test/fetch";
-import { revealScanConfigApiKey, scanSkill, validateScanConfig } from "./scan-client";
+import { getScanHarnesses, scanSkill } from "./scan-client";
 
 const fetchMock = vi.fn();
 
@@ -15,67 +15,38 @@ describe("scan api client", () => {
     vi.unstubAllGlobals();
   });
 
-  it("posts config validation payload without saving", async () => {
+  it("loads scannable harnesses", async () => {
     fetchMock.mockResolvedValue(okJson({
-      ok: true,
-      message: "Connectivity test passed.",
-      provider: "openai-compatible",
-      model: "openai/doubao-test",
-      durationMs: 12,
-      errorCode: null,
+      harnesses: [
+        { harness: "claude", label: "Claude", cliAvailable: true, scannable: true },
+      ],
     }));
 
-    await validateScanConfig({
-      name: "Volcengine",
-      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-      apiKey: "sk-test",
-      model: "doubao-test",
-      existingConfigId: 7,
-    });
+    const result = await getScanHarnesses();
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/scan/configs/validate",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "Volcengine",
-          baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-          apiKey: "sk-test",
-          model: "doubao-test",
-          existingConfigId: 7,
-        }),
-      }),
-    );
+    expect(result.harnesses[0]?.harness).toBe("claude");
+    expect(fetchMock).toHaveBeenCalledWith("/api/scan/harnesses");
   });
 
-  it("can scan using the active backend config without sending an api key", async () => {
+  it("posts harness id when scanning a skill", async () => {
     fetchMock.mockResolvedValue(okJson({
       skillName: "demo",
       isSafe: true,
       maxSeverity: "SAFE",
       findingsCount: 0,
       findings: [],
-      analyzersUsed: ["llm_analyzer"],
+      analyzersUsed: ["claude_scanner"],
       durationSeconds: 0.1,
     }));
 
-    await scanSkill("demo", { useLlm: true });
+    await scanSkill("demo", { harness: "claude" });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/scan/skills/demo",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ useLlm: true }),
+        body: JSON.stringify({ harness: "claude" }),
       }),
     );
-  });
-
-  it("can reveal a saved config api key on demand", async () => {
-    fetchMock.mockResolvedValue(okJson({ apiKey: "sk-secret-value" }));
-
-    const result = await revealScanConfigApiKey(7);
-
-    expect(result.apiKey).toBe("sk-secret-value");
-    expect(fetchMock).toHaveBeenCalledWith("/api/scan/configs/7/secret");
   });
 });

@@ -2,11 +2,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowRight, Cpu, Eye, EyeOff, Key, Link2, Loader2 } from "lucide-react";
 
-import type { ScanConfigItem, ScanConfigValidationResponse } from "../../api/scan-types";
+import type { ScanConfigItem, ScanConfigValidationResponse, LLMScanConfigInput } from "../../api/scan-types";
 import { DetailHeader } from "../../../../components/detail/DetailHeader";
 import { useCommonCopy, useLocale } from "../../../../i18n";
 import { useSkillsCopy } from "../../i18n";
-import type { LLMScanConfigInput } from "../../model/use-skill-scan";
 
 type ScanConfigEditorMode = "create" | "edit";
 

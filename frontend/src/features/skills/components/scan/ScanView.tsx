@@ -3,33 +3,26 @@ import { useEffect, useMemo, useState } from "react";
 import { Shield, X } from "lucide-react";
 
 import { MatrixSortableHeader } from "../../../../components/matrix";
-import type { ScanConfigItem, ScanConfigValidationResponse } from "../../api/scan-types";
 import { LoadingSpinner } from "../../../../components/LoadingSpinner";
+import { ScanHarnessPicker } from "./ScanHarnessPicker";
 import { ScanRow } from "./ScanRow";
 import { ScanResultModal } from "./ScanResultModal";
-import { ScanConfigDetailModal } from "./ScanConfigDetailModal";
 import { useSkillsCopy } from "../../i18n";
 import { sortRows, sortKeysEqual, type SortKey, type SortState } from "../../model/sortRows";
-import type { SkillScanState, ScanStateMap, LLMScanConfig, LLMScanConfigInput } from "../../model/use-skill-scan";
+import type { SkillScanState, ScanStateMap } from "../../model/use-skill-scan";
+import type { ScanHarnessOption } from "../../api/scan-client";
 import type { SkillListRow } from "../../model/types";
 
 interface ScanViewProps {
   rows: SkillListRow[];
   scanStateMap: ScanStateMap;
   getScanState: (skillRef: string) => SkillScanState;
-  llmConfig: LLMScanConfig | null;
-  configs: ScanConfigItem[];
-  activeConfigId: number | null;
-  showConfig: boolean;
+  harnesses: ScanHarnessOption[];
+  selectedHarness: string | null;
+  harnessesLoaded: boolean;
+  onSelectHarness: (harness: string) => void;
   onOpenSkill: (skillRef: string) => void;
   onScanSkill: (skillRef: string) => void;
-  onOpenConfig: () => void;
-  onCloseConfig: () => void;
-  onSelectConfig: (id: number) => Promise<void>;
-  onAddConfig: (config: LLMScanConfigInput) => Promise<unknown>;
-  onEditConfig: (id: number, config: LLMScanConfigInput) => Promise<void>;
-  onRevealApiKey: (id: number) => Promise<string>;
-  onValidateConfig: (config: LLMScanConfigInput & { existingConfigId?: number }) => Promise<ScanConfigValidationResponse>;
 }
 
 const INITIAL_SORT: SortState = { key: "name", direction: "asc" };
@@ -38,19 +31,12 @@ export function ScanView({
   rows,
   scanStateMap,
   getScanState,
-  llmConfig,
-  configs,
-  activeConfigId,
-  showConfig,
+  harnesses,
+  selectedHarness,
+  harnessesLoaded,
+  onSelectHarness,
   onOpenSkill,
   onScanSkill,
-  onOpenConfig,
-  onCloseConfig,
-  onSelectConfig,
-  onAddConfig,
-  onEditConfig,
-  onRevealApiKey,
-  onValidateConfig,
 }: ScanViewProps) {
   const [sort, setSort] = useState<SortState>(INITIAL_SORT);
   const [viewingSkillRef, setViewingSkillRef] = useState<string | null>(null);
@@ -59,10 +45,10 @@ export function ScanView({
 
   const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort]);
   const visibleRefs = useMemo(() => new Set(rows.map((row) => row.skillRef)), [rows]);
-  const activeConfig = useMemo(
-    () => configs.find((config) => config.id === activeConfigId) ?? configs.find((config) => config.isActive) ?? null,
-    [activeConfigId, configs],
-  );
+  const scannableHarnesses = useMemo(() => harnesses.filter((entry) => entry.scannable), [harnesses]);
+  const selectedHarnessOption = scannableHarnesses.find(
+    (entry) => entry.harness === selectedHarness,
+  ) ?? null;
 
   const requestSort = (key: SortKey) => {
     setSort((current) => {
@@ -75,10 +61,10 @@ export function ScanView({
 
   const viewingState = viewingSkillRef ? scanStateMap[viewingSkillRef] : null;
   const viewingResult = viewingState?.result ?? null;
-  const hasConfig = llmConfig !== null;
+  const canScan = selectedHarnessOption !== null;
   const anyScanning = sortedRows.some((row) => getScanState(row.skillRef).status === "scanning");
   const checkedRows = sortedRows.filter((row) => checkedRefs.has(row.skillRef));
-  const canScanChecked = hasConfig && checkedRows.length > 0 && !anyScanning;
+  const canScanChecked = canScan && checkedRows.length > 0 && !anyScanning;
 
   useEffect(() => {
     setCheckedRefs((current) => {
@@ -95,19 +81,6 @@ export function ScanView({
       return changed ? next : current;
     });
   }, [visibleRefs]);
-
-  async function addAndActivateConfig(config: LLMScanConfigInput) {
-    const item = await onAddConfig(config) as { id?: number } | undefined;
-    if (item?.id) {
-      await onSelectConfig(item.id);
-    }
-    return item;
-  }
-
-  async function editActiveConfig(id: number, config: LLMScanConfigInput) {
-    await onEditConfig(id, config);
-    await onSelectConfig(id);
-  }
 
   function toggleChecked(skillRef: string) {
     setCheckedRefs((current) => {
@@ -134,6 +107,16 @@ export function ScanView({
 
   return (
     <>
+      <div className="scan-toolbar">
+        <ScanHarnessPicker
+          variant="select"
+          harnesses={harnesses}
+          selectedHarness={selectedHarness}
+          harnessesLoaded={harnessesLoaded}
+          onSelectHarness={onSelectHarness}
+        />
+      </div>
+
       <div className="matrix-table-wrapper scan-table-wrapper">
         <table className="matrix-table scan-table" aria-label={copy.view.tableAria}>
           <colgroup>
@@ -161,14 +144,13 @@ export function ScanView({
               <ScanRow
                 key={row.skillRef}
                 row={row}
-                hasConfig={hasConfig}
+                canScan={canScan}
                 checked={checkedRefs.has(row.skillRef)}
                 scanState={getScanState(row.skillRef)}
                 copy={copy.view}
                 onOpenSkill={onOpenSkill}
                 onToggleChecked={toggleChecked}
                 onScanSkill={onScanSkill}
-                onConfigure={onOpenConfig}
                 onViewResult={setViewingSkillRef}
               />
             ))}
@@ -180,19 +162,8 @@ export function ScanView({
         open={viewingSkillRef !== null}
         result={viewingResult}
         completedAt={viewingState?.completedAt ?? null}
-        llmConfig={llmConfig}
+        harnessLabel={selectedHarnessOption?.label ?? null}
         onClose={() => setViewingSkillRef(null)}
-      />
-
-      <ScanConfigDetailModal
-        open={showConfig}
-        mode={activeConfig ? "edit" : "create"}
-        config={activeConfig}
-        onClose={onCloseConfig}
-        onAddConfig={addAndActivateConfig}
-        onEditConfig={editActiveConfig}
-        onRevealApiKey={onRevealApiKey}
-        onValidateConfig={onValidateConfig}
       />
 
       {checkedRefs.size > 0 ? (

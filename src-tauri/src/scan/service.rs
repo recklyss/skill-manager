@@ -1,57 +1,56 @@
-use crate::db::scan_config::ScanConfigRepository;
-use crate::db::Database;
 use crate::error::{ApiError, ApiResult};
-use crate::scan::llm::detect_llm;
+use crate::harness::HarnessKernelService;
+use crate::scan::harness_scanner::{
+    harness_supports_scan, list_scannable_harnesses, run_harness_scan, scannable_harnesses_json,
+};
 use crate::skills::queries::SkillsQueryService;
 use serde_json::{json, Value};
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Instant;
 
 #[derive(Clone)]
 pub struct ScanService {
-    db: Arc<Database>,
+    harness_kernel: HarnessKernelService,
     skills_queries: SkillsQueryService,
 }
 
 impl ScanService {
-    pub fn new(db: Arc<Database>, skills_queries: SkillsQueryService) -> Self {
-        Self { db, skills_queries }
+    pub fn new(harness_kernel: HarnessKernelService, skills_queries: SkillsQueryService) -> Self {
+        Self {
+            harness_kernel,
+            skills_queries,
+        }
     }
 
     pub fn available(&self) -> bool {
-        ScanConfigRepository::new(self.db.clone())
-            .get_active()
-            .ok()
-            .flatten()
-            .is_some()
-            || detect_llm()
-                .get("hasAnyAvailable")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
+        list_scannable_harnesses(&self.harness_kernel)
+            .into_iter()
+            .any(|entry| entry.cli_available)
     }
 
-    pub fn detect_llm(&self) -> Value {
-        detect_llm()
+    pub fn scannable_harnesses(&self) -> Value {
+        scannable_harnesses_json(&self.harness_kernel)
     }
 
     pub fn scan_skill(&self, skill_ref: &str, options: Option<Value>) -> ApiResult<Value> {
-        if !self.available() {
-            return Err(ApiError::service_unavailable(
-                "Scan service not available. Check LLM configuration.",
-            ));
-        }
-
         let skill_path = self
             .skills_queries
             .get_skill_path(skill_ref)
             .ok_or_else(|| ApiError::not_found(format!("unknown skill ref: {skill_ref}")))?;
 
-        let use_llm = options
+        let harness = options
+            .as_ref()
+            .and_then(|body| body.get("harness"))
+            .and_then(|v| v.as_str())
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+
+        let static_only = options
             .as_ref()
             .and_then(|body| body.get("useLlm"))
             .and_then(|v| v.as_bool())
-            .unwrap_or(true);
+            .map(|use_llm| !use_llm)
+            .unwrap_or(false);
 
         let skill_name = skill_path
             .file_name()
@@ -61,64 +60,63 @@ impl ScanService {
 
         let started = Instant::now();
 
-        if !use_llm {
+        if static_only {
+            let findings = static_skill_scan(&skill_path);
+            let max_severity = max_severity(&findings);
             return Ok(present_scan_result(
                 &skill_name,
-                vec![],
-                "safe",
-                vec![],
+                findings,
+                max_severity,
+                vec!["static_analyzer".into()],
                 started.elapsed().as_secs_f64(),
             ));
         }
 
-        if !self.has_llm_credentials() {
-            return Ok(present_scan_result(
-                &skill_name,
-                vec![llm_no_api_key_finding()],
-                "info",
-                vec!["llm_analyzer".into()],
-                started.elapsed().as_secs_f64(),
+        let Some(harness) = harness else {
+            return Err(ApiError::bad_request(
+                "harness is required for security scan (select an enabled agent CLI)",
             ));
+        };
+
+        if !self
+            .harness_kernel
+            .enabled_harness_ids()
+            .iter()
+            .any(|enabled| enabled == harness)
+        {
+            return Err(ApiError::bad_request(format!(
+                "harness '{harness}' is not enabled"
+            )));
         }
 
-        let findings = static_skill_scan(&skill_path);
+        if !harness_supports_scan(harness) {
+            return Err(ApiError::bad_request(format!(
+                "harness '{harness}' does not support security scanning"
+            )));
+        }
+
+        let mut findings = static_skill_scan(&skill_path);
+        let mut analyzers = vec!["static_analyzer".into()];
+
+        match run_harness_scan(harness, &skill_path, &skill_name) {
+            Ok(harness_findings) => {
+                analyzers.push(format!("{harness}_scanner"));
+                findings.extend(harness_findings);
+            }
+            Err(error) => {
+                findings.push(harness_scan_error_finding(harness, &error.message));
+                analyzers.push(format!("{harness}_scanner"));
+            }
+        }
+
         let max_severity = max_severity(&findings);
         Ok(present_scan_result(
             &skill_name,
             findings,
             max_severity,
-            vec!["static_analyzer".into(), "llm_analyzer".into()],
+            analyzers,
             started.elapsed().as_secs_f64(),
         ))
-    }
-
-    fn has_llm_credentials(&self) -> bool {
-        if let Ok(Some(active)) = ScanConfigRepository::new(self.db.clone()).get_active() {
-            if !active.api_key.trim().is_empty() {
-                return true;
-            }
-            let provider = active.provider.to_lowercase();
-            if provider == "ollama" || provider == "bedrock" {
-                return true;
-            }
-        }
-        for key in [
-            "SKILL_SCANNER_LLM_API_KEY",
-            "ANTHROPIC_API_KEY",
-            "OPENAI_API_KEY",
-            "OPENROUTER_API_KEY",
-            "GEMINI_API_KEY",
-            "GOOGLE_API_KEY",
-            "AZURE_OPENAI_API_KEY",
-        ] {
-            if std::env::var(key)
-                .map(|value| !value.trim().is_empty())
-                .unwrap_or(false)
-            {
-                return true;
-            }
-        }
-        false
     }
 }
 
@@ -130,7 +128,7 @@ fn static_skill_scan(skill_path: &Path) -> Vec<Value> {
             "missing_skill_md",
             "MISSING_SKILL_MD",
             "policy_violation",
-            "warning",
+            "LOW",
             "Missing SKILL.md",
             "Skill package does not contain a SKILL.md file.",
             Some(skill_path.display().to_string()),
@@ -147,7 +145,7 @@ fn static_skill_scan(skill_path: &Path) -> Vec<Value> {
                 "skill_md_unreadable",
                 "SKILL_MD_UNREADABLE",
                 "policy_violation",
-                "warning",
+                "LOW",
                 "Unable to read SKILL.md",
                 &error.to_string(),
                 Some(skill_md.display().to_string()),
@@ -178,7 +176,7 @@ fn static_skill_scan(skill_path: &Path) -> Vec<Value> {
                 id,
                 rule_id,
                 "suspicious_pattern",
-                "info",
+                "LOW",
                 title,
                 &format!("SKILL.md contains '{needle}'."),
                 Some(skill_md.display().to_string()),
@@ -191,17 +189,17 @@ fn static_skill_scan(skill_path: &Path) -> Vec<Value> {
     findings
 }
 
-fn llm_no_api_key_finding() -> Value {
+fn harness_scan_error_finding(harness: &str, detail: &str) -> Value {
     finding(
-        "llm_no_api_key",
-        "LLM_NO_API_KEY",
+        &format!("{harness}_scan_error"),
+        "HARNESS_SCAN_ERROR",
         "policy_violation",
-        "info",
-        "LLM scan skipped - no API key",
-        "Set ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable",
+        "LOW",
+        &format!("{harness} scan failed"),
+        detail,
         None,
         None,
-        "llm_analyzer",
+        &format!("{harness}_scanner"),
     )
 }
 
@@ -238,26 +236,25 @@ fn max_severity(findings: &[Value]) -> &'static str {
         let severity = finding
             .get("severity")
             .and_then(|v| v.as_str())
-            .unwrap_or("info");
+            .unwrap_or("LOW");
         rank = rank.max(severity_rank(severity));
     }
     match rank {
-        4 => "critical",
-        3 => "high",
-        2 => "medium",
-        1 => "warning",
-        0 => "safe",
-        _ => "info",
+        4 => "CRITICAL",
+        3 => "HIGH",
+        2 => "MEDIUM",
+        1 => "LOW",
+        _ => "SAFE",
     }
 }
 
 fn severity_rank(severity: &str) -> i32 {
-    match severity {
-        "critical" => 4,
-        "high" => 3,
-        "medium" => 2,
-        "warning" => 1,
-        "safe" => 0,
+    match severity.to_uppercase().as_str() {
+        "CRITICAL" => 4,
+        "HIGH" => 3,
+        "MEDIUM" => 2,
+        "LOW" | "WARNING" => 1,
+        "SAFE" => 0,
         _ => 0,
     }
 }
@@ -270,11 +267,11 @@ fn present_scan_result(
     duration_seconds: f64,
 ) -> Value {
     let findings_count = findings.len() as i64;
-    let is_safe = matches!(max_severity, "safe" | "info");
+    let is_safe = !matches!(max_severity, "CRITICAL" | "HIGH");
     json!({
         "skillName": skill_name,
         "isSafe": is_safe,
-        "maxSeverity": if findings.is_empty() { "safe" } else { max_severity },
+        "maxSeverity": if findings.is_empty() { "SAFE" } else { max_severity },
         "findingsCount": findings_count,
         "findings": findings,
         "analyzersUsed": analyzers_used,

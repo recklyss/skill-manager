@@ -1,5 +1,134 @@
 @layer features {
 
+.scan-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.scan-toolbar__field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.scan-toolbar__select {
+  min-width: 180px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.scan-toolbar__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.scan-harness-picker--select {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.scan-harness-picker--list {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.scan-harness-picker__legend {
+  margin-bottom: var(--space-3);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.scan-harness-picker__options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.scan-harness-picker__option {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.scan-harness-picker__option--unavailable {
+  opacity: 0.72;
+}
+
+.scan-harness-picker__label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.scan-harness-picker__option--unavailable .scan-harness-picker__label {
+  cursor: not-allowed;
+}
+
+.scan-harness-picker__input {
+  margin: 0;
+}
+
+.scan-harness-picker__name {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.scan-harness-picker__reason {
+  grid-column: 2;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.scan-harness-picker__hint,
+.scan-harness-picker__empty,
+.scan-harness-picker__loading {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.scan-config-page {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 36rem;
+}
+
+.scan-config-page__link {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.scan-config-page__link a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.scan-config-page__link a:hover,
+.scan-config-page__link a:focus-visible {
+  text-decoration: underline;
+}
+
 .scan-table {
   min-width: 420px;
 }

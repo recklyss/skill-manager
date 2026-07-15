@@ -17,7 +17,7 @@ function finding(overrides: Partial<ScanFinding>): ScanFinding {
     metadata: {},
     snippet: null,
     remediation: null,
-    analyzer: "llm_analyzer",
+    analyzer: "claude_scanner",
     ...overrides,
   };
 }
@@ -29,21 +29,14 @@ function result(findings: ScanFinding[]): ScanResult {
     maxSeverity: findings[0]?.severity ?? "SAFE",
     findingsCount: findings.length,
     findings,
-    analyzersUsed: ["llm_analyzer"],
+    analyzersUsed: ["claude_scanner"],
     durationSeconds: 0.4,
   };
 }
 
 describe("ScanPanel", () => {
-  const llmConfig = {
-    name: "test config",
-    model: "qwen-plus",
-    provider: "openai-compatible",
-    baseUrl: "https://example.test/v1",
-  };
-
   it("shows the serious warning only when a critical finding exists", () => {
-    render(<ScanPanel result={result([finding({ severity: "CRITICAL" })])} llmConfig={llmConfig} />);
+    render(<ScanPanel result={result([finding({ severity: "CRITICAL" })])} harnessLabel="Claude" />);
 
     expect(screen.getByRole("heading", {
       name: "These are serious issues; please delete them immediately!",
@@ -57,7 +50,7 @@ describe("ScanPanel", () => {
           finding({ id: "finding-high", severity: "HIGH" }),
           finding({ id: "finding-low", severity: "LOW" }),
         ])}
-        llmConfig={llmConfig}
+        harnessLabel="Claude"
       />,
     );
 
@@ -65,12 +58,12 @@ describe("ScanPanel", () => {
       name: "These problems are not serious, you can use it with confidence.",
     })).toBeInTheDocument();
     expect(screen.getByText(/test2 - 0\.4s - 2 Findings/i)).toBeInTheDocument();
-    expect(screen.queryByText(/llm_analyzer/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/claude_scanner/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/severity summary/i)).not.toBeInTheDocument();
   });
 
   it("shows the no-problems message when no findings are detected", () => {
-    render(<ScanPanel result={result([])} llmConfig={llmConfig} />);
+    render(<ScanPanel result={result([])} harnessLabel="Claude" />);
 
     expect(screen.getByRole("heading", {
       name: "No problems were detected, please use it with confidence.",

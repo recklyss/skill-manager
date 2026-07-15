@@ -19,3 +19,18 @@ export type ScanConfigSavePayload =
 export type ScanConfigValidatePayload =
   Pick<ScanConfigValidateRequest, RequiredScanConfigFields> &
   Partial<Omit<ScanConfigValidateRequest, RequiredScanConfigFields>>;
+
+/** @deprecated Legacy LLM scan configuration input; harness CLI scanning replaced this flow. */
+export interface LLMScanConfigInput {
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  provider?: string;
+  apiVersion?: string;
+  maxTokens?: number;
+  consensusRuns?: number;
+  awsRegion?: string;
+  awsProfile?: string;
+  awsSessionToken?: string;
+}

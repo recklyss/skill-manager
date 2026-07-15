@@ -64,7 +64,6 @@ export default function SkillsInUsePage() {
   const common = useCommonCopy();
   const [pill, setPill] = useState<InUsePillValue>("all");
   const [viewMode, setViewMode] = useInUseViewMode();
-  const [showScanConfig, setShowScanConfig] = useState(false);
   const scan = useSkillScan();
   const [pendingConfirm, setPendingConfirm] = useState<{
     action: "unmanage" | "delete";
@@ -211,19 +210,12 @@ export default function SkillsInUsePage() {
                 rows={rows}
                 scanStateMap={scan.scanState}
                 getScanState={scan.getScanState}
-                llmConfig={scan.llmConfig}
-                configs={scan.configs}
-                activeConfigId={scan.activeConfigId}
-                showConfig={showScanConfig}
+                harnesses={scan.harnesses}
+                selectedHarness={scan.selectedHarness}
+                harnessesLoaded={scan.harnessesLoaded}
+                onSelectHarness={scan.selectHarness}
                 onOpenSkill={onOpenSkill}
                 onScanSkill={(skillRef) => void scan.scanSkill(skillRef)}
-                onOpenConfig={() => setShowScanConfig(true)}
-                onCloseConfig={() => setShowScanConfig(false)}
-                onSelectConfig={scan.selectConfig}
-                onAddConfig={scan.addConfig}
-                onEditConfig={scan.editConfig}
-                onRevealApiKey={scan.revealConfigApiKey}
-                onValidateConfig={scan.validateConfig}
               />
             ) : viewMode === "board" ? (
               <BoardView

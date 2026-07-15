@@ -67,6 +67,37 @@ async fn delete_config_returns_ok() {
     assert_eq!(body["ok"].as_bool(), Some(true));
 }
 
+/// GET /api/scan/harnesses lists enabled harnesses that support CLI scanning.
+#[tokio::test]
+async fn list_scannable_harnesses_returns_envelope() {
+    let fixture = TestFixture::new();
+    let (status, body) = fixture.get("/api/scan/harnesses").await;
+    assert_eq!(status, 200);
+    assert!(body.get("harnesses").unwrap().is_array());
+}
+
+/// POST /api/scan/skills/{skill_ref} requires harness unless static-only.
+#[tokio::test]
+async fn scan_skill_requires_harness() {
+    let fixture = TestFixture::new();
+    fs::create_dir_all(&fixture.paths.skills_store_root).unwrap();
+    seed_skill(
+        &fixture.paths.skills_store_root,
+        "demo-skill",
+        "Demo skill",
+    );
+
+    let (status, body) = fixture
+        .post_json("/api/scan/skills/shared:demo-skill", serde_json::json!({}))
+        .await;
+    assert_eq!(status, 400);
+    assert!(body
+        .get("detail")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .contains("harness"));
+}
+
 /// POST /api/scan/skills/{skill_ref} returns a ScanResultResponse envelope.
 #[tokio::test]
 async fn scan_skill_returns_result_envelope() {

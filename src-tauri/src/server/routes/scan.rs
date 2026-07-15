@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    routing::{delete, get, post, put},
+    routing::{get, post, put},
     Json, Router,
 };
 use serde::Deserialize;
@@ -12,7 +12,8 @@ use crate::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/availability", get(check_availability))
-        .route("/llm/detection", get(detect_llm))
+        .route("/harnesses", get(list_scannable_harnesses))
+        .route("/llm/detection", get(detect_llm_deprecated))
         .route(
             "/configs",
             get(list_configs).post(create_config),
@@ -31,8 +32,19 @@ async fn check_availability(State(state): State<AppState>) -> Json<Value> {
     Json(serde_json::json!({ "available": state.scan.service.available() }))
 }
 
-async fn detect_llm(State(state): State<AppState>) -> Json<Value> {
-    Json(state.scan.service.detect_llm())
+async fn list_scannable_harnesses(State(state): State<AppState>) -> Json<Value> {
+    Json(state.scan.service.scannable_harnesses())
+}
+
+async fn detect_llm_deprecated() -> Json<Value> {
+    Json(serde_json::json!({
+        "hasAnyAvailable": false,
+        "defaultProvider": Value::Null,
+        "defaultModel": Value::Null,
+        "providers": [],
+        "deprecated": true,
+        "message": "LLM scan configuration is deprecated; use harness CLI scanning instead.",
+    }))
 }
 
 async fn list_configs(State(state): State<AppState>) -> Json<Value> {
@@ -86,6 +98,7 @@ async fn reveal_secret(
 struct ScanOptionsRequest {
     #[serde(rename = "useLlm", default = "default_use_llm")]
     use_llm: bool,
+    harness: Option<String>,
 }
 
 fn default_use_llm() -> bool {
@@ -98,9 +111,13 @@ async fn scan_skill(
     body: Option<Json<ScanOptionsRequest>>,
 ) -> ApiResult<Json<Value>> {
     let options = body.map(|Json(request)| {
-        serde_json::json!({
+        let mut value = serde_json::json!({
             "useLlm": request.use_llm,
-        })
+        });
+        if let Some(harness) = request.harness {
+            value["harness"] = serde_json::json!(harness);
+        }
+        value
     });
     Ok(Json(state.scan.service.scan_skill(&skill_ref, options)?))
 }

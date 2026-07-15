@@ -1,17 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Cpu, FileText, ShieldAlert, ShieldCheck } from "lucide-react";
-import type { ScanResult, ScanFinding, LLMDetection } from "../../api/scan-types";
-import { detectLLM } from "../../api/scan-client";
+import { ShieldAlert, ShieldCheck, Terminal, ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { useMemo, useState } from "react";
+import type { ScanResult, ScanFinding } from "../../api/scan-types";
 import { useSkillsCopy } from "../../i18n";
 
-const SEVERITY_ORDER = ["CRITICAL", "HIGH", "LOW"];
-
-export interface ScanPanelLlmConfig {
-  name: string;
-  model: string;
-  provider: string;
-  baseUrl: string;
-}
+const SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 
 function SeverityBadge({ severity }: { severity: string }) {
   return (
@@ -71,33 +63,18 @@ function FindingRow({ finding, remediationLabel }: { finding: ScanFinding; remed
 
 export default function ScanPanel({
   result,
-  llmConfig,
+  harnessLabel,
 }: {
   result: ScanResult;
-  llmConfig?: ScanPanelLlmConfig | null;
+  harnessLabel?: string | null;
 }) {
-  const [llmDetection, setLlmDetection] = useState<LLMDetection | null>(null);
   const copy = useSkillsCopy().scan.result;
 
-  useEffect(() => {
-    if (llmConfig) {
-      setLlmDetection(null);
-      return;
-    }
-    detectLLM().then(setLlmDetection).catch(() => setLlmDetection(null));
-  }, [llmConfig]);
-
-  const grouped = useMemo(() => {
-    return SEVERITY_ORDER.reduce<Record<string, ScanFinding[]>>((acc, sev) => {
-      acc[sev] = result.findings.filter((f) => f.severity === sev);
-      return acc;
-    }, {});
-  }, [result.findings]);
   const sortedFindings = useMemo(
     () => [...result.findings].sort((a, b) => severityRank(a.severity) - severityRank(b.severity)),
     [result.findings],
   );
-  const criticalCount = grouped.CRITICAL.length;
+  const criticalCount = sortedFindings.filter((finding) => finding.severity === "CRITICAL").length;
   const hasCriticalFindings = criticalCount > 0;
   const hasFindings = result.findingsCount > 0;
   const headline = hasCriticalFindings
@@ -121,35 +98,15 @@ export default function ScanPanel({
         </div>
       </header>
 
-      {llmConfig ? (
+      {harnessLabel ? (
         <div className="scan-report__llm">
           <div className="scan-report__llm-heading">
-            <Cpu size={14} aria-hidden="true" />
-            <span>{copy.llmModel}</span>
+            <Terminal size={14} aria-hidden="true" />
+            <span>{copy.harnessScanner}</span>
           </div>
           <div className="scan-report__llm-body">
-            <div>{copy.configuredModel}: <strong>{llmConfig.model || copy.notConfigured}</strong> ({llmConfig.provider || copy.unknown})</div>
-            <div>{copy.activeConfiguration}: {llmConfig.name || copy.unnamed} - {llmConfig.baseUrl || copy.noBaseUrl}</div>
+            <div>{copy.harnessUsed}: <strong>{harnessLabel}</strong></div>
           </div>
-        </div>
-      ) : llmDetection ? (
-        <div className="scan-report__llm">
-          <div className="scan-report__llm-heading">
-            <Cpu size={14} aria-hidden="true" />
-            <span>{copy.llmDetection}</span>
-          </div>
-          {llmDetection.hasAnyAvailable ? (
-            <div className="scan-report__llm-body">
-              <div>{copy.defaultModel}: <strong>{llmDetection.defaultModel || copy.notSpecified}</strong> ({llmDetection.defaultProvider || copy.unknown})</div>
-              <div>
-                {copy.availableProviders}: {llmDetection.providers.filter(p => p.isAvailable).map(p => `${p.provider}${p.model ? ` (${p.model})` : ""}`).join(", ") || copy.none}
-              </div>
-            </div>
-          ) : (
-            <div className="scan-report__llm-body scan-report__llm-body--error">
-              {copy.noProviders}
-            </div>
-          )}
         </div>
       ) : null}
 

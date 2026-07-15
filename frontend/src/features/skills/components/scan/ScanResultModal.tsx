@@ -5,17 +5,16 @@ import ScanPanel from "./ScanPanel";
 import type { ScanResult } from "../../api/scan-types";
 import { useLocale } from "../../../../i18n";
 import { useSkillsCopy } from "../../i18n";
-import type { LLMScanConfig } from "../../model/use-skill-scan";
 
 interface ScanResultModalProps {
   open: boolean;
   result: ScanResult | null;
   completedAt: number | null;
-  llmConfig: LLMScanConfig | null;
+  harnessLabel: string | null;
   onClose: () => void;
 }
 
-export function ScanResultModal({ open, result, completedAt, llmConfig, onClose }: ScanResultModalProps) {
+export function ScanResultModal({ open, result, completedAt, harnessLabel, onClose }: ScanResultModalProps) {
   const copy = useSkillsCopy().scan.result;
   const { locale } = useLocale();
 
@@ -41,7 +40,7 @@ export function ScanResultModal({ open, result, completedAt, llmConfig, onClose 
               </button>
             </Dialog.Close>
           </div>
-          {result ? <ScanPanel result={result} llmConfig={llmConfig} /> : null}
+          {result ? <ScanPanel result={result} harnessLabel={harnessLabel} /> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -70,7 +70,7 @@ pub fn build_app_state_with_env(
     let marketplace = MarketplaceServices::new(&paths);
     let mcp = McpServices::new(&paths, &kernel, &marketplace.mcp);
     let slash_commands = SlashCommandServices::new(&paths, &kernel);
-    let scan = ScanServices::new(db, skills_queries.clone());
+    let scan = ScanServices::new(db, kernel.clone(), skills_queries.clone());
 
     AppState {
         paths,

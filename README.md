@@ -30,14 +30,14 @@ AI extensions are scattered across harness-specific folders, MCP config files, s
 |---|---|
 | **In use** | Skill Manager controls the item and can enable or disable it across harnesses. |
 | **Needs review** | Skill Manager found local state, config differences, or inventory issues that need a decision. |
-| **Scan** | Run LLM-backed security checks against Skills before trusting them. |
+| **Scan** | Run harness CLI security checks against Skills before trusting them. |
 | **Discover** | Browse marketplaces and preview external tools. |
 
 ## What you can do
 
 - See what is in use, what needs review, and where extensions are active.
 - Adopt local Skills into one shared inventory, then enable or disable them per harness.
-- Scan Skills with a saved LLM provider configuration and review findings before use.
+- Scan Skills with an enabled harness CLI and review findings before use.
 - Install or adopt MCP server configs, resolve differences, and enable them where supported.
 - Manage reusable slash commands once, then sync them to supported harnesses.
 - Discover Skills, MCP servers, and preview-only CLI tools from marketplace sources.
@@ -65,20 +65,28 @@ Typical flow:
 
 ### Skill scanning
 
-Scan Skills with an LLM-backed security review before you rely on them.
+Scan Skills with your enabled agent harness CLI before you rely on them. No separate LLM API configuration is required.
+
+**Supported scan harnesses** (must be enabled in Settings and have the CLI on `PATH`):
+
+| Harness | CLI binary | Invocation |
+|---------|------------|------------|
+| Claude | `claude` | `claude -p` (non-interactive) |
+| Codex | `codex` | `codex exec` |
+| GitHub Copilot | `copilot` | `copilot -p --allow-all` |
+| Cursor | `cursor-agent` | `cursor-agent -p -f` |
 
 Typical flow:
 
-1. Add and validate an LLM scan configuration.
+1. Enable at least one supported harness in Settings and install its CLI.
 2. Switch Skills in use to the Scan view.
-3. Run a scan for one Skill, selected Skills, or the full visible list.
-4. Review severity, findings, snippets, and remediation guidance.
+3. Pick the harness to scan with.
+4. Run a scan for one Skill, selected Skills, or the full visible list.
+5. Review severity, findings, snippets, and remediation guidance.
 
 ![skill-manager-scan-view](./assets/skill-manager-scan-view.svg)
 
-Scan configurations are managed separately so you can save multiple providers, choose one active configuration, and keep API keys masked in list views.
-
-![skill-manager-scan-config](./assets/skill-manager-scan-config.svg)
+Static heuristics always run locally. The selected harness CLI performs semantic analysis and must return strict JSON (`verdict`, `riskLevel`, `summary`, `findings`).
 
 ### MCP servers
 
@@ -198,8 +206,7 @@ Actions that can change local state include:
 - enabling or disabling a skill for a harness
 - updating a source-backed skill
 - removing or deleting a skill
-- creating, updating, validating, activating, or deleting an LLM scan configuration
-- running a Skill scan, which sends selected Skill context to the configured LLM provider
+- running a Skill scan, which sends bounded Skill context to the selected harness CLI for analysis
 - installing an MCP server into a selected harness config
 - adopting an existing MCP config
 - enabling, disabling, resolving, or uninstalling an MCP server
@@ -222,9 +229,9 @@ Hermes Agent Skills use the categorized Hermes layout under `~/.hermes/skills/<c
 
 ### Skill scans
 
-Skill scans build a bounded prompt context from `SKILL.md`, manifest metadata, script and config files, and files referenced by the Skill instructions. Secret-bearing files such as `.env`, private keys, certificates, and credential files are excluded from the prompt context, and large files are skipped when they exceed scanner limits.
+Skill scans build a bounded prompt context from `SKILL.md` and selected text files in the skill package (up to 64 KB). Static heuristics run locally. Semantic analysis invokes the harness CLI you pick in the Scan view (Claude, Codex, Copilot, or Cursor). The CLI must return strict JSON with `verdict`, `riskLevel`, `summary`, and `findings`. Scans time out after 120 seconds.
 
-The scanner uses the active saved LLM configuration first. If none is active, it can fall back to supported environment variables such as `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `AZURE_OPENAI_API_KEY`, `AWS_BEDROCK_MODEL`, or `OLLAMA_HOST`.
+Legacy LLM scan configuration APIs remain for compatibility but are no longer required for the primary scan workflow.
 
 Scan reports show whether the Skill is safe, the maximum severity, findings, locations, snippets, and remediation text. The frontend caches completed reports in browser local storage so recent results remain visible after navigation.
 
