@@ -29,7 +29,6 @@ pub struct McpHarnessScan {
 #[derive(Debug, Clone)]
 pub struct McpBinding {
     pub harness: String,
-    pub name: String,
     pub state: String,
     pub drift_detail: Option<String>,
 }
@@ -62,7 +61,6 @@ pub struct McpInventoryIssue {
 
 #[derive(Debug, Clone)]
 pub struct McpInventory {
-    pub columns: Vec<String>,
     pub entries: Vec<McpInventoryEntry>,
     pub issues: Vec<McpInventoryIssue>,
 }

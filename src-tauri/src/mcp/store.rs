@@ -94,7 +94,7 @@ impl McpServerStore {
     }
 
     pub fn upsert(&self, spec: McpServerSpec) -> Result<McpServerSpec, String> {
-        let mut stamped = prepare_managed_spec(spec);
+        let stamped = prepare_managed_spec(spec);
         let (mut entries, issues) = self.load_manifest();
         if !issues.is_empty() && entries.is_empty() {
             return Err("manifest has issues".to_string());
@@ -214,8 +214,4 @@ fn compute_revision(spec: &McpServerSpec) -> String {
     });
     let digest = Sha256::digest(serde_json::to_string(&payload).unwrap_or_default().as_bytes());
     format!("{:x}", digest)[..16].to_string()
-}
-
-pub fn redacted_spec_dict(spec: &McpServerSpec) -> Value {
-    super::redaction::redacted_spec_dict(spec)
 }

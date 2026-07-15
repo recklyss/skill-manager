@@ -13,7 +13,6 @@ use super::inventory::build_inventory;
 use super::managed_state::{detail_extras_payload, entry_payload, inventory_payload};
 use super::planner::McpAdoptionPlanner;
 use super::redaction::{annotate_redacted_env, redact_payload, redacted_spec_dict};
-use super::store::McpServerStore;
 
 #[derive(Clone)]
 pub struct McpQueryService {

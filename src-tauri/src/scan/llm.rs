@@ -10,39 +10,6 @@ pub struct ValidationResult {
     pub error_code: Option<String>,
 }
 
-pub fn detect_llm() -> serde_json::Value {
-    let mut providers = Vec::new();
-    if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-        if !key.trim().is_empty() {
-            providers.push(serde_json::json!({
-                "provider": "openai",
-                "apiKeySource": "env:OPENAI_API_KEY",
-                "model": "gpt-4o-mini",
-                "baseUrl": "https://api.openai.com/v1",
-                "isAvailable": true,
-            }));
-        }
-    }
-    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
-        if !key.trim().is_empty() {
-            providers.push(serde_json::json!({
-                "provider": "anthropic",
-                "apiKeySource": "env:ANTHROPIC_API_KEY",
-                "model": "claude-sonnet-4-20250514",
-                "baseUrl": "https://api.anthropic.com",
-                "isAvailable": true,
-            }));
-        }
-    }
-    let has_any = !providers.is_empty();
-    serde_json::json!({
-        "providers": providers,
-        "defaultModel": if has_any { providers[0].get("model").cloned().unwrap_or(serde_json::Value::Null) } else { serde_json::Value::Null },
-        "defaultProvider": if has_any { providers[0].get("provider").cloned().unwrap_or(serde_json::Value::Null) } else { serde_json::Value::Null },
-        "hasAnyAvailable": has_any,
-    })
-}
-
 pub fn validate_config_connectivity(config: &LlmScanConfigRow) -> ValidationResult {
     let missing = missing_fields(config);
     let provider = infer_provider(&config.provider, &config.base_url, &config.model);

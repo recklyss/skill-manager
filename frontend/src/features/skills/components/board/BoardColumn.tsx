@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 
-export type BoardColumnKind = "disabled" | "selective" | "enabled";
+export type BoardColumnKind = "disabled" | "single" | "selective" | "enabled";
 
 interface BoardColumnProps {
   kind: BoardColumnKind;
@@ -14,7 +14,7 @@ interface BoardColumnProps {
 
 export function BoardColumn({ kind, title, description, count, emptyMessage, children }: BoardColumnProps) {
   const labelId = `board-column-${kind}-label`;
-  const isDropTarget = kind !== "selective";
+  const isDropTarget = kind === "disabled" || kind === "enabled";
   const { setNodeRef, isOver } = useDroppable({ id: kind, disabled: !isDropTarget });
   const { active } = useDndContext();
   const dragInProgress = active !== null;

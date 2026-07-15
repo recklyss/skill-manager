@@ -18,7 +18,6 @@ pub use adapters::McpReadModelService;
 pub use mutations::McpMutationService;
 pub use queries::McpQueryService;
 pub use store::McpServerStore;
-pub use availability::{McpEnrichmentService, MarketplaceLink};
 
 use crate::harness::HarnessKernelService;
 use crate::marketplace::McpMarketplaceService;

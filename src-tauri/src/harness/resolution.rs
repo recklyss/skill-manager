@@ -189,13 +189,6 @@ fn strip_jsonc_line_comments(input: &str) -> String {
     output
 }
 
-pub fn cursor_app_paths(ctx: &ResolutionContext) -> Vec<PathBuf> {
-    vec![
-        PathBuf::from("/Applications/Cursor.app"),
-        ctx.home.join("Applications").join("Cursor.app"),
-    ]
-}
-
 /// Resolve a CLI binary using the active environment's `PATH` (not only process env).
 pub fn resolve_executable_path(ctx: &ResolutionContext, binary: &str) -> Option<PathBuf> {
     let path_var = ctx.env.get("PATH").map(String::as_str).unwrap_or_default();

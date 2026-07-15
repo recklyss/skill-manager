@@ -6,8 +6,14 @@
 
 .skill-board {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-5);
+}
+
+@media (max-width: 1200px) {
+  .skill-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -38,7 +44,8 @@
   min-height: 220px;
 }
 
-.board-column--selective {
+.board-column--selective,
+.board-column--single {
   background: transparent;
   border: 1px dashed var(--color-border-strong);
 }

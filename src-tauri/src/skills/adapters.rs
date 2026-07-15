@@ -33,7 +33,6 @@ pub struct SkillsHarnessAdapter {
 #[derive(Debug, Clone)]
 struct ResolvedRoot {
     scope: String,
-    label: String,
     path: PathBuf,
 }
 
@@ -662,13 +661,11 @@ pub fn build_skills_adapters(kernel: &HarnessKernelService) -> Vec<SkillsHarness
             let managed_root = profile.resolve_managed_root(&kernel.context);
             let mut resolved_roots = vec![ResolvedRoot {
                 scope: "canonical".into(),
-                label: "Managed skills root".into(),
                 path: managed_root.clone(),
             }];
             for root in profile.discovery_roots {
                 resolved_roots.push(ResolvedRoot {
                     scope: root.scope.to_string(),
-                    label: root.label.to_string(),
                     path: (root.path_resolver)(&kernel.context),
                 });
             }
@@ -679,7 +676,6 @@ pub fn build_skills_adapters(kernel: &HarnessKernelService) -> Vec<SkillsHarness
                 {
                     resolved_roots.push(ResolvedRoot {
                         scope: format!("skill-directories-{index}"),
-                        label: "Copilot settings skill directory".into(),
                         path,
                     });
                 }

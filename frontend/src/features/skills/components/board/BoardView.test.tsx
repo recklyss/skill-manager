@@ -29,6 +29,18 @@ const rows: SkillListRow[] = [
     ],
   },
   {
+    skillRef: "shared:multi-selective",
+    name: "Multi Selective Skill",
+    description: "Two harnesses on",
+    displayStatus: "Managed",
+    actions: { canManage: false, canStopManaging: true, canDelete: false },
+    cells: [
+      { harness: "codex", label: "Codex", state: "enabled", interactive: true },
+      { harness: "cursor", label: "Cursor", state: "enabled", interactive: true },
+      { harness: "claude", label: "Claude", state: "disabled", interactive: true },
+    ],
+  },
+  {
     skillRef: "shared:all-on",
     name: "All On Skill",
     description: "Enabled everywhere",
@@ -63,11 +75,13 @@ describe("BoardView", () => {
     renderBoard();
 
     const disabledColumn = screen.getByRole("region", { name: /disabled everywhere/i });
-    const selectiveColumn = screen.getByRole("region", { name: /selective/i });
+    const singleColumn = screen.getByRole("region", { name: /one harness only/i });
+    const selectiveColumn = screen.getByRole("region", { name: /^selective$/i });
     const enabledColumn = screen.getByRole("region", { name: /enabled everywhere/i });
 
     expect(within(disabledColumn).getByText("All Off Skill")).toBeInTheDocument();
-    expect(within(selectiveColumn).getByText("Selective Skill")).toBeInTheDocument();
+    expect(within(singleColumn).getByText("Selective Skill")).toBeInTheDocument();
+    expect(within(selectiveColumn).getByText("Multi Selective Skill")).toBeInTheDocument();
     expect(within(enabledColumn).getByText("All On Skill")).toBeInTheDocument();
 
     expect(within(disabledColumn).queryByText("All On Skill")).toBeNull();

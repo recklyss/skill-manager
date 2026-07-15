@@ -1,27 +1,42 @@
 import type { SkillListRow } from "./types";
 
-export type SkillBucket = "disabled" | "selective" | "enabled";
+export type SkillBucket = "disabled" | "single" | "selective" | "enabled";
+
+function interactiveCells(row: SkillListRow) {
+  return row.cells.filter((cell) => cell.interactive);
+}
+
+function countEnabledInteractive(row: SkillListRow): number {
+  return interactiveCells(row).filter((cell) => cell.state === "enabled").length;
+}
 
 export function bucketForRow(row: SkillListRow): SkillBucket {
-  const interactive = row.cells.filter((cell) => cell.interactive);
+  const interactive = interactiveCells(row);
   if (interactive.length === 0) {
     return "enabled";
   }
-  const allEnabled = interactive.every((cell) => cell.state === "enabled");
-  if (allEnabled) return "enabled";
-  const allDisabled = interactive.every((cell) => cell.state === "disabled");
-  if (allDisabled) return "disabled";
+  const enabledCount = countEnabledInteractive(row);
+  if (enabledCount === 0) {
+    return "disabled";
+  }
+  if (interactive.every((cell) => cell.state === "enabled")) {
+    return "enabled";
+  }
+  if (enabledCount === 1) {
+    return "single";
+  }
   return "selective";
 }
 
 export interface BucketedRows {
   disabled: SkillListRow[];
+  single: SkillListRow[];
   selective: SkillListRow[];
   enabled: SkillListRow[];
 }
 
 export function bucketRows(rows: SkillListRow[]): BucketedRows {
-  const result: BucketedRows = { disabled: [], selective: [], enabled: [] };
+  const result: BucketedRows = { disabled: [], single: [], selective: [], enabled: [] };
   for (const row of rows) {
     result[bucketForRow(row)].push(row);
   }

@@ -5,7 +5,6 @@ use serde_json::{json, Value};
 use super::store::{McpServerSpec, McpSource};
 
 pub trait TransportMapper: Send + Sync {
-    fn observed_harness(&self) -> &str;
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value>;
     fn dict_to_spec(
         &self,
@@ -20,10 +19,6 @@ struct TypedMcpServersMapper {
 }
 
 impl TransportMapper for TypedMcpServersMapper {
-    fn observed_harness(&self) -> &str {
-        self.harness
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::from([("type".into(), json!("stdio"))]);
@@ -106,10 +101,6 @@ impl TransportMapper for TypedMcpServersMapper {
 struct OpenCodeMapper;
 
 impl TransportMapper for OpenCodeMapper {
-    fn observed_harness(&self) -> &str {
-        "opencode"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut command_list = Vec::new();
@@ -199,10 +190,6 @@ impl TransportMapper for OpenCodeMapper {
 struct CodexMapper;
 
 impl TransportMapper for CodexMapper {
-    fn observed_harness(&self) -> &str {
-        "codex"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::new();
@@ -279,10 +266,6 @@ impl TransportMapper for CodexMapper {
 struct HermesMapper;
 
 impl TransportMapper for HermesMapper {
-    fn observed_harness(&self) -> &str {
-        "hermes"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::new();
@@ -366,10 +349,6 @@ impl TransportMapper for HermesMapper {
 struct OpenClawMapper;
 
 impl TransportMapper for OpenClawMapper {
-    fn observed_harness(&self) -> &str {
-        "openclaw"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::new();
@@ -455,10 +434,6 @@ impl TransportMapper for OpenClawMapper {
 struct CopilotMapper;
 
 impl TransportMapper for CopilotMapper {
-    fn observed_harness(&self) -> &str {
-        "copilot"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         let mut payload = if spec.transport == "stdio" {
             let mut local = HashMap::from([

@@ -28,14 +28,27 @@ describe("bucketForRow", () => {
     expect(bucketForRow(row([disabled, { ...disabled, harness: "codex", label: "Codex" }]))).toBe("disabled");
   });
 
-  it("classifies mixed interactive states as 'selective'", () => {
-    expect(bucketForRow(row([enabled, disabled]))).toBe("selective");
+  it("classifies exactly one enabled harness as 'single'", () => {
+    expect(bucketForRow(row([enabled, disabled]))).toBe("single");
+    expect(bucketForRow(row([enabled, disabled, { ...disabled, harness: "claude", label: "Claude" }]))).toBe("single");
+  });
+
+  it("classifies multiple enabled harnesses as 'selective'", () => {
+    expect(
+      bucketForRow(
+        row([
+          enabled,
+          { ...enabled, harness: "cursor", label: "Cursor" },
+          disabled,
+        ]),
+      ),
+    ).toBe("selective");
   });
 
   it("ignores non-interactive cells when classifying", () => {
     expect(bucketForRow(row([enabled, found, empty]))).toBe("enabled");
     expect(bucketForRow(row([disabled, found, empty]))).toBe("disabled");
-    expect(bucketForRow(row([enabled, disabled, found]))).toBe("selective");
+    expect(bucketForRow(row([enabled, disabled, found]))).toBe("single");
   });
 
   it("treats rows with no interactive cells as 'enabled'", () => {
@@ -45,14 +58,16 @@ describe("bucketForRow", () => {
 });
 
 describe("bucketRows", () => {
-  it("partitions rows into three buckets preserving order", () => {
+  it("partitions rows into four buckets preserving order", () => {
     const a = row([disabled], "a");
     const b = row([enabled, disabled], "b");
-    const c = row([enabled], "c");
-    const d = row([disabled, disabled], "d");
-    const result = bucketRows([a, b, c, d]);
-    expect(result.disabled.map((r) => r.skillRef)).toEqual(["a", "d"]);
-    expect(result.selective.map((r) => r.skillRef)).toEqual(["b"]);
-    expect(result.enabled.map((r) => r.skillRef)).toEqual(["c"]);
+    const c = row([enabled, { ...enabled, harness: "cursor", label: "Cursor" }, disabled], "c");
+    const d = row([enabled], "d");
+    const e = row([disabled, disabled], "e");
+    const result = bucketRows([a, b, c, d, e]);
+    expect(result.disabled.map((r) => r.skillRef)).toEqual(["a", "e"]);
+    expect(result.single.map((r) => r.skillRef)).toEqual(["b"]);
+    expect(result.selective.map((r) => r.skillRef)).toEqual(["c"]);
+    expect(result.enabled.map((r) => r.skillRef)).toEqual(["d"]);
   });
 });

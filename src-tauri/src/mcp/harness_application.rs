@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::adapters::{FileBackedMcpAdapter, McpReadModelService};
 use super::store::McpServerSpec;
 

@@ -287,7 +287,7 @@ fn wait_with_timeout(
     }
 }
 
-pub fn parse_harness_scan_output(stdout: &str) -> ApiResult<HarnessScanPayload> {
+fn parse_harness_scan_output(stdout: &str) -> ApiResult<HarnessScanPayload> {
     let json_text = extract_json_text(stdout)?;
     let payload: HarnessScanPayload = serde_json::from_str(&json_text).map_err(|error| {
         ApiError::service_unavailable(format!("harness returned invalid scan JSON: {error}"))

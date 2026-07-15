@@ -434,11 +434,4 @@ pub fn supported_harness_ids() -> Vec<&'static str> {
         .collect()
 }
 
-pub fn harness_definitions_for_family(family: FamilyKey) -> Vec<&'static HarnessDefinition> {
-    SUPPORTED_HARNESS_DEFINITIONS
-        .iter()
-        .filter(|definition| definition.supports_family(family))
-        .collect()
-}
-
 // ponytail: discovery roots and extra MCP path resolvers omitted; DEV2 can extend catalog as needed.
