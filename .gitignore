@@ -17,3 +17,6 @@ progress.md
 # Tauri
 src-tauri/target/
 src-tauri/icons/
+
+# Local documentation (not versioned)
+Docs/
