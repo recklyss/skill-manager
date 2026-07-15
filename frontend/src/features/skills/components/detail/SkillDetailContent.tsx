@@ -118,6 +118,7 @@ export function SkillDetailContent({
           <DetailSection heading={copy.detail.harnesses}>
             <SkillDetailHarnessMatrix
               skillName={detail.name}
+              displayStatus={detail.displayStatus}
               cells={detail.harnessCells}
               pendingToggleHarnesses={pendingToggleHarnesses}
               pendingStructuralAction={pendingStructuralAction}

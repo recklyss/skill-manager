@@ -1,6 +1,7 @@
 import { CardSelectCheckbox } from "../../../../components/cards/CardSelectCheckbox";
 import { OverflowTooltipText } from "../../../../components/ui/OverflowTooltipText";
 import { HarnessChipStack } from "../cards/HarnessChipStack";
+import { useSkillsCopy } from "../../i18n";
 import { cellActionKey } from "../../model/pending";
 import type { CellActionKey } from "../../model/pending";
 import type {
@@ -48,6 +49,7 @@ export function MatrixRow({
   onToggleChecked,
   onToggleCell,
 }: MatrixRowProps) {
+  const copy = useSkillsCopy();
   const enabledCount = countEnabled(row);
   const totalCount = harnessColumns.length;
 
@@ -90,6 +92,7 @@ export function MatrixRow({
               cell={cell}
               skillName={row.name}
               pending={pending}
+              foundTooltip={copy.matrix.foundTooltip}
               onToggle={(next) => onToggleCell(row, next)}
             />
           </td>

@@ -10,6 +10,7 @@ interface SkillMatrixHarnessCellProps {
   skillName: string;
   pending?: boolean;
   onToggle: (cell: HarnessCellType) => void;
+  foundTooltip: (harnessLabel: string, managed: boolean) => string;
 }
 
 export function SkillMatrixHarnessCell({
@@ -17,12 +18,32 @@ export function SkillMatrixHarnessCell({
   skillName,
   pending = false,
   onToggle,
+  foundTooltip,
 }: SkillMatrixHarnessCellProps) {
-  if (cell.state === "empty" || cell.state === "found") {
+  if (cell.state === "empty") {
     return (
       <span className="matrix-harness-target" data-state="empty" aria-hidden="true">
         —
       </span>
+    );
+  }
+
+  if (cell.state === "found") {
+    const tooltip = foundTooltip(cell.label, cell.interactive);
+    return (
+      <UiTooltip content={tooltip}>
+        <MatrixHarnessCellTarget
+          ariaLabel={`${skillName} found in ${cell.label}`}
+          state="observed"
+          title={tooltip}
+        >
+          <MatrixHarnessIcon
+            label={cell.label}
+            logoKey={cell.logoKey}
+            harness={cell.harness}
+          />
+        </MatrixHarnessCellTarget>
+      </UiTooltip>
     );
   }
 

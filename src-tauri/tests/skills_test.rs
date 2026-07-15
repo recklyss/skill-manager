@@ -3,8 +3,8 @@ mod common;
 use std::fs;
 
 use common::{
-    codex_legacy_root, copilot_installed_plugins_root, harness_ids, hermes_skills_root,
-    seed_named_skill, seed_skill, seed_store_manifest, write_json, TestFixture,
+    codex_legacy_root, copilot_installed_plugins_root, copilot_managed_root, harness_ids,
+    hermes_skills_root, seed_named_skill, seed_skill, seed_store_manifest, write_json, TestFixture,
 };
 
 /// Empty store returns zero rows with valid page shape.
@@ -750,4 +750,223 @@ async fn copilot_real_directory_skill_can_be_adopted_into_shared() {
             .canonicalize()
             .unwrap()
     );
+}
+
+/// External symlink skills outside the shared store appear as adoptable unmanaged rows.
+#[cfg(unix)]
+#[tokio::test]
+async fn external_symlink_skill_surfaces_as_adoptable_unmanaged() {
+    use std::os::unix::fs::symlink;
+
+    let fixture = TestFixture::new();
+    let external_root = fixture._dir.path().join("external-skills");
+    seed_named_skill(
+        &external_root,
+        "solo-skill",
+        "solo-skill",
+        "Standalone external skill",
+    );
+
+    let copilot_root = copilot_managed_root(fixture._dir.path());
+    fs::create_dir_all(&copilot_root).unwrap();
+    symlink(
+        external_root.join("solo-skill"),
+        copilot_root.join("solo-skill"),
+    )
+    .unwrap();
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    let row = body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "solo-skill")
+        .expect("unmanaged solo-skill row");
+    assert_eq!(row["displayStatus"], "Unmanaged");
+    assert_eq!(row["actions"]["canManage"], true);
+}
+
+/// The same physical skill discovered through multiple harness paths merges into one row.
+#[cfg(unix)]
+#[tokio::test]
+async fn same_resolved_path_merges_unmanaged_harness_sightings() {
+    use std::os::unix::fs::symlink;
+
+    let fixture = TestFixture::new();
+    let legacy_root = codex_legacy_root(fixture._dir.path());
+    fs::create_dir_all(&legacy_root).unwrap();
+    seed_named_skill(
+        &legacy_root,
+        "shared-local",
+        "shared-local",
+        "Shared across harnesses",
+    );
+
+    let copilot_root = copilot_managed_root(fixture._dir.path());
+    fs::create_dir_all(&copilot_root).unwrap();
+    symlink(
+        legacy_root.join("shared-local"),
+        copilot_root.join("shared-local"),
+    )
+    .unwrap();
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    let rows: Vec<_> = body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["name"] == "shared-local")
+        .collect();
+    assert_eq!(rows.len(), 1, "expected one merged unmanaged row");
+
+    let found_cells: Vec<_> = rows[0]["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|cell| cell["state"] == "found")
+        .collect();
+    assert!(
+        found_cells.len() >= 2,
+        "expected sightings from codex and copilot, got {:?}",
+        found_cells
+    );
+}
+
+/// Name-only matches do not hide unrelated unmanaged skills that use a different package dir.
+#[tokio::test]
+async fn different_package_dir_with_same_name_stays_unmanaged() {
+    let fixture = TestFixture::new();
+    fs::create_dir_all(&fixture.paths.skills_store_root).unwrap();
+    seed_named_skill(
+        &fixture.paths.skills_store_root,
+        "managed-dir",
+        "Same Name",
+        "Managed copy",
+    );
+
+    let copilot_root = copilot_managed_root(fixture._dir.path());
+    fs::create_dir_all(&copilot_root).unwrap();
+    seed_named_skill(
+        &copilot_root,
+        "other-dir",
+        "Same Name",
+        "Different unmanaged copy",
+    );
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    let rows: Vec<_> = body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["name"] == "Same Name")
+        .collect();
+    assert_eq!(rows.len(), 2, "expected managed and unmanaged rows");
+
+    let statuses: Vec<_> = rows
+        .iter()
+        .map(|row| row["displayStatus"].as_str().unwrap())
+        .collect();
+    assert!(statuses.contains(&"Managed"));
+    assert!(statuses.contains(&"Unmanaged"));
+}
+
+/// Managed harness copies that are not symlink-merged stay interactive so users can enable them.
+#[tokio::test]
+async fn managed_found_cells_are_interactive() {
+    let fixture = TestFixture::new();
+    fs::create_dir_all(&fixture.paths.skills_store_root).unwrap();
+    seed_named_skill(
+        &fixture.paths.skills_store_root,
+        "parallel-code-review",
+        "parallel-code-review",
+        "Parallel review",
+    );
+
+    let copilot_root = copilot_managed_root(fixture._dir.path());
+    seed_named_skill(
+        &copilot_root,
+        "parallel-code-review",
+        "parallel-code-review",
+        "Parallel review from Copilot",
+    );
+
+    let app = fixture.rebuild_app();
+
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let response = app
+        .oneshot(
+            axum::http::Request::get("/api/skills")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .expect("request");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    let row = body["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "parallel-code-review")
+        .expect("managed row");
+    let copilot_cell = row["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|cell| cell["harness"] == "copilot")
+        .expect("copilot cell");
+    assert_eq!(copilot_cell["state"], "found");
+    assert_eq!(copilot_cell["interactive"], true);
 }

@@ -4,11 +4,13 @@ import {
   DetailBindingIdentity,
   type DetailBindingTone,
 } from "../../../../components/detail/DetailBindingIdentity";
+import { useSkillsCopy } from "../../i18n";
 import type { StructuralSkillAction } from "../../model/pending";
-import type { HarnessCell, HarnessCellState } from "../../model/types";
+import type { HarnessCell, HarnessCellState, SkillStatus } from "../../model/types";
 
 interface SkillDetailHarnessMatrixProps {
   skillName: string;
+  displayStatus: SkillStatus;
   cells: HarnessCell[];
   pendingToggleHarnesses: ReadonlySet<string>;
   pendingStructuralAction: StructuralSkillAction | null;
@@ -35,11 +37,13 @@ function visibleStateLabel(state: HarnessCellState): string | null {
 
 export function SkillDetailHarnessMatrix({
   skillName,
+  displayStatus,
   cells,
   pendingToggleHarnesses,
   pendingStructuralAction,
   onToggleCell,
 }: SkillDetailHarnessMatrixProps) {
+  const copy = useSkillsCopy();
   if (cells.length === 0) {
     return null;
   }
@@ -67,9 +71,15 @@ export function SkillDetailHarnessMatrix({
             <div className="detail-sheet__binding-actions">
               <HarnessCellAction
                 skillName={skillName}
+                displayStatus={displayStatus}
                 cell={cell}
                 pending={pending}
                 disabled={structuralLocked}
+                foundHint={
+                  displayStatus === "Managed"
+                    ? copy.detail.enableFoundHarnessHint
+                    : copy.detail.foundInHarnessHint
+                }
                 onToggleCell={onToggleCell}
               />
             </div>
@@ -82,28 +92,49 @@ export function SkillDetailHarnessMatrix({
 
 interface HarnessCellActionProps {
   skillName: string;
+  displayStatus: SkillStatus;
   cell: HarnessCell;
   pending: boolean;
   disabled: boolean;
+  foundHint: string;
   onToggleCell: (cell: HarnessCell) => void;
 }
 
 function HarnessCellAction({
   skillName,
+  displayStatus,
   cell,
   pending,
   disabled,
+  foundHint,
   onToggleCell,
 }: HarnessCellActionProps) {
   if (!cell.interactive) {
     if (cell.state === "found") {
       return (
         <span className="detail-sheet__binding-hint">
-          Adopt this skill to manage it
+          {foundHint}
         </span>
       );
     }
     return null;
+  }
+
+  if (cell.state === "found" && displayStatus === "Managed") {
+    return (
+      <button
+        type="button"
+        className="action-pill action-pill--accent"
+        disabled={disabled || pending}
+        onClick={() => onToggleCell(cell)}
+        aria-label={`Enable ${skillName} for ${cell.label}`}
+      >
+        {pending ? (
+          <Loader2 size={12} className="card-action-spinner" aria-hidden="true" />
+        ) : null}
+        Enable
+      </button>
+    );
   }
 
   if (cell.state === "enabled") {

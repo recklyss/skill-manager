@@ -1,6 +1,7 @@
 import { NeedsReviewRow } from "../../../../components/cards/NeedsReviewRow";
 import { UiTooltip } from "../../../../components/ui/UiTooltip";
 import { getHarnessPresentation } from "../../../../components/harness/harnessPresentation";
+import { useSkillsCopy } from "../../i18n";
 import type { StructuralSkillAction } from "../../model/pending";
 import type { HarnessCell, SkillListRow } from "../../model/types";
 
@@ -36,9 +37,10 @@ export function SkillNeedsReviewCard({
   onOpenSkill,
   onManageSkill,
 }: SkillNeedsReviewCardProps) {
+  const copy = useSkillsCopy();
   const found = row.cells.filter((cell) => cell.state === "found");
   const managing = pendingStructuralAction === "manage";
-  const metaText = `Found in ${found.length} harness${found.length === 1 ? "" : "es"}`;
+  const metaText = copy.review.foundInHarnessLabels(found.map((cell) => cell.label));
 
   return (
     <NeedsReviewRow

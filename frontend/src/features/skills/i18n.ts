@@ -27,6 +27,12 @@ const englishSkillsCopy = {
       scan: "Scan",
     },
   },
+  matrix: {
+    foundTooltip: (harnessLabel: string, managed: boolean) =>
+      managed
+        ? `${harnessLabel} — Found in harness. Enable to link.`
+        : `${harnessLabel} — Found in harness. Adopt to manage.`,
+  },
   scan: {
     harnessLabel: "Scan with",
     harnessAria: "Select harness for security scan",
@@ -152,8 +158,11 @@ const englishSkillsCopy = {
     title: "Skills to review",
     subtitle: (count: number) =>
       count > 0
-        ? `${count} skill${count === 1 ? "" : "s"} need${count === 1 ? "s" : ""} a review decision.`
-        : "No local skill folders need review across your harnesses.",
+        ? `${count} skill${count === 1 ? "" : "s"} found across harnesses`
+        : "No local skill folders found across your harnesses.",
+    foundInHarnesses: (count: number) => `Found in ${count} harness${count === 1 ? "" : "es"}`,
+    foundInHarnessLabels: (labels: readonly string[]) =>
+      labels.length > 0 ? `Found in ${labels.join(", ")}` : "Found in harness",
     adoptAllEligible: "Adopt all eligible",
     adoptingAllSkills: "Adopting all skills",
     searchPlaceholder: "Search skills to review...",
@@ -218,6 +227,8 @@ const englishSkillsCopy = {
     disableEverywhere: "Disable everywhere",
     inUseList: "Skills in use list",
     reviewList: "Skills to review list",
+    foundInHarnessHint: "Adopt this skill to manage it",
+    enableFoundHarnessHint: "Enable to link this harness copy",
   },
 } as const;
 
@@ -250,6 +261,12 @@ export const skillsCopy = {
         matrix: "矩阵",
         scan: "扫描",
       },
+    },
+    matrix: {
+      foundTooltip: (harnessLabel: string, managed: boolean) =>
+        managed
+          ? `${harnessLabel} — 已在 harness 中发现。启用以建立链接。`
+          : `${harnessLabel} — 已在 harness 中发现。采用以纳入管理。`,
     },
     scan: {
       harnessLabel: "扫描使用",
@@ -375,7 +392,12 @@ export const skillsCopy = {
     review: {
       title: "待确认的 Skill",
       subtitle: (count: number) =>
-        count > 0 ? `${count} 个 Skill 需要确认。` : "没有本地 Skill 文件夹需要在 harness 间确认。",
+        count > 0
+          ? `在 harness 中发现 ${count} 个 Skill`
+          : "你的 harness 文件夹中未发现本地 Skill。",
+      foundInHarnesses: (count: number) => `在 ${count} 个 harness 中发现`,
+      foundInHarnessLabels: (labels: readonly string[]) =>
+        labels.length > 0 ? `在 ${labels.join("、")} 中发现` : "在 harness 中发现",
       adoptAllEligible: "采用全部可用项",
       adoptingAllSkills: "正在采用全部 Skill",
       searchPlaceholder: "搜索待确认的 Skill...",
@@ -439,6 +461,8 @@ export const skillsCopy = {
       disableEverywhere: "全部停用",
       inUseList: "使用中的 Skill 列表",
       reviewList: "待确认的 Skill 列表",
+      foundInHarnessHint: "采用此 Skill 以纳入管理",
+      enableFoundHarnessHint: "启用以链接此 harness 副本",
     },
   },
 } satisfies LocalizedCopy<SkillsCopy>;

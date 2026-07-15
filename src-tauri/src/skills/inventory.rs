@@ -146,6 +146,7 @@ impl SkillInventory {
         }
 
         let mut unmanaged_entries: HashMap<String, usize> = HashMap::new();
+        let mut unmanaged_path_index: HashMap<PathBuf, usize> = HashMap::new();
 
         for scan in harness_scans {
             for observation in &scan.skills {
@@ -160,12 +161,26 @@ impl SkillInventory {
                     entries[idx].sightings.push(sighting);
                     continue;
                 }
-                if let Some(idx) = managed_name_index
-                    .get(&observation.package.declared_name.to_ascii_lowercase())
+                if let Some(idx) = unmanaged_path_index
+                    .get(&observation.package.resolved_path)
                     .copied()
                 {
                     entries[idx].sightings.push(sighting);
                     continue;
+                }
+                if let Some(idx) = managed_name_index
+                    .get(&observation.package.declared_name.to_ascii_lowercase())
+                    .copied()
+                {
+                    let observation_dir = observation
+                        .package
+                        .root_path
+                        .file_name()
+                        .map(|name| name.to_string_lossy().to_string());
+                    if entries[idx].package_dir.as_deref() == observation_dir.as_deref() {
+                        entries[idx].sightings.push(sighting);
+                        continue;
+                    }
                 }
 
                 let key = unmanaged_entry_key(
@@ -193,6 +208,7 @@ impl SkillInventory {
                     };
                     let idx = entries.len();
                     unmanaged_entries.insert(key, idx);
+                    unmanaged_path_index.insert(observation.package.resolved_path.clone(), idx);
                     entries.push(entry);
                 }
             }

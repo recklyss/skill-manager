@@ -18,6 +18,7 @@ describe("SkillDetailHarnessMatrix", () => {
     render(
       <SkillDetailHarnessMatrix
         skillName="Shared Audit"
+        displayStatus="Managed"
         cells={cells}
         pendingToggleHarnesses={new Set()}
         pendingStructuralAction={null}
@@ -34,7 +35,7 @@ describe("SkillDetailHarnessMatrix", () => {
     expect(screen.getByRole("group", { name: "Codex, Disabled" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Claude, Enabled" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Cursor, Found in harness" })).toBeInTheDocument();
-    expect(screen.getByText("Adopt this skill to manage it")).toBeInTheDocument();
+    expect(screen.getByText("Enable to link this harness copy")).toBeInTheDocument();
     expect(screen.getByText("Found in harness")).toBeInTheDocument();
     expect(screen.queryByText(/^Enabled$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Disabled$/)).not.toBeInTheDocument();

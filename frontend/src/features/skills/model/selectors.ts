@@ -35,7 +35,7 @@ export function resetSkillsNeedsReviewFilters(): SkillsNeedsReviewFilterState {
 }
 
 export function filterSkillsInUseRows(data: SkillsWorkspaceData | null, filters: SkillsInUseFilterState): SkillListRow[] {
-  return selectSkillsInUseRows(data).filter((row) => matchesSearch(row, filters.search, ["enabled", "disabled"]));
+  return selectSkillsInUseRows(data).filter((row) => matchesSearch(row, filters.search, ["enabled", "disabled", "found"]));
 }
 
 export function filterNeedsReviewRows(data: SkillsWorkspaceData | null, filters: SkillsNeedsReviewFilterState): SkillListRow[] {

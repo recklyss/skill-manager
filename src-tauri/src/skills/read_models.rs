@@ -338,7 +338,9 @@ fn row_payload(entry: &InventoryEntry, columns: &[InventoryColumn]) -> SkillTabl
 
 fn cell_payload(entry: &InventoryEntry, column: &InventoryColumn) -> HarnessCellResponse {
     let state = cell_state(entry, &column.harness);
-    let interactive = matches!(state, "enabled" | "disabled") && column.installed;
+    let interactive = column.installed
+        && (matches!(state, "enabled" | "disabled")
+            || (state == "found" && entry.kind == "managed"));
     HarnessCellResponse {
         harness: column.harness.clone(),
         label: column.label.clone(),

@@ -170,6 +170,10 @@ pub fn copilot_skills_root(root: &Path) -> PathBuf {
     root.join("home").join(".copilot").join("skills")
 }
 
+pub fn copilot_managed_root(root: &Path) -> PathBuf {
+    root.join("harness-roots").join("copilot")
+}
+
 pub fn copilot_installed_plugins_root(root: &Path) -> PathBuf {
     root.join("home").join(".copilot").join("installed-plugins")
 }
