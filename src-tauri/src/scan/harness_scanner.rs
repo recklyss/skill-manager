@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::error::{ApiError, ApiResult};
-use crate::harness::HarnessKernelService;
+use crate::harness::{is_executable_on_path, resolve_executable_path, HarnessKernelService, ResolutionContext};
 
 const SCAN_TIMEOUT_SECS: u64 = 120;
 const MAX_PROMPT_BYTES: usize = 64 * 1024;
@@ -61,7 +61,7 @@ pub fn list_scannable_harnesses(kernel: &HarnessKernelService) -> Vec<ScannableH
                 return None;
             }
             let definition = kernel.definition(harness_id)?;
-            let cli_available = which::which(binary).is_ok();
+            let cli_available = is_executable_on_path(&kernel.context, binary);
             Some(ScannableHarness {
                 harness: harness_id.to_string(),
                 label: definition.label.to_string(),
@@ -78,6 +78,7 @@ pub fn harness_supports_scan(harness: &str) -> bool {
 }
 
 pub fn run_harness_scan(
+    context: &ResolutionContext,
     harness: &str,
     skill_path: &Path,
     skill_name: &str,
@@ -94,15 +95,15 @@ pub fn run_harness_scan(
         .map(|(_, binary)| *binary)
         .expect("checked above");
 
-    if which::which(binary).is_err() {
+    let Some(binary_path) = resolve_executable_path(context, binary) else {
         return Err(ApiError::service_unavailable(format!(
             "{binary} CLI is not installed or not on PATH"
         )));
-    }
+    };
 
     let skill_content = collect_skill_content(skill_path)?;
     let prompt = build_scan_prompt(skill_name, &skill_content);
-    let output = invoke_harness_cli(harness, binary, &prompt)?;
+    let output = invoke_harness_cli(harness, binary, &binary_path, &prompt)?;
     let payload = parse_harness_scan_output(&output)?;
     Ok(map_harness_findings(&payload, harness))
 }
@@ -202,8 +203,13 @@ Skill content:
     )
 }
 
-fn invoke_harness_cli(harness: &str, binary: &str, prompt: &str) -> ApiResult<String> {
-    let mut command = Command::new(binary);
+fn invoke_harness_cli(
+    harness: &str,
+    binary: &str,
+    binary_path: &Path,
+    prompt: &str,
+) -> ApiResult<String> {
+    let mut command = Command::new(binary_path);
     command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     match harness {

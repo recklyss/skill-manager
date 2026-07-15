@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Platform {
@@ -194,4 +194,71 @@ pub fn cursor_app_paths(ctx: &ResolutionContext) -> Vec<PathBuf> {
         PathBuf::from("/Applications/Cursor.app"),
         ctx.home.join("Applications").join("Cursor.app"),
     ]
+}
+
+/// Resolve a CLI binary using the active environment's `PATH` (not only process env).
+pub fn resolve_executable_path(ctx: &ResolutionContext, binary: &str) -> Option<PathBuf> {
+    let path_var = ctx.env.get("PATH").map(String::as_str).unwrap_or_default();
+    for dir in std::env::split_paths(path_var) {
+        let candidate = dir.join(binary);
+        if is_executable_file(&candidate) {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+pub fn is_executable_on_path(ctx: &ResolutionContext, binary: &str) -> bool {
+    resolve_executable_path(ctx, binary).is_some()
+}
+
+fn is_executable_file(path: &Path) -> bool {
+    if !path.is_file() {
+        return false;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        return std::fs::metadata(path)
+            .map(|metadata| metadata.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false);
+    }
+    #[cfg(not(unix))]
+    {
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::Path;
+
+    #[cfg(unix)]
+    fn write_executable_stub(path: &Path, name: &str) {
+        let stub = path.join(name);
+        fs::write(&stub, format!("#!/bin/sh\nprintf '%s\\n' '{name}'\n")).expect("write stub");
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&stub).expect("metadata").permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&stub, perms).expect("chmod stub");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn resolve_executable_path_uses_context_path() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        write_executable_stub(dir.path(), "copilot");
+
+        let mut env = std::collections::HashMap::new();
+        env.insert("PATH".into(), dir.path().display().to_string());
+        let ctx = resolve_context(Some(env));
+
+        assert!(is_executable_on_path(&ctx, "copilot"));
+        assert_eq!(
+            resolve_executable_path(&ctx, "copilot").expect("copilot path"),
+            dir.path().join("copilot")
+        );
+    }
 }

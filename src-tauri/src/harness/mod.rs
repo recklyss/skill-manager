@@ -8,7 +8,10 @@ pub use contracts::{
     BindingProfile, ConfigFileFormat, ConfigSubtreeBindingProfile, FamilyBinding, FamilyKey,
     FileTreeDiscoveryRoot, FileTreeLayout, HarnessDefinition, HarnessStatus,
 };
-pub use resolution::{copilot_settings_skill_directories, resolve_context, Platform, ResolutionContext};
+pub use resolution::{
+    copilot_settings_skill_directories, is_executable_on_path, resolve_context,
+    resolve_executable_path, Platform, ResolutionContext,
+};
 pub use support_store::HarnessSupportStore;
 
 use contracts::{BindingProfile as BP, FileTreeAvailability};
@@ -118,7 +121,7 @@ impl HarnessKernelService {
         definition: &HarnessDefinition,
         skills_binding: Option<&BindingProfile>,
     ) -> bool {
-        if which::which(definition.install_probe).is_ok() {
+        if is_executable_on_path(&self.context, definition.install_probe) {
             return true;
         }
 

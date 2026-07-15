@@ -8,7 +8,10 @@ use std::time::{Duration, Instant};
 use regex::Regex;
 use serde_json::{json, Value};
 
-use crate::harness::{BindingProfile, ConfigFileFormat, ConfigSubtreeBindingProfile, FamilyKey, HarnessDefinition, ResolutionContext};
+use crate::harness::{
+    is_executable_on_path, resolve_executable_path, BindingProfile, ConfigFileFormat,
+    ConfigSubtreeBindingProfile, FamilyKey, HarnessDefinition, ResolutionContext,
+};
 
 use super::contracts::{McpHarnessScan, McpObservedEntry};
 use super::mappers::{get_mapper, value_to_payload_map, TransportMapper};
@@ -46,7 +49,7 @@ impl FileBackedMcpAdapter {
     }
 
     pub fn status(&self) -> (bool, bool, bool, Option<String>) {
-        let installed = which::which(self.definition.install_probe).is_ok();
+        let installed = is_executable_on_path(&self.context, self.definition.install_probe);
         let config_present = self.config_path.is_file();
         let (mcp_writable, unavailable_reason) = self.mcp_write_capability(installed);
         (installed, config_present, mcp_writable, unavailable_reason)
@@ -209,7 +212,7 @@ impl FileBackedMcpAdapter {
             .map(str::to_string)
             .unwrap_or_else(|| format!("{} MCP support is unavailable", self.label));
         if probe == "openclaw-mcp-command" {
-            let executable = which::which(self.definition.install_probe).ok();
+            let executable = resolve_executable_path(&self.context, self.definition.install_probe);
             let Some(executable) = executable else {
                 return (false, Some(reason));
             };
