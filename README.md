@@ -3,7 +3,7 @@
 [中文说明](README.zh-CN.md)
 
 <p align="center">
-  <img src="assets/skill_manager_logo.svg" alt="Skill Manager" width="520" />
+  <img src="src-tauri/icons/icon.png" alt="Skill Manager" width="128" />
 </p>
 
 <p align="center">
@@ -19,8 +19,6 @@
   <a href="#install"><img alt="macOS ARM64/x64 and Linux x64/ARM64" src="https://img.shields.io/badge/platform-macOS%20ARM64%2Fx64%20%2B%20Linux%20x64%2FARM64-111827?style=flat-square&logo=linux&logoColor=white" /></a>
   <a href="#local-first-safety"><img alt="Local-first" src="https://img.shields.io/badge/data-local--first-0F766E?style=flat-square" /></a>
 </p>
-
-![skill-market-overview](./assets/skill-manager-skill-unification.svg)
 
 ## Why it exists
 
@@ -41,18 +39,25 @@ AI extensions are scattered across harness-specific folders, MCP config files, s
 - Install or adopt MCP server configs, resolve differences, and enable them where supported.
 - Manage reusable slash commands once, then sync them to supported harnesses.
 - Discover Skills, MCP servers, and preview-only CLI tools from marketplace sources.
+- Switch between light and dark mode and pick from built-in Color Hunt themes.
 
 ## Product tour
 
-### Overview
+### Overview and themes
 
-Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active.
+Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active. Switch themes from the sidebar — light, dark, and Color Hunt palettes such as Earthy Sage, Ocean Depths, and Berry Sunset.
 
-![skill-market-overview](./assets/skill-manager-overview.png)
+![Overview dashboard with theme picker](./assets/change-theme.png)
 
-### Skills
+### Skills in use
 
-Use Skills as shared local packages instead of maintaining separate copies per harness.
+Browse adopted Skills in grid, board, or matrix views. Search by name, tag, or description, then enable or disable a Skill per harness or everywhere at once. Dark mode is available for long review sessions.
+
+![Skills in use with dark theme and grid view](./assets/dark-theme-and-different-view-of-skills.png)
+
+### Adopt a Skill
+
+When Skill Manager finds a Skill in a harness but it is not yet managed, open the detail drawer to read its description, see which harnesses have it, and inspect on-disk locations. Adopt it into the shared inventory with one action.
 
 Typical flow:
 
@@ -61,7 +66,7 @@ Typical flow:
 3. Enable it only where it should be available.
 4. Update, remove, or delete it from one place.
 
-![skill-market-skill-matrxi](./assets/skill-manager-skill-matrix.png)
+![Add a harness Skill to Skill Manager](./assets/add-to-skill-manager.png)
 
 ### Skill scanning
 
@@ -84,13 +89,13 @@ Typical flow:
 4. Run a scan for one Skill, selected Skills, or the full visible list.
 5. Review severity, findings, snippets, and remediation guidance.
 
-![skill-manager-scan-view](./assets/skill-manager-scan-view.svg)
+![Skill scan results with risk findings](./assets/scan-skill-risks.png)
 
 Static heuristics always run locally. The selected harness CLI performs semantic analysis and must return strict JSON (`verdict`, `riskLevel`, `summary`, `findings`).
 
 ### MCP servers
 
-Use MCP servers as one normalized config that can be written into each harness shape.
+Use MCP servers as one normalized config that can be written into each harness shape. Browse adopted servers, see transport details, and enable or disable them across harnesses from a single cards or matrix view.
 
 Typical flow:
 
@@ -99,7 +104,7 @@ Typical flow:
 3. Enable it where the server should be available.
 4. Resolve config differences, disable harness bindings, or uninstall it from one place.
 
-![skill-market-skill-matrxi](./assets/skill-manager-mcp-matrix.png)
+![MCP servers in use](./assets/mcp-in-use.png)
 
 ### Slash commands
 
@@ -112,17 +117,21 @@ Typical flow:
 3. Sync it to supported harnesses.
 4. Review existing harness command files and adopt them into the shared library when needed.
 
-![skill-market-slash-commands-matrix](./assets/skill-manager-slash_commands-matrix.png)
-
 ### Marketplace
 
 Marketplace is the discovery surface:
 
-- **Skills Marketplace**: browse and install Skills.
-- **MCP Marketplace**: browse and install MCP servers.
+- **Skills Marketplace**: browse and install Skills from skills.sh.
+- **MCP Marketplace**: browse and install MCP servers from the MCP Registry.
 - **CLI Marketplace**: preview external CLI tools from CLIs.dev. This is display-only; Skill Manager does not install or manage CLIs.
 
-![skill-market-skill-matrxi](./assets/skill-manager-marketplace.png)
+![Skills marketplace](./assets/marketplace.png)
+
+### Settings
+
+Enable or disable harness support, confirm where each harness stores Skills on disk, and choose your preferred theme. Skill Manager detects installed harnesses and shows their skill roots so you can verify paths before adopting extensions.
+
+![Settings with harness roots and theme](./assets/settings.png)
 
 ## Install
 
@@ -225,8 +234,6 @@ Skill Manager treats managed Skills as portable by default: once a Skill is adop
 
 Hermes Agent Skills use the categorized Hermes layout under `~/.hermes/skills/<category>/<skill>/SKILL.md`. Shared Skills enabled for Hermes are linked under the `skill-manager` category by default. Skill Manager only imports Hermes Skills that Hermes itself installed from external hub provenance (`.hub/lock.json` entries that are not official/builtin/optional). Hermes self-learned/local Skills, bundled Skills tracked by `.bundled_manifest`, and official optional Skills recorded in Hermes hub provenance are excluded from Skill Manager inventory and bulk actions; Skill Manager leaves those folders untouched so `hermes update` and Hermes-owned Skill sync keep their normal ownership.
 
-![skill-market-overview](./assets/skill-manager-skill-unification.svg)
-
 ### Skill scans
 
 Skill scans build a bounded prompt context from `SKILL.md` and selected text files in the skill package (up to 64 KB). Static heuristics run locally. Semantic analysis invokes the harness CLI you pick in the Scan view (Claude, Codex, Copilot, or Cursor). The CLI must return strict JSON with `verdict`, `riskLevel`, `summary`, and `findings`. Scans time out after 120 seconds.
@@ -246,8 +253,6 @@ MCP servers are stored as normalized Skill Manager records, then translated into
 - OpenClaw MCP writes are not yet supported.
 
 When Skill Manager finds different configs for the same MCP server, it asks you to resolve the source of truth first.
-
-![skill-market-overview](./assets/skill-manager-mcp-translation.svg)
 
 ### Slash commands
 
