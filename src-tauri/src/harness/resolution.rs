@@ -117,6 +117,10 @@ pub fn copilot_installed_plugins_root(ctx: &ResolutionContext) -> PathBuf {
     ctx.home.join(".copilot").join("installed-plugins")
 }
 
+pub fn pi_skills_root(ctx: &ResolutionContext) -> PathBuf {
+    ctx.home.join(".pi").join("agent").join("skills")
+}
+
 pub fn copilot_settings_skill_directories(ctx: &ResolutionContext) -> Vec<PathBuf> {
     let settings_path = ctx.home.join(".copilot").join("settings.json");
     let Ok(raw) = std::fs::read_to_string(&settings_path) else {

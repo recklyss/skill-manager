@@ -6,6 +6,14 @@ use common::TestFixture;
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
+fn mcp_supported_harness_ids() -> Vec<&'static str> {
+    // Only harnesses with MCP (ConfigSubtree) bindings appear as columns.
+    common::harness_ids()
+        .into_iter()
+        .filter(|id| *id != "pi")
+        .collect()
+}
+
 fn test_home(fixture: &TestFixture) -> std::path::PathBuf {
     fixture._dir.path().join("home")
 }
@@ -74,9 +82,18 @@ async fn list_servers_returns_inventory_envelope() {
         .iter()
         .filter_map(|c| c.get("harness").and_then(|v| v.as_str()))
         .collect();
-    for id in common::harness_ids() {
+    for id in mcp_supported_harness_ids() {
         assert!(harnesses.contains(&id), "missing harness column {id}");
     }
+}
+
+/// Columns count matches MCP-supported harness count.
+#[tokio::test]
+async fn list_servers_column_count_matches_mcp_harness_count() {
+    let fixture = TestFixture::new();
+    let (_, body) = mcp_get(&fixture, "/api/mcp/servers").await;
+    let columns = body["columns"].as_array().unwrap();
+    assert_eq!(columns.len(), mcp_supported_harness_ids().len());
 }
 
 #[tokio::test]

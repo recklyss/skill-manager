@@ -123,7 +123,7 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
 
     let bin_dir = root.join("bin");
     fs::create_dir_all(&bin_dir).expect("bin dir");
-    for executable in ["codex", "claude", "cursor-agent", "opencode", "hermes", "openclaw", "copilot"] {
+    for executable in ["codex", "claude", "cursor-agent", "opencode", "hermes", "openclaw", "copilot", "pi"] {
         write_cli_stub(&bin_dir.join(executable), executable);
     }
     let path = env.get("PATH").cloned().unwrap_or_default();
@@ -137,6 +137,7 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
         ("SKILL_MANAGER_HERMES_ROOT", "hermes"),
         ("SKILL_MANAGER_OPENCLAW_ROOT", "openclaw"),
         ("SKILL_MANAGER_COPILOT_ROOT", "copilot"),
+        ("SKILL_MANAGER_PI_ROOT", "pi"),
     ] {
         let path = harness_roots.join(name);
         fs::create_dir_all(&path).expect("harness root");
@@ -218,6 +219,7 @@ pub fn harness_ids() -> Vec<&'static str> {
         "hermes",
         "openclaw",
         "copilot",
+        "pi",
     ]
 }
 

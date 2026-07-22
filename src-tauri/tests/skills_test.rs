@@ -25,7 +25,7 @@ async fn list_skills_empty_page_shape() {
     );
     assert_eq!(
         body["harnessColumns"].as_array().unwrap().len(),
-        7
+        8
     );
 }
 

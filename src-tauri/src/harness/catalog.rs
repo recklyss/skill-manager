@@ -8,8 +8,8 @@ use super::contracts::{
 use super::resolution::{
     agents_skills_root, claude_skills_root, codex_admin_skills_root, codex_legacy_skills_root,
     codex_skills_root, copilot_installed_plugins_root, copilot_skills_root, cursor_skills_root,
-    hermes_home, hermes_skills_root,
-    opencode_skills_root, openclaw_skills_root, ResolutionContext,
+    hermes_home, hermes_skills_root, openclaw_skills_root, opencode_skills_root,
+    pi_skills_root, ResolutionContext,
 };
 
 fn codex_config(ctx: &ResolutionContext) -> PathBuf {
@@ -375,6 +375,19 @@ static OPENCLAW_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
     ),
 ];
 
+static PI_BINDINGS: &[(FamilyKey, BindingProfile)] = &[(
+    FamilyKey::Skills,
+    BindingProfile::FileTree(FileTreeBindingProfile {
+        managed_env: Some("SKILL_MANAGER_PI_ROOT"),
+        managed_default: pi_skills_root,
+        discovery_roots: &[],
+        availability: FileTreeAvailability::Cli,
+        app_probe_paths: &[],
+        layout: FileTreeLayout::Flat,
+        default_category: None,
+    }),
+)];
+
 pub static SUPPORTED_HARNESS_DEFINITIONS: &[HarnessDefinition] = &[
     HarnessDefinition {
         harness: "codex",
@@ -424,6 +437,13 @@ pub static SUPPORTED_HARNESS_DEFINITIONS: &[HarnessDefinition] = &[
         logo_key: Some("copilot"),
         install_probe: "copilot",
         bindings: COPILOT_BINDINGS,
+    },
+    HarnessDefinition {
+        harness: "pi",
+        label: "Pi",
+        logo_key: Some("pi"),
+        install_probe: "pi",
+        bindings: PI_BINDINGS,
     },
 ];
 
