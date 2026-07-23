@@ -87,10 +87,6 @@ Shared components live in `frontend/src/components/`. The API client (`api/gener
 - Env vars for custom skill roots: `SKILL_MANAGER_<HARNESS>_ROOT`.
 - Frontend uses CSS custom properties for theming.
 
-### Migration Notes
-
-See `full-repo-review-report.md` for Python→Rust migration status and remaining parity gaps. All 56 API routes exist; some behaviors (LLM scan, HTTP MCP probe) are partial.
-
 ### Integration Tests
 
 ```bash

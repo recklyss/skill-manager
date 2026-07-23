@@ -39,13 +39,13 @@ AI extensions are scattered across harness-specific folders, MCP config files, s
 - Install or adopt MCP server configs, resolve differences, and enable them where supported.
 - Manage reusable slash commands once, then sync them to supported harnesses.
 - Discover Skills, MCP servers, and preview-only CLI tools from marketplace sources.
-- Switch between light and dark mode and pick from built-in Color Hunt themes.
+- Switch between light and dark mode and pick from built-in curated color palettes.
 
 ## Product tour
 
 ### Overview and themes
 
-Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active. Switch themes from the sidebar — light, dark, and Color Hunt palettes such as Earthy Sage, Ocean Depths, and Berry Sunset.
+Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active. Switch themes from the sidebar — light, dark, and curated palettes such as Autumn Forest, Ocean Night, and Lavender Dream.
 
 <p align="center">
   <img src="assets/change-theme.png" alt="Overview dashboard with theme picker" width="920" />
@@ -332,7 +332,7 @@ MCP config locations are harness-owned. Skill Manager writes only to verified co
 ```bash
 # Requirements: Rust 1.85+, Node.js 24+ (see `.nvmrc`)
 npm install
-npm run tauri:dev
+npm run dev
 ```
 
 The app opens as a native desktop window — no browser, no manual server start. Supported desktop targets are **macOS and Linux** only (no Windows or mobile builds).
@@ -340,7 +340,7 @@ The app opens as a native desktop window — no browser, no manual server start.
 Build a native installer:
 
 ```bash
-npm run tauri:build
+npm run build
 ```
 
 ### Validation

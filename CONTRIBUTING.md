@@ -22,7 +22,7 @@ scripts/install-dev.sh
 Start the desktop app for local development:
 
 ```bash
-npm run tauri:dev
+npm run dev
 ```
 
 ## Validate before opening a PR
