@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 
 import { BoardColumn } from "./BoardColumn";
-import { BoardSkillCard } from "./BoardSkillCard";
+import { BoardCardOverlay, BoardSkillCard } from "./BoardSkillCard";
 import { useToast } from "../../../../components/Toast";
 import { useSkillsCopy } from "../../i18n";
 import { bucketForRow, bucketRows, type SkillBucket } from "../../model/bucketForRow";
@@ -51,6 +53,16 @@ export function BoardView({
   const copy = useSkillsCopy();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [transitionTarget, setTransitionTarget] = useState<Map<string, "enabled" | "disabled">>(() => new Map());
+  const [activeRef, setActiveRef] = useState<string | null>(null);
+
+  const activeRow = useMemo(
+    () => (activeRef ? rows.find((row) => row.skillRef === activeRef) ?? null : null),
+    [activeRef, rows],
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveRef(String(event.active.id));
+  }, []);
 
   // Clear a pin once all of the skill's cells have settled (no pending toggles).
   useEffect(() => {
@@ -96,6 +108,7 @@ export function BoardView({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveRef(null);
       const { active, over } = event;
       if (!over) return;
       const target = over.id;
@@ -177,7 +190,12 @@ export function BoardView({
   );
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveRef(null)}
+    >
       <div className="skill-board" role="group" aria-label="Skills in use board">
         <BoardColumn
           kind="disabled"
@@ -192,7 +210,6 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
@@ -212,7 +229,6 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
@@ -232,7 +248,6 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
@@ -252,13 +267,22 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
           ))}
         </BoardColumn>
       </div>
+
+      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
+        {activeRow ? (
+          <BoardCardOverlay
+            row={activeRow}
+            checked={checkedRefs.has(activeRow.skillRef)}
+            multiDragCount={checkedRefs.size}
+          />
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

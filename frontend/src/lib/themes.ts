@@ -12,7 +12,11 @@
  */
 import {
   adjustForSurfaces,
+  contrastRatio,
+  nudgeForContrast,
   WCAG_AAA_LARGE,
+  WCAG_AAA_NORMAL,
+  WCAG_AAA_UI,
 } from "./contrast";
 
 export type ThemeCategory = "default" | "colorhunt";
@@ -151,278 +155,224 @@ const LIGHT_TOKENS = composeTokens(
   false,
 );
 
-/** Top 10 palettes from https://colorhunt.co/palettes/popular (July 2026). */
+/**
+ * Colour helpers for deriving WCAG 2.2 AAA compliant token sets from a raw
+ * palette. Each palette below supplies its natural background / surface /
+ * primary hues; the builder nudges text, accent, and border tokens until they
+ * satisfy the contrast targets enforced by `themes.contrast.test.ts`.
+ */
+function parseHex(hex: string): [number, number, number] {
+  const n = hex.replace("#", "");
+  return [0, 2, 4].map((i) => Number.parseInt(n.slice(i, i + 2), 16)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+function toHex(r: number, g: number, b: number): string {
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+  return (
+    "#" + [r, g, b].map((c) => clamp(c).toString(16).padStart(2, "0")).join("")
+  );
+}
+
+/** Linear blend between two hex colours (`t` in 0..1 toward `b`). */
+function mix(a: string, b: string, t: number): string {
+  const [ar, ag, ab] = parseHex(a);
+  const [br, bg, bb] = parseHex(b);
+  return toHex(ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t);
+}
+
+/** Darken (dark themes) or lighten (light themes) a surface until `text` reads at `target`. */
+function fitSurface(
+  surface: string,
+  text: string,
+  isDark: boolean,
+  target: number,
+): string {
+  const towards = isDark ? "#000000" : "#FFFFFF";
+  let result = surface;
+  for (let step = 1; step <= 20 && contrastRatio(text, result) < target; step += 1) {
+    result = mix(surface, towards, step * 0.05);
+  }
+  return result;
+}
+
+interface ColorhuntInput {
+  id: string;
+  label: string;
+  labelZh: string;
+  isDark: boolean;
+  bg: string;
+  surface: string;
+  primary: string;
+  secondary: string;
+  accentColor: string;
+  /** Text override (defaults to white on dark themes, near-black on light). */
+  text?: string;
+}
+
+function colorhuntTheme(input: ColorhuntInput): ThemeDefinition {
+  const { isDark } = input;
+  const text = input.text ?? (isDark ? "#FFFFFF" : "#1A1A1A");
+
+  const bg = fitSurface(input.bg, text, isDark, WCAG_AAA_NORMAL);
+  const surface = fitSurface(input.surface, text, isDark, WCAG_AAA_NORMAL);
+  const surfaceRaised = fitSurface(
+    mix(surface, "#FFFFFF", isDark ? 0.06 : 0.12),
+    text,
+    isDark,
+    WCAG_AAA_NORMAL,
+  );
+  const surfaceSunken = mix(bg, "#000000", isDark ? 0.3 : 0.05);
+  const surfaces = [bg, surface, surfaceRaised];
+
+  const textMuted = adjustForSurfaces(mix(text, surface, 0.3), surfaces, WCAG_AAA_NORMAL);
+  const textSubtle = mix(text, surface, 0.55);
+
+  const accent = adjustForSurfaces(input.primary, surfaces, WCAG_AAA_LARGE);
+  const accentStrong = adjustForSurfaces(accent, surfaces, 6);
+  const invertedBase =
+    contrastRatio("#FFFFFF", accent) >= contrastRatio("#111111", accent)
+      ? "#FFFFFF"
+      : "#111111";
+  const textInverted = nudgeForContrast(invertedBase, accent, WCAG_AAA_NORMAL);
+
+  const border = adjustForSurfaces(mix(text, bg, 0.55), surfaces, WCAG_AAA_UI);
+  const borderStrong = adjustForSurfaces(border, surfaces, 4);
+
+  return {
+    id: input.id,
+    label: input.label,
+    labelZh: input.labelZh,
+    category: "colorhunt",
+    palette: [input.bg, input.primary, input.secondary, input.accentColor],
+    tokens: composeTokens(
+      {
+        "--color-bg": bg,
+        "--color-surface": surface,
+        "--color-surface-raised": surfaceRaised,
+        "--color-surface-sunken": surfaceSunken,
+        "--color-sidebar-bg": bg,
+        "--color-border": border,
+        "--color-border-strong": borderStrong,
+        "--color-text": text,
+        "--color-text-muted": textMuted,
+        "--color-text-subtle": textSubtle,
+        "--color-text-inverted": textInverted,
+        "--color-accent": accent,
+        "--color-accent-strong": accentStrong,
+        "--color-accent-soft": rgba(accent, isDark ? 0.16 : 0.14),
+        "--color-accent-softer": rgba(accent, isDark ? 0.08 : 0.07),
+      },
+      isDark,
+    ),
+  };
+}
+
+/** Curated palettes (accent = each theme's Primary per its design-system mapping). */
 const COLORHUNT_THEMES: ThemeDefinition[] = [
-  {
-    id: "blush-rose",
-    label: "Blush Rose",
-    labelZh: "腮红玫瑰",
-    category: "colorhunt",
-    palette: ["#FBEFEF", "#FFE2E2", "#F5CBCB", "#C5B3D3"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#FBEFEF",
-        "--color-surface": "#FFFFFF",
-        "--color-surface-raised": "#FFFFFF",
-        "--color-surface-sunken": "#FFE2E2",
-        "--color-sidebar-bg": "#FBEFEF",
-        "--color-border": "#AB8181",
-        "--color-border-strong": "#9A7373",
-        "--color-text": "#3A2D38",
-        "--color-text-muted": "#604B5B",
-        "--color-text-subtle": "#A894A0",
-        "--color-text-inverted": "#FFFFFF",
-        "--color-accent": "#6B4B88",
-        "--color-accent-strong": "#5A3D75",
-        "--color-accent-soft": rgba("#6B4B88", 0.14),
-        "--color-accent-softer": rgba("#6B4B88", 0.07),
-      },
-      false,
-    ),
-  },
-  {
-    id: "navy-earth",
-    label: "Navy Earth",
-    labelZh: "海军大地",
-    category: "colorhunt",
-    palette: ["#0A2947", "#F3E4C9", "#D3D4C0", "#8B5E3C"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#0A2947",
-        "--color-surface": "#123456",
-        "--color-surface-raised": "#1A3D63",
-        "--color-surface-sunken": "#081F35",
-        "--color-sidebar-bg": "#0A2947",
-        "--color-border": "#688AAA",
-        "--color-border-strong": "#7E9CBE",
-        "--color-text": "#F3E4C9",
-        "--color-text-muted": "#D3D4C0",
-        "--color-text-subtle": "#A8A898",
-        "--color-text-inverted": "#0A2947",
-        "--color-accent": "#D7AA88",
-        "--color-accent-strong": "#E8BE9C",
-        "--color-accent-soft": rgba("#D7AA88", 0.18),
-        "--color-accent-softer": rgba("#D7AA88", 0.09),
-      },
-      true,
-    ),
-  },
-  {
-    id: "ocean-depths",
-    label: "Ocean Depths",
-    labelZh: "深海蓝",
-    category: "colorhunt",
-    palette: ["#293681", "#4274D9", "#95CCDD", "#D0E7E6"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#D0E7E6",
-        "--color-surface": "#E8F4F3",
-        "--color-surface-raised": "#F0F9F8",
-        "--color-surface-sunken": "#B8D9D8",
-        "--color-sidebar-bg": "#D0E7E6",
-        "--color-border": "#518899",
-        "--color-border-strong": "#4A7F90",
-        "--color-text": "#1A2456",
-        "--color-text-muted": "#334676",
-        "--color-text-subtle": "#6A7A9E",
-        "--color-text-inverted": "#FFFFFF",
-        "--color-accent": "#2052B7",
-        "--color-accent-strong": "#1A459E",
-        "--color-accent-soft": rgba("#2052B7", 0.14),
-        "--color-accent-softer": rgba("#2052B7", 0.07),
-      },
-      false,
-    ),
-  },
-  {
-    id: "sage-grove",
-    label: "Sage Grove",
-    labelZh: "鼠尾草绿",
-    category: "colorhunt",
-    palette: ["#659287", "#88BDA4", "#B1D3B9", "#E6F2DD"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#E6F2DD",
-        "--color-surface": "#F2F9EE",
-        "--color-surface-raised": "#F8FCF6",
-        "--color-surface-sunken": "#D4E8CA",
-        "--color-sidebar-bg": "#E6F2DD",
-        "--color-border": "#6F9177",
-        "--color-border-strong": "#5E8066",
-        "--color-text": "#2A4038",
-        "--color-text-muted": "#375548",
-        "--color-text-subtle": "#7A9588",
-        "--color-text-inverted": "#FFFFFF",
-        "--color-accent": "#226350",
-        "--color-accent-strong": "#1A5242",
-        "--color-accent-soft": rgba("#226350", 0.14),
-        "--color-accent-softer": rgba("#226350", 0.07),
-      },
-      false,
-    ),
-  },
-  {
-    id: "earthy-sage",
-    label: "Earthy Sage",
-    labelZh: "大地鼠尾草",
-    category: "colorhunt",
-    palette: ["#778873", "#A1BC98", "#DCCFC0", "#FDF6ED"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#FDF6ED",
-        "--color-surface": "#FFFFFF",
-        "--color-surface-raised": "#FFFFFF",
-        "--color-surface-sunken": "#F0E8DC",
-        "--color-sidebar-bg": "#FDF6ED",
-        "--color-border": "#9A8D7E",
-        "--color-border-strong": "#867A6C",
-        "--color-text": "#2E3828",
-        "--color-text-muted": "#4A5840",
-        "--color-text-subtle": "#8A9680",
-        "--color-text-inverted": "#FFFFFF",
-        "--color-accent": "#44603C",
-        "--color-accent-strong": "#364E30",
-        "--color-accent-soft": rgba("#44603C", 0.14),
-        "--color-accent-softer": rgba("#44603C", 0.07),
-      },
-      false,
-    ),
-  },
-  {
-    id: "cherry-cream",
-    label: "Cherry Cream",
-    labelZh: "樱桃奶油",
-    category: "colorhunt",
-    palette: ["#FFFAF3", "#FFF2DB", "#FFE5BF", "#F62440"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#FFFAF3",
-        "--color-surface": "#FFFFFF",
-        "--color-surface-raised": "#FFFFFF",
-        "--color-surface-sunken": "#FFF2DB",
-        "--color-sidebar-bg": "#FFFAF3",
-        "--color-border": "#A78D67",
-        "--color-border-strong": "#947A56",
-        "--color-text": "#2C1818",
-        "--color-text-muted": "#6B4545",
-        "--color-text-subtle": "#9A7070",
-        "--color-text-inverted": "#FFFFFF",
-        "--color-accent": "#A80E24",
-        "--color-accent-strong": "#8E0C1F",
-        "--color-accent-soft": rgba("#A80E24", 0.12),
-        "--color-accent-softer": rgba("#A80E24", 0.06),
-      },
-      false,
-    ),
-  },
-  {
-    id: "olive-harvest",
-    label: "Olive Harvest",
-    labelZh: "橄榄丰收",
-    category: "colorhunt",
-    palette: ["#FFEED6", "#A5AF79", "#827148", "#E8A07C"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#FFEED6",
-        "--color-surface": "#FFF6EC",
-        "--color-surface-raised": "#FFFAF5",
-        "--color-surface-sunken": "#F5E0C0",
-        "--color-sidebar-bg": "#FFEED6",
-        "--color-border": "#98886C",
-        "--color-border-strong": "#82765E",
-        "--color-text": "#3D3428",
-        "--color-text-muted": "#5B4E38",
-        "--color-text-subtle": "#8A7D68",
-        "--color-text-inverted": "#FFFFFF",
-        "--color-accent": "#68572E",
-        "--color-accent-strong": "#544622",
-        "--color-accent-soft": rgba("#68572E", 0.14),
-        "--color-accent-softer": rgba("#68572E", 0.07),
-      },
-      false,
-    ),
-  },
-  {
-    id: "berry-sunset",
-    label: "Berry Sunset",
-    labelZh: "浆果日落",
-    category: "colorhunt",
-    palette: ["#5E244E", "#AA1C41", "#E68457", "#FFE8B4"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#5E244E",
-        "--color-surface": "#6E2E5C",
-        "--color-surface-raised": "#7E386A",
-        "--color-surface-sunken": "#4E1A40",
-        "--color-sidebar-bg": "#5E244E",
-        "--color-border": "#D888AE",
-        "--color-border-strong": "#E8A0BE",
-        "--color-text": "#FFF2BE",
-        "--color-text-muted": "#FFF2C2",
-        "--color-text-subtle": "#C4A878",
-        "--color-text-inverted": "#5E244E",
-        "--color-accent": "#FFBE91",
-        "--color-accent-strong": "#FFD0AB",
-        "--color-accent-soft": rgba("#FFBE91", 0.16),
-        "--color-accent-softer": rgba("#FFBE91", 0.08),
-      },
-      true,
-    ),
-  },
-  {
-    id: "midnight-flame",
-    label: "Midnight Flame",
-    labelZh: "午夜火焰",
-    category: "colorhunt",
-    palette: ["#000000", "#233D4D", "#FE7F2D", "#EAECF0"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#1A2830",
-        "--color-surface": "#233D4D",
-        "--color-surface-raised": "#2E5060",
-        "--color-surface-sunken": "#122028",
-        "--color-sidebar-bg": "#1A2830",
-        "--color-border": "#829DB0",
-        "--color-border-strong": "#96B0C2",
-        "--color-text": "#EAECF0",
-        "--color-text-muted": "#E4E8F0",
-        "--color-text-subtle": "#889098",
-        "--color-text-inverted": "#1A2830",
-        "--color-accent": "#FFA957",
-        "--color-accent-strong": "#FFBD73",
-        "--color-accent-soft": rgba("#FFA957", 0.16),
-        "--color-accent-softer": rgba("#FFA957", 0.08),
-      },
-      true,
-    ),
-  },
-  {
-    id: "forest-gold",
-    label: "Forest Gold",
-    labelZh: "森林金",
-    category: "colorhunt",
-    palette: ["#FFBF00", "#FFF78D", "#467235", "#283F24"],
-    tokens: composeTokens(
-      {
-        "--color-bg": "#283F24",
-        "--color-surface": "#354F2E",
-        "--color-surface-raised": "#426038",
-        "--color-surface-sunken": "#1E301A",
-        "--color-sidebar-bg": "#283F24",
-        "--color-border": "#8AB679",
-        "--color-border-strong": "#A0CC8E",
-        "--color-text": "#FFFFEB",
-        "--color-text-muted": "#FFFFEA",
-        "--color-text-subtle": "#A8AC60",
-        "--color-text-inverted": "#283F24",
-        "--color-accent": "#FFC708",
-        "--color-accent-strong": "#FFD633",
-        "--color-accent-soft": rgba("#FFC708", 0.16),
-        "--color-accent-softer": rgba("#FFC708", 0.08),
-      },
-      true,
-    ),
-  },
+  colorhuntTheme({
+    id: "autumn-forest",
+    label: "Autumn Forest",
+    labelZh: "秋日森林",
+    isDark: true,
+    bg: "#21250F",
+    surface: "#414C2A",
+    primary: "#9A6D18",
+    secondary: "#725B14",
+    accentColor: "#DCAE29",
+  }),
+  colorhuntTheme({
+    id: "forest-green",
+    label: "Forest Green",
+    labelZh: "森林绿",
+    isDark: true,
+    bg: "#0E171C",
+    surface: "#3C2E2B",
+    primary: "#526951",
+    secondary: "#7D977F",
+    accentColor: "#B3C9B6",
+  }),
+  colorhuntTheme({
+    id: "butterfly-nature",
+    label: "Butterfly Nature",
+    labelZh: "蝴蝶自然",
+    isDark: true,
+    bg: "#28241C",
+    surface: "#5E8175",
+    primary: "#B55A08",
+    secondary: "#405740",
+    accentColor: "#AAB8B4",
+  }),
+  colorhuntTheme({
+    id: "industrial-gray",
+    label: "Industrial Gray",
+    labelZh: "工业灰",
+    isDark: true,
+    bg: "#141616",
+    surface: "#3D3C3B",
+    primary: "#746D67",
+    secondary: "#A49F9D",
+    accentColor: "#7F1D1A",
+  }),
+  colorhuntTheme({
+    id: "wine-elegance",
+    label: "Wine Elegance",
+    labelZh: "酒红优雅",
+    isDark: true,
+    bg: "#230E0F",
+    surface: "#541625",
+    primary: "#910D3B",
+    secondary: "#9D4060",
+    accentColor: "#BC788D",
+  }),
+  colorhuntTheme({
+    id: "tropical-bird",
+    label: "Tropical Bird",
+    labelZh: "热带鸟",
+    isDark: true,
+    bg: "#252D37",
+    surface: "#D3D9DA",
+    primary: "#356A8B",
+    secondary: "#9A5E17",
+    accentColor: "#8B150C",
+  }),
+  colorhuntTheme({
+    id: "warm-home",
+    label: "Warm Home",
+    labelZh: "温暖家居",
+    isDark: false,
+    bg: "#E7CFB8",
+    surface: "#D8BD63",
+    primary: "#9B6F45",
+    secondary: "#43718E",
+    accentColor: "#3A2E2D",
+    text: "#3A2E2D",
+  }),
+  colorhuntTheme({
+    id: "ocean-night",
+    label: "Ocean Night",
+    labelZh: "海洋之夜",
+    isDark: true,
+    bg: "#11141B",
+    surface: "#1C273E",
+    primary: "#2C4972",
+    secondary: "#4A74A1",
+    accentColor: "#8FACCB",
+  }),
+  colorhuntTheme({
+    id: "lavender-dream",
+    label: "Lavender Dream",
+    labelZh: "薰衣草之梦",
+    isDark: true,
+    bg: "#2D2C27",
+    surface: "#594587",
+    primary: "#7553C7",
+    secondary: "#BCA4E9",
+    accentColor: "#9D8957",
+  }),
 ];
 
 export const THEMES: ThemeDefinition[] = [

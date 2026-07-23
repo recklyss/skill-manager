@@ -112,16 +112,46 @@
   padding: var(--space-4);
   gap: var(--space-2);
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 6px -2px rgb(0 0 0 / 0.10);
+  cursor: grab;
   touch-action: none;
   user-select: none;
-  transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease, opacity 120ms ease;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 160ms ease, transform 160ms ease, opacity 120ms ease;
+}
+
+.skill-card--board:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.08), 0 8px 18px -6px rgb(0 0 0 / 0.22);
+  transform: translateY(-2px);
+}
+
+.skill-card--board:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
+
+.skill-card--board:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-softer), 0 8px 18px -6px rgb(0 0 0 / 0.22);
 }
 
 .skill-card--board[data-dragging="true"] {
   cursor: grabbing;
-  box-shadow: var(--shadow-lift);
+}
+
+/* The floating DragOverlay clone — free of column layout, so it can carry a
+   real lift the flat --shadow-* tokens don't provide. */
+.skill-card--overlay {
+  cursor: grabbing;
   background: var(--color-surface-raised);
-  z-index: 2;
+  border-color: var(--color-accent);
+  box-shadow: 0 12px 28px -8px rgb(0 0 0 / 0.45), 0 2px 8px -2px rgb(0 0 0 / 0.3);
+  transform: scale(1.03) rotate(-1.2deg);
+  pointer-events: none;
 }
 
 .skill-card--board[data-pending="true"] {

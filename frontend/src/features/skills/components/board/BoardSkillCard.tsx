@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 
 import { CardTitleRow } from "../cards/CardTitleRow";
 import { HarnessChipStack } from "../cards/HarnessChipStack";
@@ -15,23 +14,72 @@ interface BoardSkillCardProps {
   onToggleChecked: (skillRef: string) => void;
 }
 
+/** Presentational card body shared by the in-column card and the drag overlay. */
+export function BoardCardBody({
+  row,
+  checked,
+  onToggleChecked,
+}: {
+  row: SkillListRow;
+  checked: boolean;
+  onToggleChecked?: (skillRef: string) => void;
+}) {
+  return (
+    <>
+      <CardTitleRow
+        name={row.name}
+        checked={checked}
+        onToggleChecked={() => onToggleChecked?.(row.skillRef)}
+      />
+
+      {row.description ? (
+        <p className="skill-card__description skill-card__description--compact">{row.description}</p>
+      ) : null}
+
+      <HarnessChipStack cells={row.cells} />
+    </>
+  );
+}
+
+/** The floating clone rendered inside dnd-kit's DragOverlay while dragging. */
+export function BoardCardOverlay({
+  row,
+  checked,
+  multiDragCount,
+}: {
+  row: SkillListRow;
+  checked: boolean;
+  multiDragCount?: number;
+}) {
+  const showMultiDragBadge = checked && (multiDragCount ?? 0) > 1;
+  return (
+    <article
+      className="skill-card skill-card--board skill-card--overlay"
+      data-multi-drag={showMultiDragBadge ? "true" : undefined}
+    >
+      <BoardCardBody row={row} checked={checked} />
+      {showMultiDragBadge ? (
+        <span className="skill-card__multi-badge" aria-hidden="true">
+          +{multiDragCount! - 1}
+        </span>
+      ) : null}
+    </article>
+  );
+}
+
 export function BoardSkillCard({
   row,
   checked,
   pending = false,
-  multiDragCount,
   onOpenSkill,
   onToggleChecked,
 }: BoardSkillCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: row.skillRef,
   });
 
-  const style: CSSProperties = {
-    transform: CSS.Translate.toString(transform),
-  };
-
-  const showMultiDragBadge = isDragging && checked && (multiDragCount ?? 0) > 1;
+  // Movement is handled by the DragOverlay clone; the source card just dims.
+  const style: CSSProperties = isDragging ? { opacity: 0 } : {};
 
   return (
     <article
@@ -41,7 +89,6 @@ export function BoardSkillCard({
       className="skill-card skill-card--board"
       data-checked={checked}
       data-dragging={isDragging ? "true" : undefined}
-      data-multi-drag={showMultiDragBadge ? "true" : undefined}
       data-pending={pending ? "true" : undefined}
       style={style}
       onClick={() => {
@@ -57,23 +104,7 @@ export function BoardSkillCard({
       role="button"
       tabIndex={0}
     >
-      <CardTitleRow
-        name={row.name}
-        checked={checked}
-        onToggleChecked={() => onToggleChecked(row.skillRef)}
-      />
-
-      {row.description ? (
-        <p className="skill-card__description skill-card__description--compact">{row.description}</p>
-      ) : null}
-
-      <HarnessChipStack cells={row.cells} />
-
-      {showMultiDragBadge ? (
-        <span className="skill-card__multi-badge" aria-hidden="true">
-          +{multiDragCount! - 1}
-        </span>
-      ) : null}
+      <BoardCardBody row={row} checked={checked} onToggleChecked={onToggleChecked} />
     </article>
   );
 }

@@ -21,3 +21,6 @@ src-tauri/icons/ios/
 
 # Local documentation (not versioned)
 Docs/
+
+# macOS
+.DS_Store
