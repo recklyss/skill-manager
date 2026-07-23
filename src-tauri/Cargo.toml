@@ -1,6 +1,6 @@
 [package]
 name = "skill-manager"
-version = "0.0.1"
+version = "0.0.2"
 description = "Local-first control center for AI extensions"
 authors = ["recklyss"]
 edition = "2021"

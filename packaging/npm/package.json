@@ -1,6 +1,6 @@
 {
   "name": "@recklyss/skill-manager",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Public macOS/Linux installer wrapper for the skill-manager native release artifact.",
   "license": "MIT",
   "private": false,
