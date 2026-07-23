@@ -104,19 +104,13 @@ impl SlashCommandStore {
     }
 
     fn write_command_path(&self, path: &PathBuf, command: &SlashCommand) -> Result<(), String> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
         let payload = format!(
             "name = {:?}\ndescription = {:?}\nprompt = {:?}\n",
             command.name,
             command.description.trim(),
             command.prompt.trim_end_matches('\n')
         );
-        let temp = path.with_extension("toml.tmp");
-        fs::write(&temp, payload).map_err(|e| e.to_string())?;
-        fs::rename(&temp, path).map_err(|e| e.to_string())?;
-        Ok(())
+        crate::fsutil::atomic_write(path, payload.as_bytes())
     }
 }
 

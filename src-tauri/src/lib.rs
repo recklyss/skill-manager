@@ -1,5 +1,6 @@
 pub mod server;
 pub mod paths;
+pub mod fsutil;
 pub mod harness;
 pub mod skills;
 pub mod error;

@@ -17,6 +17,7 @@ use crate::harness::{
 use super::identity::SourceDescriptor;
 use super::observations::{SkillObservation, SkillsHarnessScan};
 use super::package::{find_plugin_skill_containers, find_skill_roots, parse_skill_package, SkillParseError};
+use crate::fsutil::copy_dir_all;
 
 #[derive(Debug, Clone)]
 pub struct SkillsHarnessAdapter {
@@ -717,17 +718,3 @@ pub fn scan_all_adapters(adapters: &[SkillsHarnessAdapter]) -> Vec<SkillsHarness
     adapters.iter().map(|adapter| adapter.scan()).collect()
 }
 
-fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(dst)?;
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        let dest_path = dst.join(entry.file_name());
-        if ty.is_dir() {
-            copy_dir_all(&entry.path(), &dest_path)?;
-        } else {
-            std::fs::copy(entry.path(), dest_path)?;
-        }
-    }
-    Ok(())
-}

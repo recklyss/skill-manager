@@ -14,11 +14,6 @@ export type SkillCategoryId =
   | "communication"
   | "other";
 
-export interface SkillCategoryDefinition {
-  id: SkillCategoryId;
-  order: number;
-}
-
 export const CATEGORY_ORDER: SkillCategoryId[] = [
   "coding",
   "docs",
@@ -372,8 +367,4 @@ export function groupRowsByCategory(rows: SkillListRow[]): GroupedSkillRows[] {
     category,
     rows: buckets.get(category)!,
   }));
-}
-
-export function categoryOrder(category: SkillCategoryId): number {
-  return CATEGORY_ORDER.indexOf(category);
 }

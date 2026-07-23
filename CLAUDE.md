@@ -10,20 +10,23 @@ scripts/install-dev.sh
 # or: npm install
 
 # Run the Tauri desktop app (embedded Rust API on :18000)
-npm run tauri:dev
-# Alias: scripts/start-dev.sh
-
-# Frontend-only hot reload (no Tauri shell, needs running backend)
 npm run dev
+# Alias: scripts/start-dev.sh
 
 # Validation
 npm run typecheck              # TypeScript type checking
-npm run test:rust              # Rust integration tests (src-tauri)
 npm test                       # Frontend tests (vitest)
-npm run build                  # Production frontend build
+bash scripts/test_rust.sh      # Rust integration tests (src-tauri)
+VITE_API_BASE=/api npx vite build   # Frontend-only build check
+
+# Build & package the desktop app (bundles frontend via Tauri's beforeBuildCommand)
+npm run build
+
+# Publish to npm + Homebrew: handled by .github/workflows/release.yml
+# (tarball via scripts/package_release_artifact.sh, npm wrapper in packaging/npm/)
 
 # OpenAPI TypeScript client (from checked-in openapi.json)
-npm run codegen:openapi
+npx openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts
 ```
 
 The app ships as a **Tauri desktop application** for **macOS and Linux only** (no Windows or mobile targets) with an embedded Axum HTTP server on `http://127.0.0.1:18000`. Health: `http://127.0.0.1:18000/api/health`.
@@ -92,7 +95,7 @@ See `full-repo-review-report.md` for Python→Rust migration status and remainin
 
 ```bash
 cd src-tauri && cargo test --no-fail-fast -- --test-threads=1
-# or: npm run test:rust
+# or: bash scripts/test_rust.sh
 ```
 
 Tests live in `src-tauri/tests/` with shared fixtures in `tests/common/mod.rs`.

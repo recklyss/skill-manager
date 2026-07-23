@@ -178,7 +178,6 @@ impl FileBackedMcpAdapter {
             self.profile.subtree_path,
             &spec.name,
             payload,
-            self.profile.file_format,
         )?;
         self.write_document(&self.config_path, &document)
     }
@@ -270,7 +269,7 @@ impl FileBackedMcpAdapter {
                 toml::to_string_pretty(&toml_value).map_err(|e| e.to_string())?
             }
         };
-        atomic_write(path, &contents)
+        crate::fsutil::atomic_write(path, contents.as_bytes())
     }
 }
 
@@ -305,9 +304,8 @@ fn set_subtree_entry(
     subtree_path: &[&str],
     name: &str,
     payload: HashMap<String, Value>,
-    format: ConfigFileFormat,
 ) -> Result<(), String> {
-    ensure_subtree(document, subtree_path, format);
+    ensure_subtree(document, subtree_path);
     let mut cursor = document;
     for key in subtree_path {
         cursor = cursor.get_mut(*key).unwrap();
@@ -342,7 +340,7 @@ fn remove_subtree_entry(document: &mut Value, subtree_path: &[&str], name: &str)
     removed
 }
 
-fn ensure_subtree(document: &mut Value, subtree_path: &[&str], format: ConfigFileFormat) {
+fn ensure_subtree(document: &mut Value, subtree_path: &[&str]) {
     let mut cursor = document;
     if !cursor.is_object() {
         *cursor = json!({});
@@ -353,7 +351,6 @@ fn ensure_subtree(document: &mut Value, subtree_path: &[&str], format: ConfigFil
         }
         cursor = cursor.get_mut(*key).unwrap();
     }
-    let _ = format;
 }
 
 fn normalize_payload(value: &HashMap<String, Value>) -> HashMap<String, Value> {
@@ -437,16 +434,6 @@ fn strip_jsonc(text: &str) -> String {
 }
 
 use std::sync::LazyLock;
-
-fn atomic_write(path: &Path, contents: &str) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    let temp = path.with_extension("tmp");
-    fs::write(&temp, contents).map_err(|e| e.to_string())?;
-    fs::rename(&temp, path).map_err(|e| e.to_string())?;
-    Ok(())
-}
 
 fn toml_to_json(value: &toml::Value) -> Value {
     match value {

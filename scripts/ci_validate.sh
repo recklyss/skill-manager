@@ -7,4 +7,4 @@ cd "$ROOT_DIR"
 bash "$ROOT_DIR/scripts/test_rust.sh"
 npm run typecheck
 npm test
-npm run build
+VITE_API_BASE=/api npx vite build

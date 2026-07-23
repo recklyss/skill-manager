@@ -166,18 +166,16 @@ impl McpServerStore {
     }
 
     fn write_manifest(&self, entries: &[McpServerSpec]) -> Result<(), String> {
-        if let Some(parent) = self.manifest_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
         let payload = json!({
             "version": 6,
             "servers": entries.iter().map(spec_to_record).collect::<Vec<_>>(),
         });
-        let temp = self.manifest_path.with_extension("json.tmp");
-        fs::write(&temp, serde_json::to_string_pretty(&payload).unwrap_or_default())
-            .map_err(|e| e.to_string())?;
-        fs::rename(&temp, &self.manifest_path).map_err(|e| e.to_string())?;
-        Ok(())
+        crate::fsutil::atomic_write(
+            &self.manifest_path,
+            serde_json::to_string_pretty(&payload)
+                .unwrap_or_default()
+                .as_bytes(),
+        )
     }
 }
 

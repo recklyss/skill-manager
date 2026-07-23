@@ -103,7 +103,7 @@ impl SlashCommandReviewResolver {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
-        atomic_write_text(&path, &rendered)?;
+        crate::fsutil::atomic_write(&path, rendered.as_bytes())?;
         let record = SlashCommandSyncRecord {
             target: target.id.clone(),
             path: path.clone(),
@@ -198,9 +198,3 @@ impl SlashCommandReviewResolver {
     }
 }
 
-fn atomic_write_text(path: &PathBuf, content: &str) -> Result<(), String> {
-    let temp = path.with_extension("tmp");
-    fs::write(&temp, content).map_err(|e| e.to_string())?;
-    fs::rename(&temp, path).map_err(|e| e.to_string())?;
-    Ok(())
-}

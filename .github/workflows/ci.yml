@@ -75,7 +75,7 @@ jobs:
         run: npm test
 
       - name: Frontend build
-        run: npm run build
+        run: VITE_API_BASE=/api npx vite build
 
   tauri-build-smoke:
     name: tauri-build-smoke-${{ matrix.target }}
@@ -109,7 +109,7 @@ jobs:
         run: node scripts/sync_version.mjs --check
 
       - name: Build Tauri app
-        run: npm run tauri:build
+        run: npm run build
 
       - name: Package npm/Homebrew tarball
         run: |

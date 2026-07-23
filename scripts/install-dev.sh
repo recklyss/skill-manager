@@ -7,4 +7,4 @@ cd "$ROOT_DIR"
 npm install
 
 echo ""
-echo "Dev setup complete. Start the app with: npm run tauri:dev"
+echo "Dev setup complete. Start the app with: npm run dev"

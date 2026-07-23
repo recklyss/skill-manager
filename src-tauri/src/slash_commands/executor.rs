@@ -157,14 +157,8 @@ impl SlashCommandSyncExecutor {
 }
 
 fn write_target(path: &PathBuf, command: &SlashCommand, target: &SlashTarget) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
     let rendered = render_slash_command(command, &target.render_format);
-    let temp = path.with_extension("md.tmp");
-    fs::write(&temp, rendered).map_err(|e| e.to_string())?;
-    fs::rename(&temp, path).map_err(|e| e.to_string())?;
-    Ok(())
+    crate::fsutil::atomic_write(path, rendered.as_bytes())
 }
 
 fn remove_target_file(

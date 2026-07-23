@@ -7,20 +7,11 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "VITE_API_BASE=/api vite --host 127.0.0.1 --port 5173",
-    "install:dev": "bash scripts/install-dev.sh",
-    "start:dev": "bash scripts/start-dev.sh",
-    "stop:dev": "bash scripts/stop-dev.sh",
-    "version:sync": "node scripts/sync_version.mjs --check",
-    "build": "VITE_API_BASE=/api vite build",
+    "dev": "tauri dev",
+    "build": "tauri build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:rust": "bash scripts/test_rust.sh",
-    "release-targets:check": "node scripts/check_release_targets_js.cjs",
-    "codegen:openapi": "openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "release-targets:check": "node scripts/check_release_targets_js.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -52,5 +43,8 @@
     "typescript": "^5.9.2",
     "vite": "^7.1.3",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "js-yaml": "^4.3.0"
   }
 }

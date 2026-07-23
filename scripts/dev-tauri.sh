@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "=== Building frontend ==="
-npm run build
+VITE_API_BASE=/api npx vite build
 
 echo ""
 echo "=== Building Rust backend ==="
