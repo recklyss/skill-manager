@@ -208,6 +208,11 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
       <strong>GitHub Copilot</strong><br />
       <a href="https://docs.github.com/en/copilot/how-tos/copilot-cli">Docs</a>
     </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/pi-logo.svg" alt="Pi" height="56" /><br />
+      <strong>Pi</strong><br />
+      <a href="https://github.com/earendil-works/pi">Docs</a>
+    </td>
   </tr>
 </table>
 
@@ -220,6 +225,7 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
 | Hermes Agent | Yes | Yes | Not Yet |
 | OpenClaw | Yes | Not Yet | Not Yet |
 | GitHub Copilot | Yes | Yes | Not Yet |
+| Pi | Yes | Not Yet | Not Yet |
 
 ## Local-first safety
 
@@ -320,7 +326,8 @@ Most users do not need to change these locations. If you manage skills in a cust
 | Cursor | `SKILL_MANAGER_CURSOR_ROOT` | `~/.cursor/skills` |
 | OpenCode | `SKILL_MANAGER_OPENCODE_ROOT` | `~/.config/opencode/skills` |
 | Hermes Agent | `SKILL_MANAGER_HERMES_ROOT` | `${HERMES_HOME:-~/.hermes}/skills` |
-| OpenClaw | `n/a` | `~/.openclaw/skills` |
+| OpenClaw | `SKILL_MANAGER_OPENCLAW_ROOT` | `~/.openclaw/skills` |
+| Pi | `SKILL_MANAGER_PI_ROOT` | `~/.pi/agent/skills` |
 | GitHub Copilot | `SKILL_MANAGER_COPILOT_ROOT` | `~/.copilot/skills` |
 
 MCP config locations are harness-owned. Skill Manager writes only to verified config paths and skips unsupported harness writes. Hermes Agent config discovery honors `SKILL_MANAGER_HERMES_HOME` first, then `HERMES_HOME`, then `~/.hermes`.

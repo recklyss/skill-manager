@@ -208,6 +208,11 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
       <strong>GitHub Copilot</strong><br />
       <a href="https://docs.github.com/en/copilot/how-tos/copilot-cli">文档</a>
     </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/pi-logo.svg" alt="Pi" height="56" /><br />
+      <strong>Pi</strong><br />
+      <a href="https://github.com/earendil-works/pi">文档</a>
+    </td>
   </tr>
 </table>
 
@@ -220,6 +225,7 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
 | Hermes Agent | 支持 | 支持 | 暂不支持 |
 | OpenClaw | 支持 | 暂不支持 | 暂不支持 |
 | GitHub Copilot | 支持 | 支持 | 暂不支持 |
+| Pi | 支持 | 暂不支持 | 暂不支持 |
 
 ## 本地优先安全模型
 
@@ -320,7 +326,8 @@ CLI marketplace 条目仅用于预览。
 | Cursor | `SKILL_MANAGER_CURSOR_ROOT` | `~/.cursor/skills` |
 | OpenCode | `SKILL_MANAGER_OPENCODE_ROOT` | `~/.config/opencode/skills` |
 | Hermes Agent | `SKILL_MANAGER_HERMES_ROOT` | `${HERMES_HOME:-~/.hermes}/skills` |
-| OpenClaw | `n/a` | `~/.openclaw/skills` |
+| OpenClaw | `SKILL_MANAGER_OPENCLAW_ROOT` | `~/.openclaw/skills` |
+| Pi | `SKILL_MANAGER_PI_ROOT` | `~/.pi/agent/skills` |
 | GitHub Copilot | `SKILL_MANAGER_COPILOT_ROOT` | `~/.copilot/skills` |
 
 MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配置路径，并跳过不支持的 harness 写入。Hermes Agent 配置发现会优先使用 `SKILL_MANAGER_HERMES_HOME`，然后是 `HERMES_HOME`，最后回退到 `~/.hermes`。
