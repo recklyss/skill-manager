@@ -50,10 +50,23 @@ impl SkillsMarketplaceService {
             .find_item(item_id)
             .await?
             .ok_or_else(|| ApiError::not_found(format!("unknown marketplace item: {item_id}")))?;
+        let mut description = record
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        if description.is_empty() {
+            if let Some(detail_url) = record.get("detailUrl").and_then(|v| v.as_str()) {
+                description = self
+                    .fetch_description_from_detail_page(detail_url)
+                    .await
+                    .unwrap_or_default();
+            }
+        }
         Ok(json!({
             "id": item_id,
             "name": record.get("name").cloned().unwrap_or(Value::Null),
-            "description": record.get("description").cloned().unwrap_or(json!("")),
+            "description": description,
             "installs": record.get("installs").cloned().unwrap_or(json!(0)),
             "stars": Value::Null,
             "repoLabel": record.get("repo").cloned().unwrap_or(json!("")),
@@ -174,6 +187,19 @@ impl SkillsMarketplaceService {
             "nextOffset": next_offset,
             "hasMore": next_offset.is_some(),
         })
+    }
+
+    async fn fetch_description_from_detail_page(&self, detail_url: &str) -> Result<String, ApiError> {
+        let cache_key = format!("desc:{}", detail_url);
+        if let Some(cached) = self.cache.read(DETAIL_NS, &cache_key, DETAIL_TTL) {
+            if let Some(desc) = cached.as_str().filter(|s| !s.is_empty()) {
+                return Ok(desc.to_string());
+            }
+        }
+        let html = self.client.fetch_text(detail_url).await.map_err(ApiError::internal)?;
+        let description = extract_jsonld_description(&html).unwrap_or_default();
+        self.cache.write(DETAIL_NS, &cache_key, &json!(description));
+        Ok(description)
     }
 
     fn card_from_record(&self, record: &Value, prefer_hints: bool) -> Value {
@@ -366,6 +392,37 @@ fn normalize_search_payload(payload: &Value, base_url: &str) -> Vec<Value> {
             }))
         })
         .collect()
+}
+
+/// Extract the `description` field from a JSON-LD `SoftwareApplication` block embedded in a skills.sh detail page.
+fn extract_jsonld_description(html: &str) -> Option<String> {
+    let ld_marker = r#""@type":"SoftwareApplication""#;
+    let ld_start = html.find(ld_marker)?;
+    // Search backwards for the opening brace of the JSON-LD object
+    let obj_start = html[..ld_start].rfind('{')?;
+    // Search forward for the matching closing brace
+    let mut depth = 0u32;
+    let mut obj_end = None;
+    for (i, ch) in html[obj_start..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    obj_end = Some(obj_start + i + 1);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let json_str = &html[obj_start..obj_end?];
+    let parsed: Value = serde_json::from_str(json_str).ok()?;
+    parsed
+        .get("description")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
 }
 
 fn extract_detail_description(html: &str) -> String {

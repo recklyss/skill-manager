@@ -24,9 +24,6 @@ pub struct HarnessKernelService {
     pub support_store: HarnessSupportStore,
 }
 
-/// Back-compat alias used by the skills read-model layer.
-pub type HarnessKernel = HarnessKernelService;
-
 impl HarnessKernelService {
     pub fn from_environment(
         env: Option<std::collections::HashMap<String, String>>,

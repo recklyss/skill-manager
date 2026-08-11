@@ -14,6 +14,7 @@ mod queries;
 mod redaction;
 mod store;
 
+pub(crate) use adapters::strip_jsonc;
 pub use adapters::McpReadModelService;
 pub use mutations::McpMutationService;
 pub use queries::McpQueryService;

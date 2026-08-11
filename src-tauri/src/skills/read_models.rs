@@ -377,7 +377,7 @@ fn linked_harness_labels(entry: &InventoryEntry, columns: &[InventoryColumn]) ->
         .collect()
 }
 
-fn resolve_detail_package_root(entry: &InventoryEntry) -> Option<std::path::PathBuf> {
+pub(crate) fn resolve_detail_package_root(entry: &InventoryEntry) -> Option<std::path::PathBuf> {
     if let Some(path) = &entry.package_path {
         if path.join("SKILL.md").is_file() {
             return Some(path.clone());

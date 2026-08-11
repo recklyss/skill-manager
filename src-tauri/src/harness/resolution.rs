@@ -126,7 +126,7 @@ pub fn copilot_settings_skill_directories(ctx: &ResolutionContext) -> Vec<PathBu
     let Ok(raw) = std::fs::read_to_string(&settings_path) else {
         return Vec::new();
     };
-    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&strip_jsonc_line_comments(&raw)) else {
+    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&crate::mcp::strip_jsonc(&raw)) else {
         return Vec::new();
     };
     let Some(values) = payload
@@ -155,42 +155,6 @@ pub fn copilot_settings_skill_directories(ctx: &ResolutionContext) -> Vec<PathBu
         directories.push(expanded);
     }
     directories
-}
-
-fn strip_jsonc_line_comments(input: &str) -> String {
-    let mut output = String::with_capacity(input.len());
-    let mut in_string = false;
-    let mut escaped = false;
-    let mut chars = input.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if escaped {
-            output.push(ch);
-            escaped = false;
-            continue;
-        }
-        if ch == '\\' && in_string {
-            output.push(ch);
-            escaped = true;
-            continue;
-        }
-        if ch == '"' {
-            in_string = !in_string;
-            output.push(ch);
-            continue;
-        }
-        if !in_string && ch == '/' && chars.peek() == Some(&'/') {
-            while matches!(chars.peek(), Some('\n' | '\r')) {
-                chars.next();
-            }
-            while matches!(chars.peek(), Some(c) if *c != '\n' && *c != '\r') {
-                chars.next();
-            }
-            continue;
-        }
-        output.push(ch);
-    }
-    output
 }
 
 /// Resolve a CLI binary using the active environment's `PATH` (not only process env).

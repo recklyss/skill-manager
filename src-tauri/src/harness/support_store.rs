@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -121,25 +120,7 @@ impl HarnessSupportStore {
             .map_err(|error| SupportStoreError::Write(error.to_string()))?;
         let serialized = format!("{serialized}\n");
 
-        let lock_path = self.path.with_extension("lock");
-        let _lock_file = fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(&lock_path)
-            .map_err(|error| SupportStoreError::Write(error.to_string()))?;
-
-        let temp_path = self.path.with_extension("tmp");
-        {
-            let mut file = fs::File::create(&temp_path)
-                .map_err(|error| SupportStoreError::Write(error.to_string()))?;
-            file.write_all(serialized.as_bytes())
-                .map_err(|error| SupportStoreError::Write(error.to_string()))?;
-            file.sync_all()
-                .map_err(|error| SupportStoreError::Write(error.to_string()))?;
-        }
-
-        fs::rename(&temp_path, &self.path)
-            .map_err(|error| SupportStoreError::Write(error.to_string()))?;
-        Ok(())
+        crate::fsutil::atomic_write(&self.path, serialized.as_bytes())
+            .map_err(|error| SupportStoreError::Write(error))
     }
 }

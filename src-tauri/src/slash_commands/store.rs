@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 #[derive(Debug, Clone)]
 pub struct SlashCommand {
@@ -122,9 +123,11 @@ fn string_field(payload: &toml::Value, key: &str) -> String {
         .to_string()
 }
 
+static COMMAND_NAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").unwrap());
+
 pub fn validate_command_name(name: &str) -> Result<(), String> {
-    let re = Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").unwrap();
-    if !re.is_match(name) {
+    if !COMMAND_NAME_RE.is_match(name) {
         return Err("name must use lowercase letters, numbers, and hyphens".into());
     }
     Ok(())

@@ -424,7 +424,7 @@ fn drift_detail(expected: &HashMap<String, Value>, actual: &HashMap<String, Valu
     }
 }
 
-fn strip_jsonc(text: &str) -> String {
+pub(crate) fn strip_jsonc(text: &str) -> String {
     static BLOCK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/\*.*?\*/").unwrap());
     static LINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(^|[^:])//.*$").unwrap());
     static TRAIL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r",(\s*[}\]])").unwrap());

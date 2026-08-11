@@ -1,6 +1,6 @@
 @layer components {
   .markdown-content {
-    color: var(--color-text-muted, rgba(228, 232, 240, 0.9));
+    color: var(--color-text-muted);
     font-size: var(--font-size-md);
     line-height: var(--line-height-relaxed);
   }
@@ -84,7 +84,7 @@
     padding: var(--space-3) var(--space-4);
     border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
     border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--color-bg, #0a0d12) 94%, transparent);
+    background: color-mix(in srgb, var(--color-bg) 94%, transparent);
     font-family: var(--font-mono);
     font-size: var(--font-size-sm);
   }

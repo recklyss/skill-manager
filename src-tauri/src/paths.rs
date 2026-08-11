@@ -81,41 +81,15 @@ impl AppPaths {
 
 fn base_dirs(env: &std::collections::HashMap<String, String>) -> (PathBuf, PathBuf, PathBuf) {
     let home = dirs::home_dir().expect("HOME not set");
+    let default_base = home.join(".skill-manager");
 
-    if cfg!(target_os = "macos") {
-        let default_macos = home
-            .join("Library")
-            .join("Application Support")
-            .join(APP_NAME);
-        let config_dir = xdg_dir(env, "XDG_CONFIG_HOME", &default_macos);
-        let data_dir = xdg_dir(env, "XDG_DATA_HOME", &default_macos);
-        let state_dir = env
-            .get(STATE_DIR_ENV)
-            .map(PathBuf::from)
-            .unwrap_or_else(|| xdg_dir(env, "XDG_STATE_HOME", &default_macos));
-        (config_dir, data_dir, state_dir)
-    } else {
-        let xdg_config = env
-            .get("XDG_CONFIG_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| home.join(".config"));
-        let xdg_data = env
-            .get("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| home.join(".local").join("share"));
-        let xdg_state = env
-            .get("XDG_STATE_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| home.join(".local").join("state"));
-
-        let config_dir = xdg_dir(env, "XDG_CONFIG_HOME", &xdg_config.join(APP_NAME));
-        let data_dir = xdg_dir(env, "XDG_DATA_HOME", &xdg_data.join(APP_NAME));
-        let state_dir = env
-            .get(STATE_DIR_ENV)
-            .map(PathBuf::from)
-            .unwrap_or_else(|| xdg_dir(env, "XDG_STATE_HOME", &xdg_state.join(APP_NAME)));
-        (config_dir, data_dir, state_dir)
-    }
+    let config_dir = xdg_dir(env, "XDG_CONFIG_HOME", &default_base);
+    let data_dir = xdg_dir(env, "XDG_DATA_HOME", &default_base);
+    let state_dir = env
+        .get(STATE_DIR_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| xdg_dir(env, "XDG_STATE_HOME", &default_base));
+    (config_dir, data_dir, state_dir)
 }
 
 fn xdg_dir(env: &std::collections::HashMap<String, String>, key: &str, fallback: &PathBuf) -> PathBuf {
