@@ -95,11 +95,8 @@ impl SkillsHarnessAdapter {
             if current == resolved_target {
                 return Ok(());
             }
-            return Err(ApiError::conflict(format!(
-                "symlink already exists but points to {}, not {}",
-                current.display(),
-                resolved_target.display()
-            )));
+            // stale symlink — remove it and re-create below
+            std::fs::remove_file(&link).map_err(|e| ApiError::internal(e.to_string()))?;
         }
         if link.is_dir() {
             return self.adopt_local_copy(&link, package_path);
@@ -147,11 +144,9 @@ impl SkillsHarnessAdapter {
             if current == resolved_target {
                 return Ok(());
             }
-            return Err(ApiError::conflict(format!(
-                "symlink exists but points to {}, not {}",
-                current.display(),
-                resolved_target.display()
-            )));
+            // stale symlink — remove it and re-create
+            std::fs::remove_file(existing_dir).map_err(|e| ApiError::internal(e.to_string()))?;
+            return symlink(&resolved_target, existing_dir).map_err(|e| ApiError::internal(e.to_string()));
         }
         std::fs::remove_dir_all(existing_dir).map_err(|e| ApiError::internal(e.to_string()))?;
         symlink(&resolved_target, existing_dir).map_err(|e| ApiError::internal(e.to_string()))
