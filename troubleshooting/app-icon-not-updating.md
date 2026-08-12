@@ -1,6 +1,6 @@
 # App icon still shows the old logo after changing it
 
-**Symptom:** You replaced the icon files but `npm run dev` (or the dock/window) still
+**Symptom:** You replaced the icon files but `pnpm run dev` (or the dock/window) still
 shows the old logo.
 
 ## Root cause
@@ -16,12 +16,12 @@ So two separate staleness layers must be cleared: the **compiled binary** and th
 
 ## Fix (macOS)
 
-Quit any running `npm run dev` first, then:
+Quit any running `pnpm run dev` first, then:
 
 ```bash
 # 1. Regenerate every icon asset from a source PNG (1024x1024 recommended).
 #    Use a squircle with transparent padding (~80% content) so it looks native.
-npx tauri icon path/to/source-1024.png
+pnpm exec tauri icon path/to/source-1024.png
 
 # 2. Remove any stale build bundle that still carries the old icon.
 rm -rf src-tauri/target/*/bundle
@@ -41,7 +41,7 @@ find "$(getconf DARWIN_USER_CACHE_DIR)" -maxdepth 1 -name "com.apple.iconservice
 kill "$(pgrep -x Dock)" "$(pgrep -x Finder)"
 
 # 6. Relaunch — first run recompiles, then shows the new icon.
-npm run dev
+pnpm run dev
 ```
 
 If the dock **still** shows the old icon, clear the system-level cache (needs sudo):

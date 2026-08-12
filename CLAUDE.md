@@ -5,28 +5,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build, Test, and Development Commands
 
 ```bash
-# Initial dev setup (npm deps only)
+# Initial dev setup (pnpm deps only)
 scripts/install-dev.sh
-# or: npm install
+# or: pnpm install
 
 # Run the Tauri desktop app (embedded Rust API on :18000)
-npm run dev
+pnpm run dev
 # Alias: scripts/start-dev.sh
 
 # Validation
-npm run typecheck              # TypeScript type checking
-npm test                       # Frontend tests (vitest)
+pnpm run typecheck             # TypeScript type checking
+pnpm test                      # Frontend tests (vitest)
 bash scripts/test_rust.sh      # Rust integration tests (src-tauri)
-VITE_API_BASE=/api npx vite build   # Frontend-only build check
+VITE_API_BASE=/api pnpm exec vite build   # Frontend-only build check
 
 # Build & package the desktop app (bundles frontend via Tauri's beforeBuildCommand)
-npm run build
+pnpm run build
 
 # Publish to npm + Homebrew: handled by .github/workflows/release.yml
 # (tarball via scripts/package_release_artifact.sh, npm wrapper in packaging/npm/)
 
 # OpenAPI TypeScript client (from checked-in openapi.json)
-npx openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts
+pnpm exec openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts
 ```
 
 The app ships as a **Tauri desktop application** for **macOS and Linux only** (no Windows or mobile targets) with an embedded Axum HTTP server on `http://127.0.0.1:18000`. Health: `http://127.0.0.1:18000/api/health`.

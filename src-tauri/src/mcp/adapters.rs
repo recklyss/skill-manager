@@ -242,6 +242,9 @@ impl FileBackedMcpAdapter {
     }
 
     fn load_document(&self, path: &Path) -> Result<Value, String> {
+        if !path.is_file() {
+            return Ok(serde_json::json!({}));
+        }
         let text = fs::read_to_string(path).map_err(|e| e.to_string())?;
         match self.profile.file_format {
             ConfigFileFormat::Json => serde_json::from_str(&text)

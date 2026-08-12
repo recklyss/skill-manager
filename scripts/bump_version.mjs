@@ -52,7 +52,7 @@ if (sync.status !== 0) {
   process.exit(sync.status ?? 1);
 }
 
-const lockfile = spawnSync("npm", ["install", "--package-lock-only"], {
+const lockfile = spawnSync("pnpm", ["install", "--lockfile-only"], {
   cwd: root,
   stdio: "inherit",
 });

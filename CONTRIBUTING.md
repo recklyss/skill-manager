@@ -22,7 +22,7 @@ scripts/install-dev.sh
 Start the desktop app for local development:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ## Validate before opening a PR
@@ -30,9 +30,9 @@ npm run dev
 Run the smallest set of checks that proves your change is correct. For most changes, that means:
 
 ```bash
-npm run test:rust                # or: bash scripts/test_rust.sh
-npm test
-npm run build
+pnpm run test:rust               # or: bash scripts/test_rust.sh
+pnpm test
+pnpm run build
 ```
 
 If your change touches only one area, include the narrower command you ran in the PR description.

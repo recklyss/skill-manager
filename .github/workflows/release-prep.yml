@@ -26,6 +26,8 @@ jobs:
           fetch-depth: 0
           ref: main
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -103,7 +105,7 @@ jobs:
           NEW_VERSION="$(tr -d '[:space:]' < VERSION)"
           BRANCH="automated/release-${NEW_VERSION}"
           git checkout -B "$BRANCH"
-          git add VERSION package.json package-lock.json packaging/npm/package.json packaging/npm/LICENSE src-tauri/Cargo.toml src-tauri/tauri.conf.json
+          git add VERSION package.json pnpm-lock.yaml packaging/npm/package.json packaging/npm/LICENSE src-tauri/Cargo.toml src-tauri/tauri.conf.json
           git commit -m "chore: bump version to ${NEW_VERSION}"
           git push --force origin "$BRANCH"
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"

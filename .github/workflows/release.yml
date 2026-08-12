@@ -33,17 +33,19 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: bash scripts/install_linux_tauri_deps.sh
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check version sync
         run: node scripts/sync_version.mjs --check
@@ -52,7 +54,7 @@ jobs:
         run: node scripts/sync_public_metadata.mjs --check
 
       - name: Build Tauri release
-        run: npm run build
+        run: pnpm run build
 
       - name: Package npm/Homebrew tarball
         run: |
@@ -101,6 +103,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v6
         with:

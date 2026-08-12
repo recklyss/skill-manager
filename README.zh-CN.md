@@ -338,8 +338,8 @@ MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配�
 
 ```bash
 # 要求：Rust 1.85+、Node.js 24+（见 `.nvmrc`）
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 应用会以原生桌面窗口打开——无需浏览器，也无需手动启动服务器。当前仅支持 **macOS 和 Linux** 桌面平台（不支持 Windows 或移动端构建）。
@@ -347,16 +347,16 @@ npm run dev
 构建原生安装包：
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### 验证
 
 ```bash
-npm run typecheck
-npm test
-npm run test:rust                # Rust 集成测试
-npm run build
+pnpm run typecheck
+pnpm test
+pnpm run test:rust               # Rust 集成测试
+pnpm run build
 cd src-tauri && cargo check      # Rust 编译检查
 ```
 

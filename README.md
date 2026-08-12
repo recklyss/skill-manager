@@ -338,8 +338,8 @@ MCP config locations are harness-owned. Skill Manager writes only to verified co
 
 ```bash
 # Requirements: Rust 1.85+, Node.js 24+ (see `.nvmrc`)
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 The app opens as a native desktop window — no browser, no manual server start. Supported desktop targets are **macOS and Linux** only (no Windows or mobile builds).
@@ -347,16 +347,16 @@ The app opens as a native desktop window — no browser, no manual server start.
 Build a native installer:
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Validation
 
 ```bash
-npm run typecheck
-npm test
-npm run test:rust                # Rust integration tests
-npm run build
+pnpm run typecheck
+pnpm test
+pnpm run test:rust               # Rust integration tests
+pnpm run build
 cd src-tauri && cargo check      # Rust compile check
 ```
 
