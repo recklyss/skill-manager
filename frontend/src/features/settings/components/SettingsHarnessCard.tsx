@@ -1,5 +1,8 @@
+import { FolderOpen } from "lucide-react";
+
 import { ToggleSwitch } from "../../../components/ToggleSwitch";
 import { HarnessAvatar } from "../../../components/harness/HarnessAvatar";
+import { openInFileManager } from "../../../lib/openInFileManager";
 import type { SettingsHarness } from "../api/types";
 import type { SettingsCopy } from "../i18n";
 
@@ -11,6 +14,8 @@ interface SettingsHarnessCardProps {
 }
 
 export function SettingsHarnessCard({ harness, pending, copy, onToggle }: SettingsHarnessCardProps) {
+  const { managedLocation } = harness;
+
   return (
     <div className="settings-row">
       <span className="settings-row__icon">
@@ -23,8 +28,19 @@ export function SettingsHarnessCard({ harness, pending, copy, onToggle }: Settin
         </p>
       </div>
       <div className="settings-row__controls">
-        {harness.managedLocation ? (
-          <span className="settings-path">{harness.managedLocation}</span>
+        {managedLocation ? (
+          <>
+            <span className="settings-path">{managedLocation}</span>
+            <button
+              type="button"
+              className="card-icon-button"
+              aria-label={copy.revealRoot(harness.label)}
+              title={copy.revealRoot(harness.label)}
+              onClick={() => void openInFileManager(managedLocation)}
+            >
+              <FolderOpen size={15} />
+            </button>
+          </>
         ) : null}
         <ToggleSwitch
           checked={harness.supportEnabled}
