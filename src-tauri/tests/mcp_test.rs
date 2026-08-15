@@ -10,7 +10,7 @@ fn mcp_supported_harness_ids() -> Vec<&'static str> {
     // Only harnesses with MCP (ConfigSubtree) bindings appear as columns.
     common::harness_ids()
         .into_iter()
-        .filter(|id| *id != "pi")
+        .filter(|id| *id != "pi" && *id != "deepseek")
         .collect()
 }
 

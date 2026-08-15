@@ -213,6 +213,11 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
       <strong>Pi</strong><br />
       <a href="https://github.com/earendil-works/pi">文档</a>
     </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/deepseek-logo.svg" alt="DeepSeek" height="56" /><br />
+      <strong>DeepSeek</strong><br />
+      <a href="https://github.com/deepseek-ai/deepseek-harness">文档</a>
+    </td>
   </tr>
 </table>
 
@@ -226,6 +231,7 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
 | OpenClaw | 支持 | 暂不支持 | 暂不支持 |
 | GitHub Copilot | 支持 | 支持 | 暂不支持 |
 | Pi | 支持 | 暂不支持 | 暂不支持 |
+| DeepSeek | 支持 | 暂不支持 | 暂不支持 |
 
 ## 本地优先安全模型
 
@@ -329,6 +335,7 @@ CLI marketplace 条目仅用于预览。
 | OpenClaw | `SKILL_MANAGER_OPENCLAW_ROOT` | `~/.openclaw/skills` |
 | Pi | `SKILL_MANAGER_PI_ROOT` | `~/.pi/agent/skills` |
 | GitHub Copilot | `SKILL_MANAGER_COPILOT_ROOT` | `~/.copilot/skills` |
+| DeepSeek | `SKILL_MANAGER_DEEPSEEK_ROOT` | `${DSH_HOME:-~/.dsh}/skills` |
 
 MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配置路径，并跳过不支持的 harness 写入。Hermes Agent 配置发现会优先使用 `SKILL_MANAGER_HERMES_HOME`，然后是 `HERMES_HOME`，最后回退到 `~/.hermes`。
 

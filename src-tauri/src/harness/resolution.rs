@@ -121,6 +121,19 @@ pub fn pi_skills_root(ctx: &ResolutionContext) -> PathBuf {
     ctx.home.join(".pi").join("agent").join("skills")
 }
 
+/// DeepSeek Harness (dsh) home: `$DSH_HOME` override, otherwise `~/.dsh`.
+pub fn dsh_home(ctx: &ResolutionContext) -> PathBuf {
+    ctx.env
+        .get("DSH_HOME")
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| ctx.home.join(".dsh"))
+}
+
+pub fn deepseek_skills_root(ctx: &ResolutionContext) -> PathBuf {
+    dsh_home(ctx).join("skills")
+}
+
 pub fn copilot_settings_skill_directories(ctx: &ResolutionContext) -> Vec<PathBuf> {
     let settings_path = ctx.home.join(".copilot").join("settings.json");
     let Ok(raw) = std::fs::read_to_string(&settings_path) else {
