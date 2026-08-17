@@ -118,7 +118,20 @@ pub fn copilot_installed_plugins_root(ctx: &ResolutionContext) -> PathBuf {
 }
 
 pub fn pi_skills_root(ctx: &ResolutionContext) -> PathBuf {
-    ctx.home.join(".pi").join("agent").join("skills")
+    pi_agent_dir(ctx).join("skills")
+}
+
+/// Pi coding agent directory: `$PI_CODING_AGENT_DIR` override, otherwise `~/.pi/agent`.
+pub fn pi_agent_dir(ctx: &ResolutionContext) -> PathBuf {
+    ctx.env
+        .get("PI_CODING_AGENT_DIR")
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| ctx.home.join(".pi").join("agent"))
+}
+
+pub fn pi_mcp_config(ctx: &ResolutionContext) -> PathBuf {
+    pi_agent_dir(ctx).join("mcp.json")
 }
 
 /// DeepSeek Harness (dsh) home: `$DSH_HOME` override, otherwise `~/.dsh`.
@@ -132,6 +145,22 @@ pub fn dsh_home(ctx: &ResolutionContext) -> PathBuf {
 
 pub fn deepseek_skills_root(ctx: &ResolutionContext) -> PathBuf {
     dsh_home(ctx).join("skills")
+}
+
+/// DeepSeek Harness MCP config: user MCP servers live as `dsh-mcp-client`
+/// plugin rows in a profile's `cordis.patch.yml`. Defaults to the `web`
+/// profile; override with `SKILL_MANAGER_DEEPSEEK_MCP_CONFIG`.
+pub fn deepseek_mcp_config(ctx: &ResolutionContext) -> PathBuf {
+    ctx.env
+        .get("SKILL_MANAGER_DEEPSEEK_MCP_CONFIG")
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            dsh_home(ctx)
+                .join("profiles")
+                .join("web")
+                .join("cordis.patch.yml")
+        })
 }
 
 pub fn copilot_settings_skill_directories(ctx: &ResolutionContext) -> Vec<PathBuf> {

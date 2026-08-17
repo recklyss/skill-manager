@@ -85,6 +85,24 @@ impl ConfigSubtreeBindingProfile {
     }
 }
 
+/// A cordis-style config (e.g. DeepSeek Harness `cordis.patch.yml`) that stores
+/// MCP servers as a list of plugin rows rather than a single object subtree.
+#[derive(Debug, Clone)]
+pub struct CordisPatchBindingProfile {
+    pub config_path_resolver: PathFn,
+    /// Package name that identifies an MCP server row, e.g. `@deepseek-ai/dsh-mcp-client`.
+    pub package_name: &'static str,
+    pub codec: &'static str,
+    pub capability_probe: Option<&'static str>,
+    pub capability_unavailable_reason: Option<&'static str>,
+}
+
+impl CordisPatchBindingProfile {
+    pub fn resolve_config_path(&self, context: &ResolutionContext) -> PathBuf {
+        (self.config_path_resolver)(context)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandFileRenderFormat {
     FrontmatterMarkdown,
@@ -135,6 +153,7 @@ pub enum BindingProfile {
     FileTree(FileTreeBindingProfile),
     ConfigSubtree(ConfigSubtreeBindingProfile),
     CommandFile(CommandFileBindingProfile),
+    CordisPatch(CordisPatchBindingProfile),
 }
 
 #[derive(Debug, Clone)]

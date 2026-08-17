@@ -120,6 +120,13 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
         "XDG_CONFIG_HOME".into(),
         home.join(".config").display().to_string(),
     );
+    // Isolate harness-home-driven MCP config paths (DeepSeek uses `$DSH_HOME`,
+    // Pi uses `$PI_CODING_AGENT_DIR`) so tests never touch the real host dirs.
+    env.insert("DSH_HOME".into(), home.join(".dsh").display().to_string());
+    env.insert(
+        "PI_CODING_AGENT_DIR".into(),
+        home.join(".pi").join("agent").display().to_string(),
+    );
 
     let bin_dir = root.join("bin");
     fs::create_dir_all(&bin_dir).expect("bin dir");

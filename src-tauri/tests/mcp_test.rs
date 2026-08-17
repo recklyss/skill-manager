@@ -7,11 +7,8 @@ use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 fn mcp_supported_harness_ids() -> Vec<&'static str> {
-    // Only harnesses with MCP (ConfigSubtree) bindings appear as columns.
+    // Every harness in the catalog has an MCP binding.
     common::harness_ids()
-        .into_iter()
-        .filter(|id| *id != "pi" && *id != "deepseek")
-        .collect()
 }
 
 fn test_home(fixture: &TestFixture) -> std::path::PathBuf {
@@ -26,6 +23,24 @@ fn write_cursor_mcp(fixture: &TestFixture, servers: serde_json::Value) {
 fn write_claude_mcp(fixture: &TestFixture, servers: serde_json::Value) {
     let path = test_home(fixture).join(".claude.json");
     common::write_json(&path, &serde_json::json!({ "mcpServers": servers }));
+}
+
+fn write_pi_mcp(fixture: &TestFixture, servers: serde_json::Value) {
+    let path = test_home(fixture).join(".pi").join("agent").join("mcp.json");
+    common::write_json(&path, &serde_json::json!({ "mcpServers": servers }));
+}
+
+fn write_deepseek_mcp(fixture: &TestFixture, rows: &serde_json::Value) {
+    let path = test_home(fixture)
+        .join(".dsh")
+        .join("profiles")
+        .join("web")
+        .join("cordis.patch.yml");
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("parent dir");
+    }
+    let yaml = serde_yaml::to_string(rows).expect("serialize yaml");
+    std::fs::write(&path, yaml).expect("write yaml");
 }
 
 async fn mcp_get(fixture: &TestFixture, path: &str) -> (StatusCode, serde_json::Value) {
@@ -323,5 +338,99 @@ async fn unmanaged_by_server_masks_secret_preview_fields() {
     assert_eq!(
         stdio["canonicalSpec"]["env"]["EXA_API_KEY"],
         "[redacted]"
+    );
+}
+
+#[tokio::test]
+async fn unmanaged_by_server_discovers_pi_and_deepseek() {
+    let fixture = TestFixture::new();
+    write_pi_mcp(
+        &fixture,
+        serde_json::json!({ "pi-tool": { "command": "uvx", "args": ["pi-tool-mcp"] } }),
+    );
+    write_deepseek_mcp(
+        &fixture,
+        &serde_json::json!([{
+            "id": "mcp-ds-tool",
+            "name": "@deepseek-ai/dsh-mcp-client",
+            "config": {
+                "serverName": "ds-tool",
+                "transport": "stdio",
+                "command": "uvx",
+                "args": ["ds-tool-mcp"]
+            }
+        }]),
+    );
+
+    let (_, body) = mcp_get(&fixture, "/api/mcp/unmanaged/by-server").await;
+    let servers: std::collections::HashMap<_, _> = body["servers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| (s["name"].as_str().unwrap().to_string(), s.clone()))
+        .collect();
+
+    let pi_harnesses: std::collections::HashSet<_> = servers["pi-tool"]["sightings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|s| s.get("harness").and_then(|v| v.as_str()))
+        .collect();
+    assert!(pi_harnesses.contains("pi"), "pi sighting missing: {body}");
+
+    let ds_harnesses: std::collections::HashSet<_> = servers["ds-tool"]["sightings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|s| s.get("harness").and_then(|v| v.as_str()))
+        .collect();
+    assert!(
+        ds_harnesses.contains("deepseek"),
+        "deepseek sighting missing: {body}"
+    );
+}
+
+#[tokio::test]
+async fn adopt_writes_deepseek_cordis_patch_row() {
+    let fixture = TestFixture::new();
+    write_deepseek_mcp(
+        &fixture,
+        &serde_json::json!([{
+            "id": "mcp-foo",
+            "name": "@deepseek-ai/dsh-mcp-client",
+            "config": {
+                "serverName": "foo",
+                "transport": "stdio",
+                "command": "uvx",
+                "args": ["foo-mcp"]
+            }
+        }]),
+    );
+
+    let (status, result) = mcp_post_json(
+        &fixture,
+        "/api/mcp/unmanaged/adopt",
+        serde_json::json!({ "name": "foo" }),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let succeeded: std::collections::HashSet<_> = result["succeeded"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    assert!(succeeded.contains("deepseek"), "deepseek not enabled: {result}");
+
+    let path = test_home(&fixture)
+        .join(".dsh")
+        .join("profiles")
+        .join("web")
+        .join("cordis.patch.yml");
+    let text = std::fs::read_to_string(&path).expect("cordis patch file");
+    assert!(text.contains("foo"), "server row missing from cordis patch: {text}");
+    assert!(
+        text.contains("@deepseek-ai/dsh-mcp-client"),
+        "mcp-client package row missing: {text}"
     );
 }

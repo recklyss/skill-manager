@@ -90,3 +90,27 @@ fn harness_support_store_persists_disabled_harnesses() {
     let prefs = store.load().expect("load prefs");
     assert!(!prefs.is_enabled("codex"));
 }
+
+/// DeepSeek Harness is detected when its home directory exists, even without
+/// a `dsh` binary on PATH (it is typically launched via `npx @deepseek-ai/dsh`).
+#[test]
+fn deepseek_detected_via_harness_home_directory() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let home = dir.path().join("home");
+    fs::create_dir_all(home.join(".dsh")).expect("dsh home");
+
+    let mut env = std::collections::HashMap::new();
+    env.insert("HOME".into(), home.display().to_string());
+    env.insert("PATH".into(), dir.path().join("bin").display().to_string());
+
+    let store = HarnessSupportStore::new(dir.path().join("settings.json"));
+    let kernel = HarnessKernelService::from_environment(Some(env), store);
+
+    let deepseek = kernel
+        .statuses()
+        .into_iter()
+        .find(|status| status.harness == "deepseek")
+        .expect("deepseek status");
+
+    assert!(deepseek.installed, "deepseek should be detected via ~/.dsh");
+}

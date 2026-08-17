@@ -5,11 +5,12 @@ pub mod support_store;
 
 pub use catalog::{supported_harness_ids, SUPPORTED_HARNESS_DEFINITIONS};
 pub use contracts::{
-    BindingProfile, ConfigFileFormat, ConfigSubtreeBindingProfile, FamilyBinding, FamilyKey,
-    FileTreeDiscoveryRoot, FileTreeLayout, HarnessDefinition, HarnessStatus,
+    BindingProfile, ConfigFileFormat, ConfigSubtreeBindingProfile, CordisPatchBindingProfile,
+    FamilyBinding, FamilyKey, FileTreeDiscoveryRoot, FileTreeLayout, HarnessDefinition,
+    HarnessStatus,
 };
 pub use resolution::{
-    copilot_settings_skill_directories, is_executable_on_path, resolve_context,
+    copilot_settings_skill_directories, dsh_home, is_executable_on_path, resolve_context,
     resolve_executable_path, Platform, ResolutionContext,
 };
 pub use support_store::HarnessSupportStore;
