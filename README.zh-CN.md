@@ -14,8 +14,6 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-111827?style=flat-square" /></a>
   <a href="https://github.com/recklyss/skill-manager/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/recklyss/skill-manager?style=flat-square&color=EA580C" /></a>
-  <a href="https://www.npmjs.com/package/@recklyss/skill-manager"><img alt="npm version" src="https://img.shields.io/npm/v/%40recklyss%2Fskill-manager?style=flat-square&logo=npm&logoColor=white" /></a>
-  <a href="#安装"><img alt="Install with Homebrew" src="https://img.shields.io/badge/install-homebrew-FBBF24?style=flat-square&logo=homebrew&logoColor=111827" /></a>
   <a href="#安装"><img alt="macOS ARM64/x64 and Linux x64/ARM64" src="https://img.shields.io/badge/platform-macOS%20ARM64%2Fx64%20%2B%20Linux%20x64%2FARM64-111827?style=flat-square&logo=linux&logoColor=white" /></a>
   <a href="#本地优先安全模型"><img alt="Local-first" src="https://img.shields.io/badge/data-local--first-0F766E?style=flat-square" /></a>
 </p>
@@ -151,23 +149,21 @@ Slash command 作为共享 prompt 库保存，而不是在每个 harness 专用�
 
 **平台支持：** 目前仅支持 macOS（ARM64/x64）和 Linux（x64/ARM64）。**暂不支持** Windows 以及移动端（iOS/Android）——路径解析、安装检测和发布产物目前面向类 Unix 桌面环境。
 
-### Homebrew（macOS 推荐）
+### GitHub Releases
+
+从 [GitHub Releases](https://github.com/recklyss/skill-manager/releases/latest) 下载对应平台的压缩包：
+
+| 平台 | 产物 |
+|---|---|
+| macOS Apple Silicon | `skill-manager-v<version>-darwin-arm64.tar.gz` |
+| macOS Intel | `skill-manager-v<version>-darwin-x64.tar.gz` |
+| Linux x64 | `skill-manager-v<version>-linux-x64.tar.gz` |
+| Linux ARM64 | `skill-manager-v<version>-linux-arm64.tar.gz` |
 
 ```bash
-brew tap recklyss/tap
-brew install skill-manager
-skill-manager start
+tar -xzf skill-manager-v<version>-<platform>.tar.gz
+./skill-manager/skill-manager
 ```
-
-### npm（macOS ARM64/x64 和 Linux x64/ARM64）
-
-```bash
-npm install -g @recklyss/skill-manager
-skill-manager start
-```
-
-npm wrapper 会为当前平台和 CPU 架构下载对应的原生 release artifact。
-GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release artifact。
 
 ## 支持的 harness
 
@@ -230,8 +226,8 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
 | Hermes Agent | 支持 | 支持 | 暂不支持 |
 | OpenClaw | 支持 | 暂不支持 | 暂不支持 |
 | GitHub Copilot | 支持 | 支持 | 暂不支持 |
-| Pi | 支持 | 暂不支持 | 暂不支持 |
-| DeepSeek | 支持 | 暂不支持 | 暂不支持 |
+| Pi | 支持 | 支持 | 暂不支持 |
+| DeepSeek | 支持 | 支持 | 暂不支持 |
 
 ## 本地优先安全模型
 
@@ -362,7 +358,7 @@ pnpm run build
 ```bash
 pnpm run typecheck
 pnpm test
-pnpm run test:rust               # Rust 集成测试
+bash scripts/test_rust.sh        # Rust 集成测试
 pnpm run build
 cd src-tauri && cargo check      # Rust 编译检查
 ```
@@ -370,7 +366,6 @@ cd src-tauri && cargo check      # Rust 编译检查
 ## 故障排查
 
 - 如果商城请求失败并显示 `Marketplace is temporarily unavailable`，请确认网络连接后重试。
-- 在 macOS 上，如果 `npm install -g @recklyss/skill-manager` 提示 Homebrew 已拥有 `skill-manager`，请先卸载 Homebrew formula。反过来也一样：切回 Homebrew 前请先卸载 npm 包。
 - 如果某个 MCP harness 显示为不可用，说明 Skill Manager 检测到本地客户端缺失，或该客户端不支持所需配置界面。
 
 ## 后续计划

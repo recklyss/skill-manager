@@ -64,12 +64,6 @@ jobs:
       - name: Check version sync
         run: node scripts/sync_version.mjs --check
 
-      - name: Check npm LICENSE sync
-        run: node scripts/sync_public_metadata.mjs --check
-
-      - name: Check release target resolver
-        run: pnpm run release-targets:check
-
       - name: Frontend typecheck
         run: pnpm run typecheck
 
@@ -115,7 +109,7 @@ jobs:
       - name: Build Tauri app
         run: pnpm run build
 
-      - name: Package npm/Homebrew tarball
+      - name: Package release tarball
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           bash scripts/package_release_artifact.sh "${{ matrix.target }}" "$VERSION"

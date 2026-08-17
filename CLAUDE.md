@@ -6,12 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Initial dev setup (pnpm deps only)
-scripts/install-dev.sh
-# or: pnpm install
+pnpm install
 
 # Run the Tauri desktop app (embedded Rust API on :18000)
 pnpm run dev
-# Alias: scripts/start-dev.sh
 
 # Validation
 pnpm run typecheck             # TypeScript type checking
@@ -22,8 +20,8 @@ VITE_API_BASE=/api pnpm exec vite build   # Frontend-only build check
 # Build & package the desktop app (bundles frontend via Tauri's beforeBuildCommand)
 pnpm run build
 
-# Publish to npm + Homebrew: handled by .github/workflows/release.yml
-# (tarball via scripts/package_release_artifact.sh, npm wrapper in packaging/npm/)
+# Publish GitHub Release artifacts: handled by .github/workflows/release.yml
+# (tarball via scripts/package_release_artifact.sh)
 
 # OpenAPI TypeScript client (from checked-in openapi.json)
 pnpm exec openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts

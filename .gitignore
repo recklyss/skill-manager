@@ -7,7 +7,6 @@ frontend/dist/
 build/
 dist/
 *.egg-info/
-packaging/npm/vendor/
 .artifacts/runtime/
 .artifacts/
 task_plan.md

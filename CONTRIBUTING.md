@@ -16,7 +16,7 @@ Issues and pull requests are welcome. For small fixes, docs updates, and focused
 Use the standard repo setup:
 
 ```bash
-scripts/install-dev.sh
+pnpm install
 ```
 
 Start the desktop app for local development:
@@ -30,7 +30,7 @@ pnpm run dev
 Run the smallest set of checks that proves your change is correct. For most changes, that means:
 
 ```bash
-pnpm run test:rust               # or: bash scripts/test_rust.sh
+bash scripts/test_rust.sh
 pnpm test
 pnpm run build
 ```

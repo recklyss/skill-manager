@@ -54,7 +54,6 @@ function syncTauriConf() {
 
 const ok =
   syncJson("package.json", "package.json") &
-  syncJson("packaging/npm/package.json", "packaging/npm/package.json") &
   syncCargo() &
   syncTauriConf();
 

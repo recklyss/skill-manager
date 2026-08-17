@@ -14,8 +14,6 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-111827?style=flat-square" /></a>
   <a href="https://github.com/recklyss/skill-manager/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/recklyss/skill-manager?style=flat-square&color=EA580C" /></a>
-  <a href="https://www.npmjs.com/package/@recklyss/skill-manager"><img alt="npm version" src="https://img.shields.io/npm/v/%40recklyss%2Fskill-manager?style=flat-square&logo=npm&logoColor=white" /></a>
-  <a href="#install"><img alt="Install with Homebrew" src="https://img.shields.io/badge/install-homebrew-FBBF24?style=flat-square&logo=homebrew&logoColor=111827" /></a>
   <a href="#install"><img alt="macOS ARM64/x64 and Linux x64/ARM64" src="https://img.shields.io/badge/platform-macOS%20ARM64%2Fx64%20%2B%20Linux%20x64%2FARM64-111827?style=flat-square&logo=linux&logoColor=white" /></a>
   <a href="#local-first-safety"><img alt="Local-first" src="https://img.shields.io/badge/data-local--first-0F766E?style=flat-square" /></a>
 </p>
@@ -151,23 +149,21 @@ Enable or disable harness support, confirm where each harness stores Skills on d
 
 **Platform support:** macOS (ARM64/x64) and Linux (x64/ARM64) only. Windows and mobile (iOS/Android) are **not supported** yet — path resolution, install detection, and release artifacts are built for Unix-style desktop environments today.
 
-### Homebrew (macOS recommended)
+### GitHub Releases
+
+Download the tarball for your platform from [GitHub Releases](https://github.com/recklyss/skill-manager/releases/latest):
+
+| Platform | Artifact |
+|---|---|
+| macOS Apple Silicon | `skill-manager-v<version>-darwin-arm64.tar.gz` |
+| macOS Intel | `skill-manager-v<version>-darwin-x64.tar.gz` |
+| Linux x64 | `skill-manager-v<version>-linux-x64.tar.gz` |
+| Linux ARM64 | `skill-manager-v<version>-linux-arm64.tar.gz` |
 
 ```bash
-brew tap recklyss/tap
-brew install skill-manager
-skill-manager start
+tar -xzf skill-manager-v<version>-<platform>.tar.gz
+./skill-manager/skill-manager
 ```
-
-### npm (macOS ARM64/x64 and Linux x64/ARM64)
-
-```bash
-npm install -g @recklyss/skill-manager
-skill-manager start
-```
-
-The npm wrapper downloads the native release artifact for the current platform and CPU architecture.
-Native release artifacts are published on GitHub Releases for macOS ARM64/x64 and Linux x64/ARM64.
 
 ## Supported harnesses
 
@@ -230,8 +226,8 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
 | Hermes Agent | Yes | Yes | Not Yet |
 | OpenClaw | Yes | Not Yet | Not Yet |
 | GitHub Copilot | Yes | Yes | Not Yet |
-| Pi | Yes | Not Yet | Not Yet |
-| DeepSeek | Yes | Not Yet | Not Yet |
+| Pi | Yes | Yes | Not Yet |
+| DeepSeek | Yes | Yes | Not Yet |
 
 ## Local-first safety
 
@@ -362,7 +358,7 @@ pnpm run build
 ```bash
 pnpm run typecheck
 pnpm test
-pnpm run test:rust               # Rust integration tests
+bash scripts/test_rust.sh        # Rust integration tests
 pnpm run build
 cd src-tauri && cargo check      # Rust compile check
 ```
@@ -370,7 +366,6 @@ cd src-tauri && cargo check      # Rust compile check
 ## Troubleshooting
 
 - If Marketplace requests fail with `Marketplace is temporarily unavailable`, verify your network connection and try again.
-- On macOS, if `npm install -g @recklyss/skill-manager` reports that Homebrew already owns `skill-manager`, uninstall the Homebrew formula first. The inverse also applies: uninstall the npm package before switching back to Homebrew.
 - If an MCP harness is shown as unavailable, Skill Manager has detected that the local client is missing or does not support the required config surface.
 
 ## More to come
