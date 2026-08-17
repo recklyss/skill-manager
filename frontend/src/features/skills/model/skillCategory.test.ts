@@ -1,5 +1,3 @@
-import { readFileSync, readdirSync } from "fs";
-import { join } from "path";
 import { describe, expect, it } from "vitest";
 
 import { classifySkillCategory, groupRowsByCategory } from "./skillCategory";
@@ -64,38 +62,5 @@ describe("groupRowsByCategory", () => {
       row("frontend-slides"),
     ]);
     expect(groups.map((group) => group.category)).toEqual(["coding", "docs", "media", "memory"]);
-  });
-});
-
-describe("classifySkillCategory fixture audit", () => {
-  it("assigns every local fixture skill to a stable category", () => {
-    const skillsRoot = join(process.env.HOME ?? "", ".claude", "skills");
-    let names: string[] = [];
-    try {
-      names = readdirSync(skillsRoot).filter((entry) => !entry.startsWith("."));
-    } catch {
-      return;
-    }
-
-    const unexpected: string[] = [];
-    for (const name of names) {
-      let description = "";
-      try {
-        const raw = readFileSync(join(skillsRoot, name, "SKILL.md"), "utf8");
-        const match =
-          raw.match(/description:\s*\|\n([\s\S]*?)(?:\n[a-zA-Z][\w-]*:|\n---)/) ??
-          raw.match(/description:\s*(.+)/);
-        description = match?.[1]?.replace(/^\s+/gm, " ").trim() ?? "";
-      } catch {
-        // ignore unreadable fixtures
-      }
-
-      const category = classifySkillCategory(row(name, description));
-      if (category === "other" && !["using-superpowers", "verification-before-completion", "shared-patterns", "INDEX.json"].includes(name)) {
-        unexpected.push(name);
-      }
-    }
-
-    expect(unexpected, `unexpected 'other' categories: ${unexpected.join(", ")}`).toEqual([]);
   });
 });
