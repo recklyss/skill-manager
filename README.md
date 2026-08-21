@@ -14,8 +14,6 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-111827?style=flat-square" /></a>
   <a href="https://github.com/recklyss/skill-manager/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/recklyss/skill-manager?style=flat-square&color=EA580C" /></a>
-  <a href="https://www.npmjs.com/package/@recklyss/skill-manager"><img alt="npm version" src="https://img.shields.io/npm/v/%40recklyss%2Fskill-manager?style=flat-square&logo=npm&logoColor=white" /></a>
-  <a href="#install"><img alt="Install with Homebrew" src="https://img.shields.io/badge/install-homebrew-FBBF24?style=flat-square&logo=homebrew&logoColor=111827" /></a>
   <a href="#install"><img alt="macOS ARM64/x64 and Linux x64/ARM64" src="https://img.shields.io/badge/platform-macOS%20ARM64%2Fx64%20%2B%20Linux%20x64%2FARM64-111827?style=flat-square&logo=linux&logoColor=white" /></a>
   <a href="#local-first-safety"><img alt="Local-first" src="https://img.shields.io/badge/data-local--first-0F766E?style=flat-square" /></a>
 </p>
@@ -39,13 +37,13 @@ AI extensions are scattered across harness-specific folders, MCP config files, s
 - Install or adopt MCP server configs, resolve differences, and enable them where supported.
 - Manage reusable slash commands once, then sync them to supported harnesses.
 - Discover Skills, MCP servers, and preview-only CLI tools from marketplace sources.
-- Switch between light and dark mode and pick from built-in Color Hunt themes.
+- Switch between light and dark mode and pick from built-in curated color palettes.
 
 ## Product tour
 
 ### Overview and themes
 
-Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active. Switch themes from the sidebar — light, dark, and Color Hunt palettes such as Earthy Sage, Ocean Depths, and Berry Sunset.
+Start with the whole extension portfolio: what is in use, what needs review, what can be discovered, and where extensions are active. Switch themes from the sidebar — light, dark, and curated palettes such as Autumn Forest, Ocean Night, and Lavender Dream.
 
 <p align="center">
   <img src="assets/change-theme.png" alt="Overview dashboard with theme picker" width="920" />
@@ -149,23 +147,23 @@ Enable or disable harness support, confirm where each harness stores Skills on d
 
 ## Install
 
-### Homebrew (macOS recommended)
+**Platform support:** macOS (ARM64/x64) and Linux (x64/ARM64) only. Windows and mobile (iOS/Android) are **not supported** yet — path resolution, install detection, and release artifacts are built for Unix-style desktop environments today.
+
+### GitHub Releases
+
+Download the tarball for your platform from [GitHub Releases](https://github.com/recklyss/skill-manager/releases/latest):
+
+| Platform | Artifact |
+|---|---|
+| macOS Apple Silicon | `skill-manager-v<version>-darwin-arm64.tar.gz` |
+| macOS Intel | `skill-manager-v<version>-darwin-x64.tar.gz` |
+| Linux x64 | `skill-manager-v<version>-linux-x64.tar.gz` |
+| Linux ARM64 | `skill-manager-v<version>-linux-arm64.tar.gz` |
 
 ```bash
-brew tap recklyss/tap
-brew install skill-manager
-skill-manager start
+tar -xzf skill-manager-v<version>-<platform>.tar.gz
+./skill-manager/skill-manager
 ```
-
-### npm (macOS ARM64/x64 and Linux x64/ARM64)
-
-```bash
-npm install -g @recklyss/skill-manager
-skill-manager start
-```
-
-The npm wrapper downloads the native release artifact for the current platform and CPU architecture.
-Native release artifacts are published on GitHub Releases for macOS ARM64/x64 and Linux x64/ARM64.
 
 ## Supported harnesses
 
@@ -206,6 +204,16 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
       <strong>GitHub Copilot</strong><br />
       <a href="https://docs.github.com/en/copilot/how-tos/copilot-cli">Docs</a>
     </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/pi-logo.svg" alt="Pi" height="56" /><br />
+      <strong>Pi</strong><br />
+      <a href="https://github.com/earendil-works/pi">Docs</a>
+    </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/deepseek-logo.svg" alt="DeepSeek" height="56" /><br />
+      <strong>DeepSeek</strong><br />
+      <a href="https://github.com/deepseek-ai/deepseek-harness">Docs</a>
+    </td>
   </tr>
 </table>
 
@@ -218,6 +226,8 @@ Native release artifacts are published on GitHub Releases for macOS ARM64/x64 an
 | Hermes Agent | Yes | Yes | Not Yet |
 | OpenClaw | Yes | Not Yet | Not Yet |
 | GitHub Copilot | Yes | Yes | Not Yet |
+| Pi | Yes | Yes | Not Yet |
+| DeepSeek | Yes | Yes | Not Yet |
 
 ## Local-first safety
 
@@ -318,8 +328,10 @@ Most users do not need to change these locations. If you manage skills in a cust
 | Cursor | `SKILL_MANAGER_CURSOR_ROOT` | `~/.cursor/skills` |
 | OpenCode | `SKILL_MANAGER_OPENCODE_ROOT` | `~/.config/opencode/skills` |
 | Hermes Agent | `SKILL_MANAGER_HERMES_ROOT` | `${HERMES_HOME:-~/.hermes}/skills` |
-| OpenClaw | `n/a` | `~/.openclaw/skills` |
+| OpenClaw | `SKILL_MANAGER_OPENCLAW_ROOT` | `~/.openclaw/skills` |
+| Pi | `SKILL_MANAGER_PI_ROOT` | `~/.pi/agent/skills` |
 | GitHub Copilot | `SKILL_MANAGER_COPILOT_ROOT` | `~/.copilot/skills` |
+| DeepSeek | `SKILL_MANAGER_DEEPSEEK_ROOT` | `${DSH_HOME:-~/.dsh}/skills` |
 
 MCP config locations are harness-owned. Skill Manager writes only to verified config paths and skips unsupported harness writes. Hermes Agent config discovery honors `SKILL_MANAGER_HERMES_HOME` first, then `HERMES_HOME`, then `~/.hermes`.
 
@@ -329,32 +341,31 @@ MCP config locations are harness-owned. Skill Manager writes only to verified co
 
 ```bash
 # Requirements: Rust 1.85+, Node.js 24+ (see `.nvmrc`)
-npm install
-npm run tauri:dev
+pnpm install
+pnpm run dev
 ```
 
-The app opens as a native desktop window — no browser, no manual server start.
+The app opens as a native desktop window — no browser, no manual server start. Supported desktop targets are **macOS and Linux** only (no Windows or mobile builds).
 
 Build a native installer:
 
 ```bash
-npm run tauri:build
+pnpm run build
 ```
 
 ### Validation
 
 ```bash
-npm run typecheck
-npm test
-npm run test:rust                # Rust integration tests
-npm run build
+pnpm run typecheck
+pnpm test
+bash scripts/test_rust.sh        # Rust integration tests
+pnpm run build
 cd src-tauri && cargo check      # Rust compile check
 ```
 
 ## Troubleshooting
 
 - If Marketplace requests fail with `Marketplace is temporarily unavailable`, verify your network connection and try again.
-- On macOS, if `npm install -g @recklyss/skill-manager` reports that Homebrew already owns `skill-manager`, uninstall the Homebrew formula first. The inverse also applies: uninstall the npm package before switching back to Homebrew.
 - If an MCP harness is shown as unavailable, Skill Manager has detected that the local client is missing or does not support the required config surface.
 
 ## More to come

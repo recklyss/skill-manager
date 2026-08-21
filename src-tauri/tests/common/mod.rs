@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -118,10 +120,17 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
         "XDG_CONFIG_HOME".into(),
         home.join(".config").display().to_string(),
     );
+    // Isolate harness-home-driven MCP config paths (DeepSeek uses `$DSH_HOME`,
+    // Pi uses `$PI_CODING_AGENT_DIR`) so tests never touch the real host dirs.
+    env.insert("DSH_HOME".into(), home.join(".dsh").display().to_string());
+    env.insert(
+        "PI_CODING_AGENT_DIR".into(),
+        home.join(".pi").join("agent").display().to_string(),
+    );
 
     let bin_dir = root.join("bin");
     fs::create_dir_all(&bin_dir).expect("bin dir");
-    for executable in ["codex", "claude", "cursor-agent", "opencode", "hermes", "openclaw", "copilot"] {
+    for executable in ["codex", "claude", "cursor-agent", "opencode", "hermes", "openclaw", "copilot", "pi", "dsh"] {
         write_cli_stub(&bin_dir.join(executable), executable);
     }
     let path = env.get("PATH").cloned().unwrap_or_default();
@@ -135,6 +144,8 @@ fn isolate_harness_roots(root: &Path) -> std::collections::HashMap<String, Strin
         ("SKILL_MANAGER_HERMES_ROOT", "hermes"),
         ("SKILL_MANAGER_OPENCLAW_ROOT", "openclaw"),
         ("SKILL_MANAGER_COPILOT_ROOT", "copilot"),
+        ("SKILL_MANAGER_PI_ROOT", "pi"),
+        ("SKILL_MANAGER_DEEPSEEK_ROOT", "deepseek"),
     ] {
         let path = harness_roots.join(name);
         fs::create_dir_all(&path).expect("harness root");
@@ -216,6 +227,8 @@ pub fn harness_ids() -> Vec<&'static str> {
         "hermes",
         "openclaw",
         "copilot",
+        "pi",
+        "deepseek",
     ]
 }
 

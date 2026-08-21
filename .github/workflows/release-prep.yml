@@ -26,6 +26,8 @@ jobs:
           fetch-depth: 0
           ref: main
 
+      - uses: pnpm/action-setup@v6
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -99,11 +101,10 @@ jobs:
           else
             node scripts/bump_version.mjs --from="${{ steps.changes.outputs.base_version }}"
           fi
-          node scripts/sync_public_metadata.mjs --write
           NEW_VERSION="$(tr -d '[:space:]' < VERSION)"
           BRANCH="automated/release-${NEW_VERSION}"
           git checkout -B "$BRANCH"
-          git add VERSION package.json package-lock.json packaging/npm/package.json packaging/npm/LICENSE src-tauri/Cargo.toml src-tauri/tauri.conf.json
+          git add VERSION package.json pnpm-lock.yaml src-tauri/Cargo.toml src-tauri/tauri.conf.json
           git commit -m "chore: bump version to ${NEW_VERSION}"
           git push --force origin "$BRANCH"
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
@@ -119,4 +120,4 @@ jobs:
             --base release \
             --head "${{ steps.prep.outputs.branch }}" \
             --title "Release v${{ steps.prep.outputs.version }}" \
-            --body "Automated release PR from main. Version v${{ steps.prep.outputs.version }}. Merge to publish GitHub Release, npm, and Homebrew. Only maintainers should merge this PR."
+            --body "Automated release PR from main. Version v${{ steps.prep.outputs.version }}. Merge to publish a GitHub Release with native artifacts. Only maintainers should merge this PR."

@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::fsutil::copy_dir_all;
 use super::package::{find_skill_roots, fingerprint_package, parse_skill_package, SkillParseError};
 use super::identity::SourceDescriptor;
 use super::observations::{SkillStoreScan, StorePackageObservation};
@@ -237,17 +238,4 @@ impl SkillStore {
     }
 }
 
-fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
-    fs::create_dir_all(dst)?;
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        let dest_path = dst.join(entry.file_name());
-        if ty.is_dir() {
-            copy_dir_all(&entry.path(), &dest_path)?;
-        } else {
-            fs::copy(entry.path(), dest_path)?;
-        }
-    }
-    Ok(())
-}
+

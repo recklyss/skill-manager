@@ -2,11 +2,13 @@ import claudeLogo from "../../assets/harness-logos/claude-code-logo.svg";
 import codexLogo from "../../assets/harness-logos/codex-logo.svg";
 import copilotLogo from "../../assets/harness-logos/copilot-logo.svg";
 import cursorLogo from "../../assets/harness-logos/cursor-logo.svg";
+import deepseekLogo from "../../assets/harness-logos/deepseek-logo.svg";
 import hermesLogo from "../../assets/harness-logos/hermes-logo.png";
 import openclawLogo from "../../assets/harness-logos/openclaw-logo.svg";
 import opencodeLogo from "../../assets/harness-logos/opencode-logo.svg";
+import piLogo from "../../assets/harness-logos/pi-logo.svg";
 
-export type HarnessLogoKey = "claude" | "codex" | "copilot" | "cursor" | "hermes" | "opencode" | "openclaw";
+export type HarnessLogoKey = "claude" | "codex" | "copilot" | "cursor" | "deepseek" | "hermes" | "opencode" | "openclaw" | "pi";
 
 interface HarnessPresentation {
   logoSrc: string;
@@ -30,6 +32,10 @@ const HARNESS_LOGO_ASSETS: Record<HarnessLogoKey, HarnessPresentation> = {
     logoSrc: cursorLogo,
     variant: "cursor",
   },
+  deepseek: {
+    logoSrc: deepseekLogo,
+    variant: "deepseek",
+  },
   hermes: {
     logoSrc: hermesLogo,
     variant: "hermes",
@@ -41,6 +47,10 @@ const HARNESS_LOGO_ASSETS: Record<HarnessLogoKey, HarnessPresentation> = {
   openclaw: {
     logoSrc: openclawLogo,
     variant: "openclaw",
+  },
+  pi: {
+    logoSrc: piLogo,
+    variant: "pi",
   },
 };
 

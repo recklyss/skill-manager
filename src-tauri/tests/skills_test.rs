@@ -25,7 +25,7 @@ async fn list_skills_empty_page_shape() {
     );
     assert_eq!(
         body["harnessColumns"].as_array().unwrap().len(),
-        7
+        harness_ids().len()
     );
 }
 
@@ -189,7 +189,6 @@ async fn skills_mutation_routes_require_request_body() {
     let app = fixture.rebuild_app();
 
     use axum::body::Body;
-    use http_body_util::BodyExt;
     use tower::ServiceExt;
 
     let response = app

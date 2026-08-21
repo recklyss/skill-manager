@@ -88,10 +88,12 @@ impl SlashCommandSyncStateStore {
             "version": 2,
             "commands": Value::Object(commands),
         });
-        let temp = self.path.with_extension("json.tmp");
-        fs::write(&temp, serde_json::to_string_pretty(&payload).unwrap_or_default())
-            .map_err(|e| e.to_string())?;
-        fs::rename(&temp, &self.path).map_err(|e| e.to_string())?;
+        crate::fsutil::atomic_write(
+            &self.path,
+            serde_json::to_string_pretty(&payload)
+                .unwrap_or_default()
+                .as_bytes(),
+        )?;
         Ok(())
     }
 

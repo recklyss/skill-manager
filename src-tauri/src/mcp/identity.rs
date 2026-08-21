@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use sha2::{Digest, Sha256};
 
 use super::contracts::McpHarnessScan;
-use super::store::{McpServerSpec, McpSource};
+use super::store::{McpServerSpec};
 
 #[derive(Clone)]
 pub struct HarnessSighting {

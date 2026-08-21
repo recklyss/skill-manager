@@ -40,6 +40,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux system dependencies
+        run: bash scripts/install_linux_tauri_deps.sh
+
       - name: Rust integration tests
         run: bash scripts/test_rust.sh
 
@@ -48,31 +51,27 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: pnpm/action-setup@v6
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install Node dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check version sync
         run: node scripts/sync_version.mjs --check
 
-      - name: Check npm LICENSE sync
-        run: node scripts/sync_public_metadata.mjs --check
-
-      - name: Check release target resolver
-        run: npm run release-targets:check
-
       - name: Frontend typecheck
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Frontend tests
-        run: npm test
+        run: pnpm test
 
       - name: Frontend build
-        run: npm run build
+        run: VITE_API_BASE=/api pnpm exec vite build
 
   tauri-build-smoke:
     name: tauri-build-smoke-${{ matrix.target }}
@@ -91,36 +90,26 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: pnpm/action-setup@v6
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install Linux system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf
+        run: bash scripts/install_linux_tauri_deps.sh
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check version sync
         run: node scripts/sync_version.mjs --check
 
       - name: Build Tauri app
-        run: npm run tauri:build
+        run: pnpm run build
 
-      - name: Package npm/Homebrew tarball
+      - name: Package release tarball
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           bash scripts/package_release_artifact.sh "${{ matrix.target }}" "$VERSION"

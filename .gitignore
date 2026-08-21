@@ -7,16 +7,19 @@ frontend/dist/
 build/
 dist/
 *.egg-info/
-packaging/npm/vendor/
 .artifacts/runtime/
 .artifacts/
 task_plan.md
 findings.md
 progress.md
 
-# Tauri
+# Tauri (desktop-only; mobile icon outputs are not versioned)
 src-tauri/target/
-src-tauri/icons/
+src-tauri/icons/android/
+src-tauri/icons/ios/
 
 # Local documentation (not versioned)
 Docs/
+
+# macOS
+.DS_Store

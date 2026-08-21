@@ -5,7 +5,6 @@ use serde_json::{json, Value};
 use super::store::{McpServerSpec, McpSource};
 
 pub trait TransportMapper: Send + Sync {
-    fn observed_harness(&self) -> &str;
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value>;
     fn dict_to_spec(
         &self,
@@ -20,10 +19,6 @@ struct TypedMcpServersMapper {
 }
 
 impl TransportMapper for TypedMcpServersMapper {
-    fn observed_harness(&self) -> &str {
-        self.harness
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::from([("type".into(), json!("stdio"))]);
@@ -106,10 +101,6 @@ impl TransportMapper for TypedMcpServersMapper {
 struct OpenCodeMapper;
 
 impl TransportMapper for OpenCodeMapper {
-    fn observed_harness(&self) -> &str {
-        "opencode"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut command_list = Vec::new();
@@ -199,10 +190,6 @@ impl TransportMapper for OpenCodeMapper {
 struct CodexMapper;
 
 impl TransportMapper for CodexMapper {
-    fn observed_harness(&self) -> &str {
-        "codex"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::new();
@@ -279,10 +266,6 @@ impl TransportMapper for CodexMapper {
 struct HermesMapper;
 
 impl TransportMapper for HermesMapper {
-    fn observed_harness(&self) -> &str {
-        "hermes"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::new();
@@ -366,10 +349,6 @@ impl TransportMapper for HermesMapper {
 struct OpenClawMapper;
 
 impl TransportMapper for OpenClawMapper {
-    fn observed_harness(&self) -> &str {
-        "openclaw"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         if spec.transport == "stdio" {
             let mut payload = HashMap::new();
@@ -455,10 +434,6 @@ impl TransportMapper for OpenClawMapper {
 struct CopilotMapper;
 
 impl TransportMapper for CopilotMapper {
-    fn observed_harness(&self) -> &str {
-        "copilot"
-    }
-
     fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
         let mut payload = if spec.transport == "stdio" {
             let mut local = HashMap::from([
@@ -551,6 +526,175 @@ impl TransportMapper for CopilotMapper {
     }
 }
 
+struct PiMapper;
+
+impl TransportMapper for PiMapper {
+    fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
+        if spec.transport == "stdio" {
+            let mut payload = HashMap::new();
+            if let Some(cmd) = &spec.command {
+                payload.insert("command".into(), json!(cmd));
+            }
+            if let Some(args) = &spec.args {
+                if !args.is_empty() {
+                    payload.insert("args".into(), json!(args));
+                }
+            }
+            if let Some(env) = &spec.env {
+                if !env.is_empty() {
+                    payload.insert("env".into(), json!(env));
+                }
+            }
+            return payload;
+        }
+        let mut payload = HashMap::new();
+        if let Some(url) = &spec.url {
+            payload.insert("url".into(), json!(url));
+        }
+        if spec.transport == "sse" {
+            payload.insert("httpTransport".into(), json!("sse"));
+        }
+        if let Some(headers) = &spec.headers {
+            if !headers.is_empty() {
+                payload.insert("headers".into(), json!(headers));
+            }
+        }
+        payload
+    }
+
+    fn dict_to_spec(
+        &self,
+        name: &str,
+        raw: &HashMap<String, Value>,
+        source: Option<&McpSource>,
+    ) -> Result<McpServerSpec, String> {
+        if raw.contains_key("command") || raw.contains_key("args") {
+            return Ok(McpServerSpec {
+                name: name.into(),
+                display_name: name.into(),
+                source: source.cloned().unwrap_or_else(|| McpSource::adopted("pi", name)),
+                transport: "stdio".into(),
+                command: str_or_none(raw.get("command")),
+                args: str_vec(raw.get("args")),
+                env: str_map(raw.get("env")),
+                url: None,
+                headers: None,
+                installed_at: String::new(),
+                revision: String::new(),
+            });
+        }
+        if raw.contains_key("url") {
+            let transport = if str_or_none(raw.get("httpTransport")).as_deref() == Some("sse") {
+                "sse"
+            } else {
+                "http"
+            };
+            return Ok(McpServerSpec {
+                name: name.into(),
+                display_name: name.into(),
+                source: source.cloned().unwrap_or_else(|| McpSource::adopted("pi", name)),
+                transport: transport.into(),
+                command: None,
+                args: None,
+                env: None,
+                url: str_or_none(raw.get("url")),
+                headers: str_map(raw.get("headers")),
+                installed_at: String::new(),
+                revision: String::new(),
+            });
+        }
+        Err(format!(
+            "unsupported pi mcp entry '{name}': missing 'command' and 'url'"
+        ))
+    }
+}
+
+struct DeepSeekMapper;
+
+impl TransportMapper for DeepSeekMapper {
+    fn spec_to_dict(&self, spec: &McpServerSpec) -> HashMap<String, Value> {
+        if spec.transport == "stdio" {
+            let mut payload = HashMap::from([
+                ("serverName".into(), json!(spec.name)),
+                ("transport".into(), json!("stdio")),
+            ]);
+            if let Some(cmd) = &spec.command {
+                payload.insert("command".into(), json!(cmd));
+            }
+            if let Some(args) = &spec.args {
+                if !args.is_empty() {
+                    payload.insert("args".into(), json!(args));
+                }
+            }
+            if let Some(env) = &spec.env {
+                if !env.is_empty() {
+                    payload.insert("env".into(), json!(env));
+                }
+            }
+            return payload;
+        }
+        let mut payload = HashMap::from([
+            ("serverName".into(), json!(spec.name)),
+            ("transport".into(), json!("streamable-http")),
+        ]);
+        if let Some(url) = &spec.url {
+            payload.insert("url".into(), json!(url));
+        }
+        if let Some(headers) = &spec.headers {
+            if !headers.is_empty() {
+                payload.insert("headers".into(), json!(headers));
+            }
+        }
+        payload
+    }
+
+    fn dict_to_spec(
+        &self,
+        name: &str,
+        raw: &HashMap<String, Value>,
+        source: Option<&McpSource>,
+    ) -> Result<McpServerSpec, String> {
+        let transport = str_or_none(raw.get("transport"));
+        if transport.as_deref() == Some("stdio") || raw.contains_key("command") {
+            return Ok(McpServerSpec {
+                name: name.into(),
+                display_name: name.into(),
+                source: source
+                    .cloned()
+                    .unwrap_or_else(|| McpSource::adopted("deepseek", name)),
+                transport: "stdio".into(),
+                command: str_or_none(raw.get("command")),
+                args: str_vec(raw.get("args")),
+                env: str_map(raw.get("env")),
+                url: None,
+                headers: None,
+                installed_at: String::new(),
+                revision: String::new(),
+            });
+        }
+        if raw.contains_key("url") {
+            return Ok(McpServerSpec {
+                name: name.into(),
+                display_name: name.into(),
+                source: source
+                    .cloned()
+                    .unwrap_or_else(|| McpSource::adopted("deepseek", name)),
+                transport: "http".into(),
+                command: None,
+                args: None,
+                env: None,
+                url: str_or_none(raw.get("url")),
+                headers: str_map(raw.get("headers")),
+                installed_at: String::new(),
+                revision: String::new(),
+            });
+        }
+        Err(format!(
+            "unsupported deepseek mcp entry '{name}': missing 'command' and 'url'"
+        ))
+    }
+}
+
 static CLAUDE_MAPPER: TypedMcpServersMapper = TypedMcpServersMapper { harness: "claude" };
 static CURSOR_MAPPER: TypedMcpServersMapper = TypedMcpServersMapper { harness: "cursor" };
 static OPENCODE_MAPPER: OpenCodeMapper = OpenCodeMapper;
@@ -558,6 +702,8 @@ static CODEX_MAPPER: CodexMapper = CodexMapper;
 static HERMES_MAPPER: HermesMapper = HermesMapper;
 static OPENCLAW_MAPPER: OpenClawMapper = OpenClawMapper;
 static COPILOT_MAPPER: CopilotMapper = CopilotMapper;
+static PI_MAPPER: PiMapper = PiMapper;
+static DEEPSEEK_MAPPER: DeepSeekMapper = DeepSeekMapper;
 
 pub fn get_mapper(kind: &str) -> &'static dyn TransportMapper {
     match kind {
@@ -568,6 +714,8 @@ pub fn get_mapper(kind: &str) -> &'static dyn TransportMapper {
         "hermes" => &HERMES_MAPPER,
         "openclaw" => &OPENCLAW_MAPPER,
         "copilot" => &COPILOT_MAPPER,
+        "pi" => &PI_MAPPER,
+        "deepseek" => &DEEPSEEK_MAPPER,
         other => panic!("unknown mapper kind: {other}"),
     }
 }

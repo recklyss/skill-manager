@@ -14,8 +14,6 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-111827?style=flat-square" /></a>
   <a href="https://github.com/recklyss/skill-manager/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/recklyss/skill-manager?style=flat-square&color=EA580C" /></a>
-  <a href="https://www.npmjs.com/package/@recklyss/skill-manager"><img alt="npm version" src="https://img.shields.io/npm/v/%40recklyss%2Fskill-manager?style=flat-square&logo=npm&logoColor=white" /></a>
-  <a href="#安装"><img alt="Install with Homebrew" src="https://img.shields.io/badge/install-homebrew-FBBF24?style=flat-square&logo=homebrew&logoColor=111827" /></a>
   <a href="#安装"><img alt="macOS ARM64/x64 and Linux x64/ARM64" src="https://img.shields.io/badge/platform-macOS%20ARM64%2Fx64%20%2B%20Linux%20x64%2FARM64-111827?style=flat-square&logo=linux&logoColor=white" /></a>
   <a href="#本地优先安全模型"><img alt="Local-first" src="https://img.shields.io/badge/data-local--first-0F766E?style=flat-square" /></a>
 </p>
@@ -39,13 +37,13 @@ AI 扩展通常分散在各个 harness 自己的文件夹、MCP 配置文件、s
 - 安装或采用 MCP 服务器配置，解决配置差异，并写入支持的 harness。
 - 统一管理可复用的 slash command，并同步到支持的 harness。
 - 从商城来源发现 Skill、MCP 服务器，以及仅预览的 CLI 工具。
-- 在浅色、深色模式之间切换，并从内置 Color Hunt 主题中选择。
+- 在浅色、深色模式之间切换，并从内置精选配色中选择。
 
 ## 产品导览
 
 ### 总览与主题
 
-从整个扩展组合开始查看：使用中、待确认、可发现内容，以及各 harness 的覆盖情况。可在侧边栏切换主题——浅色、深色，以及 Earthy Sage、Ocean Depths、Berry Sunset 等 Color Hunt 配色。
+从整个扩展组合开始查看：使用中、待确认、可发现内容，以及各 harness 的覆盖情况。可在侧边栏切换主题——浅色、深色，以及秋日森林、海洋之夜、薰衣草之梦等精选配色。
 
 <p align="center">
   <img src="assets/change-theme.png" alt="总览仪表盘与主题选择器" width="920" />
@@ -149,23 +147,23 @@ Slash command 作为共享 prompt 库保存，而不是在每个 harness 专用�
 
 ## 安装
 
-### Homebrew（macOS 推荐）
+**平台支持：** 目前仅支持 macOS（ARM64/x64）和 Linux（x64/ARM64）。**暂不支持** Windows 以及移动端（iOS/Android）——路径解析、安装检测和发布产物目前面向类 Unix 桌面环境。
+
+### GitHub Releases
+
+从 [GitHub Releases](https://github.com/recklyss/skill-manager/releases/latest) 下载对应平台的压缩包：
+
+| 平台 | 产物 |
+|---|---|
+| macOS Apple Silicon | `skill-manager-v<version>-darwin-arm64.tar.gz` |
+| macOS Intel | `skill-manager-v<version>-darwin-x64.tar.gz` |
+| Linux x64 | `skill-manager-v<version>-linux-x64.tar.gz` |
+| Linux ARM64 | `skill-manager-v<version>-linux-arm64.tar.gz` |
 
 ```bash
-brew tap recklyss/tap
-brew install skill-manager
-skill-manager start
+tar -xzf skill-manager-v<version>-<platform>.tar.gz
+./skill-manager/skill-manager
 ```
-
-### npm（macOS ARM64/x64 和 Linux x64/ARM64）
-
-```bash
-npm install -g @recklyss/skill-manager
-skill-manager start
-```
-
-npm wrapper 会为当前平台和 CPU 架构下载对应的原生 release artifact。
-GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release artifact。
 
 ## 支持的 harness
 
@@ -206,6 +204,16 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
       <strong>GitHub Copilot</strong><br />
       <a href="https://docs.github.com/en/copilot/how-tos/copilot-cli">文档</a>
     </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/pi-logo.svg" alt="Pi" height="56" /><br />
+      <strong>Pi</strong><br />
+      <a href="https://github.com/earendil-works/pi">文档</a>
+    </td>
+    <td align="center" valign="middle">
+      <img src="assets/harness-logos/deepseek-logo.svg" alt="DeepSeek" height="56" /><br />
+      <strong>DeepSeek</strong><br />
+      <a href="https://github.com/deepseek-ai/deepseek-harness">文档</a>
+    </td>
   </tr>
 </table>
 
@@ -218,6 +226,8 @@ GitHub Releases 会发布 macOS ARM64/x64 和 Linux x64/ARM64 的原生 release 
 | Hermes Agent | 支持 | 支持 | 暂不支持 |
 | OpenClaw | 支持 | 暂不支持 | 暂不支持 |
 | GitHub Copilot | 支持 | 支持 | 暂不支持 |
+| Pi | 支持 | 支持 | 暂不支持 |
+| DeepSeek | 支持 | 支持 | 暂不支持 |
 
 ## 本地优先安全模型
 
@@ -318,8 +328,10 @@ CLI marketplace 条目仅用于预览。
 | Cursor | `SKILL_MANAGER_CURSOR_ROOT` | `~/.cursor/skills` |
 | OpenCode | `SKILL_MANAGER_OPENCODE_ROOT` | `~/.config/opencode/skills` |
 | Hermes Agent | `SKILL_MANAGER_HERMES_ROOT` | `${HERMES_HOME:-~/.hermes}/skills` |
-| OpenClaw | `n/a` | `~/.openclaw/skills` |
+| OpenClaw | `SKILL_MANAGER_OPENCLAW_ROOT` | `~/.openclaw/skills` |
+| Pi | `SKILL_MANAGER_PI_ROOT` | `~/.pi/agent/skills` |
 | GitHub Copilot | `SKILL_MANAGER_COPILOT_ROOT` | `~/.copilot/skills` |
+| DeepSeek | `SKILL_MANAGER_DEEPSEEK_ROOT` | `${DSH_HOME:-~/.dsh}/skills` |
 
 MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配置路径，并跳过不支持的 harness 写入。Hermes Agent 配置发现会优先使用 `SKILL_MANAGER_HERMES_HOME`，然后是 `HERMES_HOME`，最后回退到 `~/.hermes`。
 
@@ -329,32 +341,31 @@ MCP 配置位置由 harness 拥有。Skill Manager 只写入经过验证的配�
 
 ```bash
 # 要求：Rust 1.85+、Node.js 24+（见 `.nvmrc`）
-npm install
-npm run tauri:dev
+pnpm install
+pnpm run dev
 ```
 
-应用会以原生桌面窗口打开——无需浏览器，也无需手动启动服务器。
+应用会以原生桌面窗口打开——无需浏览器，也无需手动启动服务器。当前仅支持 **macOS 和 Linux** 桌面平台（不支持 Windows 或移动端构建）。
 
 构建原生安装包：
 
 ```bash
-npm run tauri:build
+pnpm run build
 ```
 
 ### 验证
 
 ```bash
-npm run typecheck
-npm test
-npm run test:rust                # Rust 集成测试
-npm run build
+pnpm run typecheck
+pnpm test
+bash scripts/test_rust.sh        # Rust 集成测试
+pnpm run build
 cd src-tauri && cargo check      # Rust 编译检查
 ```
 
 ## 故障排查
 
 - 如果商城请求失败并显示 `Marketplace is temporarily unavailable`，请确认网络连接后重试。
-- 在 macOS 上，如果 `npm install -g @recklyss/skill-manager` 提示 Homebrew 已拥有 `skill-manager`，请先卸载 Homebrew formula。反过来也一样：切回 Homebrew 前请先卸载 npm 包。
 - 如果某个 MCP harness 显示为不可用，说明 Skill Manager 检测到本地客户端缺失，或该客户端不支持所需配置界面。
 
 ## 后续计划

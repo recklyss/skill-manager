@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 use super::store::McpServerSpec;
 use crate::marketplace::McpMarketplaceService;
@@ -11,16 +10,12 @@ pub struct McpAvailabilityResult {
     pub reason: Option<String>,
 }
 
-pub type AvailabilityCache = HashMap<(String, String), McpAvailabilityResult>;
-
 pub fn availability_cache_key(name: &str, spec: &McpServerSpec) -> (String, String) {
     (name.to_string(), spec.revision.clone())
 }
 
 #[derive(Clone, Default)]
-pub struct McpAvailabilityProbe {
-    timeout: Duration,
-}
+pub struct McpAvailabilityProbe;
 
 impl McpAvailabilityProbe {
     pub fn probe(&self, spec: &McpServerSpec) -> McpAvailabilityResult {

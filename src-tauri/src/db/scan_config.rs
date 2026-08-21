@@ -49,19 +49,6 @@ impl ScanConfigRepository {
         })
     }
 
-    pub fn get_active(&self) -> Result<Option<LlmScanConfigRow>, crate::db::DatabaseError> {
-        self.db.with_connection(|conn| {
-            let mut stmt = conn.prepare(&format!(
-                "SELECT {CONFIG_COLUMNS} FROM llm_scan_configs WHERE is_active = 1"
-            ))?;
-            let mut rows = stmt.query([])?;
-            if let Some(row) = rows.next()? {
-                return row_to_config(row).map(Some);
-            }
-            Ok(None)
-        })
-    }
-
     pub fn get_by_id(&self, config_id: i64) -> Result<Option<LlmScanConfigRow>, crate::db::DatabaseError> {
         self.db.with_connection(|conn| {
             let mut stmt = conn.prepare(&format!(

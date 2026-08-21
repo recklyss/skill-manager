@@ -5,32 +5,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build, Test, and Development Commands
 
 ```bash
-# Initial dev setup (npm deps only)
-scripts/install-dev.sh
-# or: npm install
+# Initial dev setup (pnpm deps only)
+pnpm install
 
 # Run the Tauri desktop app (embedded Rust API on :18000)
-npm run tauri:dev
-# Alias: scripts/start-dev.sh
-
-# Frontend-only hot reload (no Tauri shell, needs running backend)
-npm run dev
+pnpm run dev
 
 # Validation
-npm run typecheck              # TypeScript type checking
-npm run test:rust              # Rust integration tests (src-tauri)
-npm test                       # Frontend tests (vitest)
-npm run build                  # Production frontend build
+pnpm run typecheck             # TypeScript type checking
+pnpm test                      # Frontend tests (vitest)
+bash scripts/test_rust.sh      # Rust integration tests (src-tauri)
+VITE_API_BASE=/api pnpm exec vite build   # Frontend-only build check
+
+# Build & package the desktop app (bundles frontend via Tauri's beforeBuildCommand)
+pnpm run build
+
+# Publish GitHub Release artifacts: handled by .github/workflows/release.yml
+# (tarball via scripts/package_release_artifact.sh)
 
 # OpenAPI TypeScript client (from checked-in openapi.json)
-npm run codegen:openapi
+pnpm exec openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/generated.ts
 ```
 
-The app ships as a **Tauri desktop application** with an embedded Axum HTTP server on `http://127.0.0.1:18000`. Health: `http://127.0.0.1:18000/api/health`.
+The app ships as a **Tauri desktop application** for **macOS and Linux only** (no Windows or mobile targets) with an embedded Axum HTTP server on `http://127.0.0.1:18000`. Health: `http://127.0.0.1:18000/api/health`.
 
 ## Architecture
 
-Skill Manager is a **local-first control center** for AI agent extensions (Skills, MCP servers, slash commands) across multiple agent harnesses. It ships as a Tauri desktop app (Rust backend + React frontend).
+Skill Manager is a **local-first control center** for AI agent extensions (Skills, MCP servers, slash commands) across multiple agent harnesses. It ships as a Tauri **desktop-only** app for **macOS and Linux** (Windows not supported yet) with a Rust backend and React frontend.
 
 ### Rust Backend (`src-tauri/`)
 
@@ -46,7 +47,7 @@ Tauri shell (lib.rs) → Axum server (server/) → Domain services → Harness/D
 - **`src-tauri/src/scan/`** — SQLite-backed LLM scan configs and static skill analysis.
 - **`src-tauri/src/marketplace/`** — Skills, MCP, and CLI catalog clients with install tokens.
 - **`src-tauri/src/db/`** — SQLite database for scan configs. Schema via `db/migrations.rs`.
-- **`src-tauri/src/paths.rs`** — App-owned file paths under `~/Library/Application Support/skill-manager` (macOS) or XDG dirs (Linux).
+- **`src-tauri/src/paths.rs`** — App-owned file paths under `~/Library/Application Support/skill-manager` (macOS) or XDG dirs (Linux). Windows is not supported yet.
 
 ### Application Container
 
@@ -84,15 +85,11 @@ Shared components live in `frontend/src/components/`. The API client (`api/gener
 - Env vars for custom skill roots: `SKILL_MANAGER_<HARNESS>_ROOT`.
 - Frontend uses CSS custom properties for theming.
 
-### Migration Notes
-
-See `full-repo-review-report.md` for Python→Rust migration status and remaining parity gaps. All 56 API routes exist; some behaviors (LLM scan, HTTP MCP probe) are partial.
-
 ### Integration Tests
 
 ```bash
 cd src-tauri && cargo test --no-fail-fast -- --test-threads=1
-# or: npm run test:rust
+# or: bash scripts/test_rust.sh
 ```
 
 Tests live in `src-tauri/tests/` with shared fixtures in `tests/common/mod.rs`.

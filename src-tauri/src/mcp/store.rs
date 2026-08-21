@@ -94,7 +94,7 @@ impl McpServerStore {
     }
 
     pub fn upsert(&self, spec: McpServerSpec) -> Result<McpServerSpec, String> {
-        let mut stamped = prepare_managed_spec(spec);
+        let stamped = prepare_managed_spec(spec);
         let (mut entries, issues) = self.load_manifest();
         if !issues.is_empty() && entries.is_empty() {
             return Err("manifest has issues".to_string());
@@ -166,18 +166,16 @@ impl McpServerStore {
     }
 
     fn write_manifest(&self, entries: &[McpServerSpec]) -> Result<(), String> {
-        if let Some(parent) = self.manifest_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
         let payload = json!({
             "version": 6,
             "servers": entries.iter().map(spec_to_record).collect::<Vec<_>>(),
         });
-        let temp = self.manifest_path.with_extension("json.tmp");
-        fs::write(&temp, serde_json::to_string_pretty(&payload).unwrap_or_default())
-            .map_err(|e| e.to_string())?;
-        fs::rename(&temp, &self.manifest_path).map_err(|e| e.to_string())?;
-        Ok(())
+        crate::fsutil::atomic_write(
+            &self.manifest_path,
+            serde_json::to_string_pretty(&payload)
+                .unwrap_or_default()
+                .as_bytes(),
+        )
     }
 }
 
@@ -214,8 +212,4 @@ fn compute_revision(spec: &McpServerSpec) -> String {
     });
     let digest = Sha256::digest(serde_json::to_string(&payload).unwrap_or_default().as_bytes());
     format!("{:x}", digest)[..16].to_string()
-}
-
-pub fn redacted_spec_dict(spec: &McpServerSpec) -> Value {
-    super::redaction::redacted_spec_dict(spec)
 }

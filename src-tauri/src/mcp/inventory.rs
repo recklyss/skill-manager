@@ -9,7 +9,6 @@ pub fn build_inventory(
     scans: &[McpHarnessScan],
     issues: Vec<McpInventoryIssue>,
 ) -> McpInventory {
-    let columns: Vec<_> = scans.iter().map(|s| s.harness.clone()).collect();
     let mut bindings_by_name: HashMap<String, Vec<McpBinding>> = HashMap::new();
     for scan in scans {
         for entry in &scan.entries {
@@ -18,7 +17,6 @@ pub fn build_inventory(
                 .or_default()
                 .push(McpBinding {
                     harness: scan.harness.clone(),
-                    name: entry.name.clone(),
                     state: entry.state.clone(),
                     drift_detail: entry.drift_detail.clone(),
                 });
@@ -59,7 +57,6 @@ pub fn build_inventory(
     }
 
     McpInventory {
-        columns,
         entries,
         issues,
     }

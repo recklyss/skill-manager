@@ -4,7 +4,6 @@ import { mcpRoutes, useMcpInventoryQuery } from "../../features/mcp/public";
 import { skillsRoutes, useSkillsListQuery } from "../../features/skills/public";
 import { useSkillsCopy } from "../../features/skills/i18n";
 import { slashCommandRoutes, useSlashCommandsQuery } from "../../features/slash-commands/public";
-import { marketplaceRoutes } from "../../features/marketplace/public";
 import { useCommonCopy } from "../../i18n";
 
 export type SidebarIconKey = "overview" | "skills" | "slash-commands" | "mcp" | "marketplace";
@@ -49,6 +48,11 @@ export function useSidebarModel(): SidebarModel {
           key: "overview",
           to: "/overview",
           label: common.nav.overview,
+        },
+        {
+          key: "marketplace",
+          to: "/marketplace",
+          label: common.nav.marketplace,
         },
       ],
       groups: [
@@ -96,16 +100,6 @@ export function useSidebarModel(): SidebarModel {
               label: common.productLanguage.needsReview,
               count: mcpCounts.needsReview,
             },
-          ],
-        },
-        {
-          key: "marketplace",
-          label: common.nav.marketplace,
-          iconKey: "marketplace",
-          links: [
-            { key: "marketplace-skills", to: marketplaceRoutes.skills, label: common.nav.skills },
-            { key: "marketplace-mcp", to: marketplaceRoutes.mcp, label: "MCP" },
-            { key: "marketplace-clis", to: marketplaceRoutes.clis, label: common.nav.clis },
           ],
         },
       ],

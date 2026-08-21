@@ -1,4 +1,4 @@
-import { lazy, Suspense, useId, useMemo } from "react";
+import { Suspense, useId, useMemo } from "react";
 import { ArrowUpRight, Plus, RotateCcw } from "lucide-react";
 
 import { DetailDisclosure } from "../../../components/detail/DetailDisclosure";
@@ -7,13 +7,12 @@ import { DetailLoadingChip } from "../../../components/detail/DetailLoadingChip"
 import { DetailSourceLinks, type DetailSourceLink } from "../../../components/detail/DetailSourceLinks";
 import { ErrorBanner } from "../../../components/ErrorBanner";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import MarkdownContent from "../../../components/MarkdownContent";
 import { useMarketplaceDetailQuery, useMarketplaceDocumentQuery } from "../api/queries";
 import type { MarketplaceDetailDto, MarketplaceItemDto } from "../api/types";
 import { formatMarketplaceInstalls, formatMarketplaceStars } from "../model/formatters";
 import { useMarketplaceCopy, type MarketplaceCopy } from "../i18n";
 import { MarketplaceDetailPendingDocument, MarketplaceDetailSkeleton } from "./MarketplaceDetailSkeleton";
-
-const MarkdownContent = lazy(() => import("../../../components/MarkdownContent"));
 
 interface MarketplaceDetailViewProps {
   itemId: string;
@@ -163,7 +162,11 @@ export function MarketplaceDetailView({
 
       <div className="skill-detail__body detail-sheet__body" aria-labelledby={headingId}>
         <section className="skill-detail__intro">
-          <p className="skill-detail__copy">{detail.description || copy.detail.skill.noDescription}</p>
+          {detail.description ? (
+            <MarkdownContent markdown={detail.description} />
+          ) : (
+            <p className="skill-detail__copy">{copy.detail.skill.noDescription}</p>
+          )}
           <div className="marketplace-detail__stats">
             <span className="marketplace-detail__stat">
               {copy.detail.skill.installs(formatMarketplaceInstalls(detail.installs))}

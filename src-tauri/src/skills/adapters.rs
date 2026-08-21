@@ -17,6 +17,7 @@ use crate::harness::{
 use super::identity::SourceDescriptor;
 use super::observations::{SkillObservation, SkillsHarnessScan};
 use super::package::{find_plugin_skill_containers, find_skill_roots, parse_skill_package, SkillParseError};
+use crate::fsutil::copy_dir_all;
 
 #[derive(Debug, Clone)]
 pub struct SkillsHarnessAdapter {
@@ -33,7 +34,6 @@ pub struct SkillsHarnessAdapter {
 #[derive(Debug, Clone)]
 struct ResolvedRoot {
     scope: String,
-    label: String,
     path: PathBuf,
 }
 
@@ -95,11 +95,8 @@ impl SkillsHarnessAdapter {
             if current == resolved_target {
                 return Ok(());
             }
-            return Err(ApiError::conflict(format!(
-                "symlink already exists but points to {}, not {}",
-                current.display(),
-                resolved_target.display()
-            )));
+            // stale symlink — remove it and re-create below
+            std::fs::remove_file(&link).map_err(|e| ApiError::internal(e.to_string()))?;
         }
         if link.is_dir() {
             return self.adopt_local_copy(&link, package_path);
@@ -147,11 +144,9 @@ impl SkillsHarnessAdapter {
             if current == resolved_target {
                 return Ok(());
             }
-            return Err(ApiError::conflict(format!(
-                "symlink exists but points to {}, not {}",
-                current.display(),
-                resolved_target.display()
-            )));
+            // stale symlink — remove it and re-create
+            std::fs::remove_file(existing_dir).map_err(|e| ApiError::internal(e.to_string()))?;
+            return symlink(&resolved_target, existing_dir).map_err(|e| ApiError::internal(e.to_string()));
         }
         std::fs::remove_dir_all(existing_dir).map_err(|e| ApiError::internal(e.to_string()))?;
         symlink(&resolved_target, existing_dir).map_err(|e| ApiError::internal(e.to_string()))
@@ -662,13 +657,11 @@ pub fn build_skills_adapters(kernel: &HarnessKernelService) -> Vec<SkillsHarness
             let managed_root = profile.resolve_managed_root(&kernel.context);
             let mut resolved_roots = vec![ResolvedRoot {
                 scope: "canonical".into(),
-                label: "Managed skills root".into(),
                 path: managed_root.clone(),
             }];
             for root in profile.discovery_roots {
                 resolved_roots.push(ResolvedRoot {
                     scope: root.scope.to_string(),
-                    label: root.label.to_string(),
                     path: (root.path_resolver)(&kernel.context),
                 });
             }
@@ -679,7 +672,6 @@ pub fn build_skills_adapters(kernel: &HarnessKernelService) -> Vec<SkillsHarness
                 {
                     resolved_roots.push(ResolvedRoot {
                         scope: format!("skill-directories-{index}"),
-                        label: "Copilot settings skill directory".into(),
                         path,
                     });
                 }
@@ -721,17 +713,3 @@ pub fn scan_all_adapters(adapters: &[SkillsHarnessAdapter]) -> Vec<SkillsHarness
     adapters.iter().map(|adapter| adapter.scan()).collect()
 }
 
-fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(dst)?;
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        let dest_path = dst.join(entry.file_name());
-        if ty.is_dir() {
-            copy_dir_all(&entry.path(), &dest_path)?;
-        } else {
-            std::fs::copy(entry.path(), dest_path)?;
-        }
-    }
-    Ok(())
-}

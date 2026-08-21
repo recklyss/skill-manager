@@ -21,6 +21,7 @@ const englishSettingsCopy = {
     detected: "Detected on this machine",
     notDetected: "Not detected on this machine",
     enableSupport: (label: string) => `Enable ${label} support`,
+    revealRoot: (label: string) => `Reveal ${label} root in Finder`,
     saving: "Saving...",
   },
   errors: {
@@ -54,6 +55,7 @@ export const settingsCopy = {
       detected: "已在这台机器上检测到",
       notDetected: "未在这台机器上检测到",
       enableSupport: (label: string) => `启用 ${label} 支持`,
+      revealRoot: (label: string) => `在访达中显示 ${label} 根目录`,
       saving: "保存中...",
     },
     errors: {

@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 
 import { BoardColumn } from "./BoardColumn";
-import { BoardSkillCard } from "./BoardSkillCard";
+import { BoardCardOverlay, BoardSkillCard } from "./BoardSkillCard";
 import { useToast } from "../../../../components/Toast";
+import { useSkillsCopy } from "../../i18n";
 import { bucketForRow, bucketRows, type SkillBucket } from "../../model/bucketForRow";
 import { hasPendingToggleForSkill } from "../../model/pending";
 import type { CellActionKey } from "../../model/pending";
@@ -47,8 +50,19 @@ export function BoardView({
   onSetManySkillsAllHarnesses,
 }: BoardViewProps) {
   const { toast } = useToast();
+  const copy = useSkillsCopy();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [transitionTarget, setTransitionTarget] = useState<Map<string, "enabled" | "disabled">>(() => new Map());
+  const [activeRef, setActiveRef] = useState<string | null>(null);
+
+  const activeRow = useMemo(
+    () => (activeRef ? rows.find((row) => row.skillRef === activeRef) ?? null : null),
+    [activeRef, rows],
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveRef(String(event.active.id));
+  }, []);
 
   // Clear a pin once all of the skill's cells have settled (no pending toggles).
   useEffect(() => {
@@ -81,6 +95,7 @@ export function BoardView({
     const strip = (list: SkillListRow[]) => list.filter((row) => !pinned.has(row.skillRef));
     const rebucketed = {
       disabled: strip(base.disabled),
+      single: strip(base.single),
       selective: strip(base.selective),
       enabled: strip(base.enabled),
     };
@@ -93,6 +108,7 @@ export function BoardView({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveRef(null);
       const { active, over } = event;
       if (!over) return;
       const target = over.id;
@@ -174,11 +190,16 @@ export function BoardView({
   );
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveRef(null)}
+    >
       <div className="skill-board" role="group" aria-label="Skills in use board">
         <BoardColumn
           kind="disabled"
-          title="Disabled everywhere"
+          title={copy.inUse.boardColumns.disabled}
           description="Not active on any harness."
           count={buckets.disabled.length}
           emptyMessage="No inactive skills — every skill in use is running somewhere."
@@ -189,7 +210,25 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
+              onOpenSkill={onOpenSkill}
+              onToggleChecked={onToggleChecked}
+            />
+          ))}
+        </BoardColumn>
+
+        <BoardColumn
+          kind="single"
+          title={copy.inUse.boardColumns.single}
+          description="Enabled on a single harness."
+          count={buckets.single.length}
+          emptyMessage="No skills are limited to one harness."
+        >
+          {buckets.single.map((row) => (
+            <BoardSkillCard
+              key={row.skillRef}
+              row={row}
+              checked={checkedRefs.has(row.skillRef)}
+              pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
@@ -198,10 +237,10 @@ export function BoardView({
 
         <BoardColumn
           kind="selective"
-          title="Selective"
-          description="Enabled on some harnesses, not others."
+          title={copy.inUse.boardColumns.selective}
+          description="Enabled on multiple harnesses, but not all."
           count={buckets.selective.length}
-          emptyMessage="No skills are partially enabled. Open a card to pick specific harnesses."
+          emptyMessage="No skills are partially enabled across several harnesses."
         >
           {buckets.selective.map((row) => (
             <BoardSkillCard
@@ -209,7 +248,6 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
@@ -218,7 +256,7 @@ export function BoardView({
 
         <BoardColumn
           kind="enabled"
-          title="Enabled everywhere"
+          title={copy.inUse.boardColumns.enabled}
           description="Active on every available harness."
           count={buckets.enabled.length}
           emptyMessage="No skills are universally enabled yet."
@@ -229,13 +267,22 @@ export function BoardView({
               row={row}
               checked={checkedRefs.has(row.skillRef)}
               pending={hasPendingToggleForSkill(pendingToggleKeys, row.skillRef)}
-              multiDragCount={checkedRefs.size}
               onOpenSkill={onOpenSkill}
               onToggleChecked={onToggleChecked}
             />
           ))}
         </BoardColumn>
       </div>
+
+      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
+        {activeRow ? (
+          <BoardCardOverlay
+            row={activeRow}
+            checked={checkedRefs.has(activeRow.skillRef)}
+            multiDragCount={checkedRefs.size}
+          />
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

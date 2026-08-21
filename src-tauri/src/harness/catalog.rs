@@ -2,14 +2,14 @@ use std::path::PathBuf;
 
 use super::contracts::{
     BindingProfile, CommandFileBindingProfile, CommandFileRenderFormat, ConfigFileFormat,
-    ConfigSubtreeBindingProfile, FamilyKey, FileTreeAvailability, FileTreeBindingProfile,
-    FileTreeDiscoveryRoot, FileTreeLayout, HarnessDefinition,
+    ConfigSubtreeBindingProfile, CordisPatchBindingProfile, FamilyKey, FileTreeAvailability,
+    FileTreeBindingProfile, FileTreeDiscoveryRoot, FileTreeLayout, HarnessDefinition,
 };
 use super::resolution::{
     agents_skills_root, claude_skills_root, codex_admin_skills_root, codex_legacy_skills_root,
     codex_skills_root, copilot_installed_plugins_root, copilot_skills_root, cursor_skills_root,
-    hermes_home, hermes_skills_root,
-    opencode_skills_root, openclaw_skills_root, ResolutionContext,
+    deepseek_mcp_config, deepseek_skills_root, dsh_home, hermes_home, hermes_skills_root,
+    openclaw_skills_root, opencode_skills_root, pi_mcp_config, pi_skills_root, ResolutionContext,
 };
 
 fn codex_config(ctx: &ResolutionContext) -> PathBuf {
@@ -375,6 +375,63 @@ static OPENCLAW_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
     ),
 ];
 
+static PI_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
+    (
+        FamilyKey::Skills,
+        BindingProfile::FileTree(FileTreeBindingProfile {
+            managed_env: Some("SKILL_MANAGER_PI_ROOT"),
+            managed_default: pi_skills_root,
+            discovery_roots: &[],
+            availability: FileTreeAvailability::Cli,
+            app_probe_paths: &[],
+            layout: FileTreeLayout::Flat,
+            default_category: None,
+        }),
+    ),
+    (
+        FamilyKey::Mcp,
+        BindingProfile::ConfigSubtree(ConfigSubtreeBindingProfile {
+            config_path_resolver: pi_mcp_config,
+            file_format: ConfigFileFormat::Json,
+            subtree_path: &["mcpServers"],
+            codec: "pi",
+            capability_probe: None,
+            capability_unavailable_reason: None,
+        }),
+    ),
+];
+
+/// DeepSeek Harness is most often launched via `npx @deepseek-ai/dsh` (a
+/// transient cache path that never lands on PATH), so a `dsh` binary probe
+/// alone misses a running install. Treat the harness home directory
+/// (`$DSH_HOME` or `~/.dsh`) as evidence the harness has been installed.
+static DEEPSEEK_APP_PROBES: &[fn(&ResolutionContext) -> PathBuf] = &[dsh_home];
+
+static DEEPSEEK_BINDINGS: &[(FamilyKey, BindingProfile)] = &[
+    (
+        FamilyKey::Skills,
+        BindingProfile::FileTree(FileTreeBindingProfile {
+            managed_env: Some("SKILL_MANAGER_DEEPSEEK_ROOT"),
+            managed_default: deepseek_skills_root,
+            discovery_roots: &[],
+            availability: FileTreeAvailability::CliOrApp,
+            app_probe_paths: DEEPSEEK_APP_PROBES,
+            layout: FileTreeLayout::Flat,
+            default_category: None,
+        }),
+    ),
+    (
+        FamilyKey::Mcp,
+        BindingProfile::CordisPatch(CordisPatchBindingProfile {
+            config_path_resolver: deepseek_mcp_config,
+            package_name: "@deepseek-ai/dsh-mcp-client",
+            codec: "deepseek",
+            capability_probe: None,
+            capability_unavailable_reason: None,
+        }),
+    ),
+];
+
 pub static SUPPORTED_HARNESS_DEFINITIONS: &[HarnessDefinition] = &[
     HarnessDefinition {
         harness: "codex",
@@ -425,19 +482,26 @@ pub static SUPPORTED_HARNESS_DEFINITIONS: &[HarnessDefinition] = &[
         install_probe: "copilot",
         bindings: COPILOT_BINDINGS,
     },
+    HarnessDefinition {
+        harness: "pi",
+        label: "Pi",
+        logo_key: Some("pi"),
+        install_probe: "pi",
+        bindings: PI_BINDINGS,
+    },
+    HarnessDefinition {
+        harness: "deepseek",
+        label: "DeepSeek",
+        logo_key: Some("deepseek"),
+        install_probe: "dsh",
+        bindings: DEEPSEEK_BINDINGS,
+    },
 ];
 
 pub fn supported_harness_ids() -> Vec<&'static str> {
     SUPPORTED_HARNESS_DEFINITIONS
         .iter()
         .map(|definition| definition.harness)
-        .collect()
-}
-
-pub fn harness_definitions_for_family(family: FamilyKey) -> Vec<&'static HarnessDefinition> {
-    SUPPORTED_HARNESS_DEFINITIONS
-        .iter()
-        .filter(|definition| definition.supports_family(family))
         .collect()
 }
 

@@ -7,8 +7,8 @@ use super::inventory::InventoryEntry;
 use super::package::fingerprint_package;
 use super::policy::{can_stop_managing, can_update, has_local_changes};
 use super::read_models::{
-    SkillDetailResponse, SkillSourceLinksResponse, SkillSourceStatusResponse, SkillsPageResponse,
-    SkillsReadModelService,
+    resolve_detail_package_root, SkillDetailResponse, SkillSourceLinksResponse,
+    SkillSourceStatusResponse, SkillsPageResponse, SkillsReadModelService,
 };
 use super::source_fetch::SourceFetchService;
 
@@ -146,18 +146,6 @@ impl SkillsQueryService {
     pub fn get_skill_path(&self, skill_ref: &str) -> Option<PathBuf> {
         let inventory = self.read_models.inventory();
         let entry = inventory.find(skill_ref)?;
-        if let Some(path) = &entry.package_path {
-            if path.join("SKILL.md").is_file() {
-                return Some(path.clone());
-            }
-        }
-        for sighting in entry.detail_sightings() {
-            if let Some(path) = &sighting.path {
-                if path.join("SKILL.md").is_file() {
-                    return Some(path.clone());
-                }
-            }
-        }
-        None
+        resolve_detail_package_root(entry)
     }
 }

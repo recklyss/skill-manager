@@ -1,5 +1,6 @@
 pub mod server;
 pub mod paths;
+pub mod fsutil;
 pub mod harness;
 pub mod skills;
 pub mod error;
@@ -89,7 +90,6 @@ pub fn api_router(state: AppState) -> Router {
     Router::new().nest("/api", server::api_router(state))
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let state = build_app_state(AppPaths::resolve());
 

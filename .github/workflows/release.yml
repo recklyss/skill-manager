@@ -33,40 +33,27 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: pnpm/action-setup@v6
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf
+        run: bash scripts/install_linux_tauri_deps.sh
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check version sync
         run: node scripts/sync_version.mjs --check
 
-      - name: Check npm LICENSE sync
-        run: node scripts/sync_public_metadata.mjs --check
-
       - name: Build Tauri release
-        run: npm run tauri:build
+        run: pnpm run build
 
-      - name: Package npm/Homebrew tarball
+      - name: Package release tarball
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           bash scripts/package_release_artifact.sh "${{ matrix.target }}" "$VERSION"
@@ -82,8 +69,6 @@ jobs:
   publish-release:
     needs: build-release
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
 
@@ -107,87 +92,3 @@ jobs:
           name: Release ${{ steps.version.outputs.tag }}
           generate_release_notes: true
           files: .artifacts/release/**/*
-
-  publish-npm:
-    needs: publish-release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
-
-      - name: Validate npm publish secret
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "NPM_TOKEN is required for releases." >&2
-            exit 1
-          fi
-
-      - name: Verify release version metadata
-        run: |
-          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
-          NPM_VERSION="$(node -p "require('./packaging/npm/package.json').version")"
-          if [ "$FILE_VERSION" != "$NPM_VERSION" ]; then
-            echo "Version mismatch: VERSION=$FILE_VERSION npm=$NPM_VERSION" >&2
-            exit 1
-          fi
-          node scripts/sync_version.mjs --check
-          node scripts/sync_public_metadata.mjs --check
-
-      - name: Publish npm wrapper
-        working-directory: packaging/npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  publish-homebrew:
-    needs: publish-release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/download-artifact@v8
-        with:
-          path: .artifacts/release
-          pattern: release-*
-          merge-multiple: true
-
-      - name: Validate Homebrew tap secret
-        env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          if [ -z "${HOMEBREW_TAP_TOKEN}" ]; then
-            echo "HOMEBREW_TAP_TOKEN is required for Homebrew releases." >&2
-            exit 1
-          fi
-
-      - name: Generate Homebrew formula
-        run: |
-          VERSION="$(tr -d '[:space:]' < VERSION)"
-          bash scripts/generate_homebrew_formula.sh "$VERSION" .artifacts/release packaging/homebrew/skill-manager.rb
-
-      - name: Push formula to Homebrew tap
-        env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          VERSION: ${{ needs.publish-release.outputs.version }}
-        run: |
-          set -euo pipefail
-          TAP_DIR="$(mktemp -d)"
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/recklyss/homebrew-tap.git" "$TAP_DIR"
-          mkdir -p "$TAP_DIR/Formula"
-          cp packaging/homebrew/skill-manager.rb "$TAP_DIR/Formula/skill-manager.rb"
-          cd "$TAP_DIR"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet; then
-            echo "Homebrew formula already up to date."
-            exit 0
-          fi
-          git add Formula/skill-manager.rb
-          git commit -m "chore: release skill-manager v${VERSION}"
-          git push origin HEAD

@@ -4,7 +4,7 @@ import { ArrowUpRight, Plus, RotateCcw, Star } from "lucide-react";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import type { MarketplaceItemDto } from "../api/types";
 import { useMarketplaceCopy } from "../i18n";
-import { formatMarketplaceInstalls, formatMarketplaceStars } from "../model/formatters";
+import { formatMarketplaceInstalls, formatMarketplaceStars, stripMarkdownForPreview } from "../model/formatters";
 
 interface MarketplaceCardProps {
   item: MarketplaceItemDto;
@@ -104,7 +104,7 @@ export function MarketplaceCard({
       </div>
 
       <p className="market-card__body" title={item.description || undefined}>
-        {item.description || copy.detail.cards.noSkillSummary}
+        {item.description ? stripMarkdownForPreview(item.description) : copy.detail.cards.noSkillSummary}
       </p>
 
       <div className="market-card__footer">

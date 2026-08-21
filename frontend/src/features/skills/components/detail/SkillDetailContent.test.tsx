@@ -64,11 +64,13 @@ describe("SkillDetailContent", () => {
     );
     expect(screen.getByRole("heading", { level: 3, name: "About" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Harnesses" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "SKILL.md" })).toBeInTheDocument();
-    expect(screen.queryByText("Inspect traces.")).not.toBeInTheDocument();
+    const documentToggle = screen.getByRole("button", { name: "SKILL.md" });
+    expect(documentToggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("Unmanaged")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "SKILL.md" }));
+    fireEvent.click(documentToggle);
+    expect(documentToggle).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByRole("heading", { level: 2, name: "Usage" })).toBeInTheDocument();
     expect(await screen.findByText("Inspect traces.")).toBeInTheDocument();
 
     const footer = screen.getByLabelText("Skill actions");

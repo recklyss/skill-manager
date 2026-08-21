@@ -98,7 +98,7 @@ impl ScanService {
         let mut findings = static_skill_scan(&skill_path);
         let mut analyzers = vec!["static_analyzer".into()];
 
-        match run_harness_scan(harness, &skill_path, &skill_name) {
+        match run_harness_scan(&self.harness_kernel.context, harness, &skill_path, &skill_name) {
             Ok(harness_findings) => {
                 analyzers.push(format!("{harness}_scanner"));
                 findings.extend(harness_findings);

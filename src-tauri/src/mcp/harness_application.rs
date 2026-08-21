@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use super::adapters::{FileBackedMcpAdapter, McpReadModelService};
+use super::adapters::{McpAdapter, McpReadModelService};
 use super::store::McpServerSpec;
 
 #[derive(Clone)]
@@ -35,20 +33,20 @@ impl McpHarnessApplication {
 
     pub fn enable_one(
         &self,
-        adapter: &FileBackedMcpAdapter,
+        adapter: &dyn McpAdapter,
         spec: &McpServerSpec,
     ) -> McpHarnessApplicationResult {
         match adapter.enable_server(spec) {
             Ok(()) => {
                 self.read_models.invalidate();
                 McpHarnessApplicationResult {
-                    succeeded: vec![adapter.harness.clone()],
+                    succeeded: vec![adapter.harness().to_string()],
                     failed: vec![],
                 }
             }
             Err(error) => McpHarnessApplicationResult {
                 succeeded: vec![],
-                failed: vec![serde_json::json!({ "harness": adapter.harness, "error": error })],
+                failed: vec![serde_json::json!({ "harness": adapter.harness(), "error": error })],
             },
         }
     }
@@ -70,12 +68,12 @@ impl McpHarnessApplication {
         let mut succeeded = Vec::new();
         let mut failed = Vec::new();
         for adapter in adapters {
-            if !targets.contains(&adapter.harness) || skipped.contains(&adapter.harness) {
+            if !targets.contains(adapter.harness()) || skipped.contains(adapter.harness()) {
                 continue;
             }
             match adapter.enable_server(spec) {
-                Ok(()) => succeeded.push(adapter.harness.clone()),
-                Err(error) => failed.push(serde_json::json!({ "harness": adapter.harness, "error": error })),
+                Ok(()) => succeeded.push(adapter.harness().to_string()),
+                Err(error) => failed.push(serde_json::json!({ "harness": adapter.harness(), "error": error })),
             }
         }
         if !succeeded.is_empty() {
@@ -99,12 +97,12 @@ impl McpHarnessApplication {
         let mut succeeded = Vec::new();
         let mut failed = Vec::new();
         for adapter in adapters {
-            if !targets.contains(&adapter.harness) {
+            if !targets.contains(adapter.harness()) {
                 continue;
             }
             match adapter.disable_server(name) {
-                Ok(()) => succeeded.push(adapter.harness.clone()),
-                Err(error) => failed.push(serde_json::json!({ "harness": adapter.harness, "error": error })),
+                Ok(()) => succeeded.push(adapter.harness().to_string()),
+                Err(error) => failed.push(serde_json::json!({ "harness": adapter.harness(), "error": error })),
             }
         }
         if !succeeded.is_empty() {
@@ -125,7 +123,7 @@ pub fn harnesses_in_states(
         read_models
             .enabled_addressable_adapters()
             .into_iter()
-            .map(|a| a.harness.clone())
+            .map(|a| a.harness().to_string())
             .collect()
     } else {
         read_models.enabled_harnesses().into_iter().collect()
