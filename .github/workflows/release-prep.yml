@@ -74,31 +74,21 @@ jobs:
           git fetch origin main
           git checkout -B main origin/main
 
-      - name: Skip when an open release PR already exists
-        if: steps.changes.outputs.has_changes == 'true'
-        id: existing_pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          PR_NUMBER="$(gh pr list --base release --state open --json headRefName,number --jq '.[] | select(.headRefName | startswith("automated/release-")) | .number' | head -n 1)"
-          echo "number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
-          if [ -n "$PR_NUMBER" ]; then
-            echo "Open release PR #${PR_NUMBER} already exists."
-          fi
-
       - name: Bump version and push release branch
-        if: steps.changes.outputs.has_changes == 'true' && steps.existing_pr.outputs.number == ''
+        if: steps.changes.outputs.has_changes == 'true'
         id: prep
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout main
-          git pull --ff-only origin main
+          git fetch origin main
           if [ "${{ steps.changes.outputs.first_release }}" = "true" ]; then
+            git checkout -B main origin/main
             node scripts/bump_version.mjs --first-release
           else
+            git fetch origin release
+            git checkout -B "release-prep" origin/release
+            git merge --no-edit -X theirs origin/main
             node scripts/bump_version.mjs --from="${{ steps.changes.outputs.base_version }}"
           fi
           NEW_VERSION="$(tr -d '[:space:]' < VERSION)"
@@ -110,14 +100,28 @@ jobs:
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
           echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Open release PR
-        if: steps.changes.outputs.has_changes == 'true' && steps.existing_pr.outputs.number == ''
+      - name: Open or update release PR
+        if: steps.changes.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          BRANCH="${{ steps.prep.outputs.branch }}"
+          VERSION="${{ steps.prep.outputs.version }}"
+          TITLE="Release v${VERSION}"
+          BODY="Automated release PR from latest main onto latest release. Version v${VERSION}. Merge to publish a GitHub Release with native artifacts. Only maintainers should merge this PR."
+          EXISTING="$(gh pr list --base release --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$EXISTING" ]; then
+            gh pr edit "$EXISTING" --title "$TITLE" --body "$BODY"
+            echo "Updated release PR #${EXISTING}."
+            exit 0
+          fi
+          STALE="$(gh pr list --base release --state open --json headRefName,number --jq '.[] | select(.headRefName | startswith("automated/release-")) | .number')"
+          for PR_NUMBER in $STALE; do
+            gh pr close "$PR_NUMBER" --comment "Superseded by ${TITLE}, rebuilt from latest release."
+          done
           gh pr create \
             --base release \
-            --head "${{ steps.prep.outputs.branch }}" \
-            --title "Release v${{ steps.prep.outputs.version }}" \
-            --body "Automated release PR from main. Version v${{ steps.prep.outputs.version }}. Merge to publish a GitHub Release with native artifacts. Only maintainers should merge this PR."
+            --head "$BRANCH" \
+            --title "$TITLE" \
+            --body "$BODY"
